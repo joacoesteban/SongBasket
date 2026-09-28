@@ -5,9 +5,11 @@
         <TopBar />
         <SearchBar />
       </div>
-      <div class="home-router" :class="routerClasses">
+      <div class="home-router">
         <RouterView v-slot="{ Component }">
-          <component :is="Component" :key="route.fullPath" />
+          <div class="router-view" :class="routerClasses">
+            <component :is="Component" :key="route.fullPath" />
+          </div>
         </RouterView>
       </div>
       <FloatingButtons style="z-index: 1" />
@@ -23,7 +25,6 @@ import {
   navigate,
   navigationDirection,
   navigationFast,
-  navigationScope,
   routeNames
 } from '../../router'
 import { useSongBasketState } from '../../state'
@@ -36,8 +37,8 @@ defineOptions({ name: 'HomeView' })
 const route = useRoute()
 const { state } = useSongBasketState()
 const routerClasses = computed<Record<string, boolean>>(() => ({
-  [navigationDirection.value]: navigationScope.value === 'home',
-  fast: navigationFast.value && navigationScope.value === 'home'
+  [navigationDirection.value]: true,
+  fast: navigationFast.value
 }))
 
 watch(
@@ -59,7 +60,7 @@ onMounted(() => {
 })
 </script>
 
-<style>
+<style lang="scss">
 .whole-container {
   z-index: 0;
 }
@@ -77,52 +78,54 @@ onMounted(() => {
 .home-router {
   z-index: 1;
   max-height: 100%;
-  transition:
-    padding var(--ts-g),
-    transform var(--home-transition),
-    opacity var(--home-transition);
+  transition: padding var(--ts-g);
   padding-top: var(--filters-container-height);
   display: flex;
   box-sizing: border-box;
   overflow: auto;
-  opacity: 1;
-  transform: scale(1);
-  transform-origin: bottom;
 }
 
-.home-router.fast {
-  transition: transform 0s;
-}
-
-.home-router:not(.release) {
-  transition-timing-function: var(--bezier-out);
-}
-
-.home-router.push,
-.home-router.pull,
-.home-router.left,
-.home-router.right {
-  opacity: 0;
-}
-
-.home-router.push {
-  transform: scale(0.75);
-}
-
-.home-router.pull {
-  transform: scale(1.5);
-}
-
-.home-router.left {
-  transform: translateX(-3em);
-}
-
-.home-router.right {
-  transform: translateX(3em);
-}
-
-.home-router.release {
+.router-view {
+  $transition: var(--home-transition);
+  transition:
+    transform $transition,
+    opacity $transition;
   opacity: 1;
   transform: scale(1) translateX(0);
+  transform-origin: bottom;
+
+  &.fast {
+    transition: transform 0s;
+  }
+
+  &.push,
+  &.pull,
+  &.left,
+  &.right {
+    opacity: 0;
+  }
+
+  &.push {
+    transform: scale(0.75);
+  }
+
+  &.pull {
+    transform: scale(1.5);
+  }
+
+  $x-offset: 3em;
+
+  &.left {
+    transform: translateX(-$x-offset);
+  }
+
+  &.right {
+    transform: translateX($x-offset);
+  }
+
+  &.release {
+    opacity: 1;
+    transform: scale(1) translateX(0);
+  }
 }
 </style>

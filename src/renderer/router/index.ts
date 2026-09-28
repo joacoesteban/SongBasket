@@ -17,12 +17,7 @@ import TrackReview from '../components/Home/TrackReview/TrackReview.vue'
 import TracksList from '../components/Home/TracksList.vue'
 import LoadingScreen from '../components/LoadingScreen/LoadingScreen.vue'
 import Setup from '../components/Setup/Setup.vue'
-import {
-  type AnimationPhase,
-  animationFor,
-  isHomeRoute,
-  routeNames
-} from './animation'
+import { type AnimationPhase, animationFor, routeNames } from './animation'
 
 export { routeNames } from './animation'
 
@@ -88,12 +83,9 @@ const ROUTES: RouteRecordRaw[] = [
   }
 ]
 
-export type NavigationScope = 'home' | 'root'
-
 export const navigationDirection = ref<AnimationPhase | 'release'>('release')
 export const navigationFast = ref(false)
 export const navigationPending = ref(false)
-export const navigationScope = ref<NavigationScope>('root')
 
 const TRANSITION_EXIT_MS = 300
 const TRANSITION_PHASE_MS = 100
@@ -107,16 +99,10 @@ const sleep = (duration: number): Promise<void> => {
   return promise
 }
 
-const scopeFor = (from: unknown, to: unknown): NavigationScope => {
-  if (isHomeRoute(from) && isHomeRoute(to)) return 'home'
-  return 'root'
-}
-
 const resetTransition = (): void => {
   navigationDirection.value = 'release'
   navigationFast.value = false
   navigationPending.value = false
-  navigationScope.value = 'root'
   isTransitioning = false
   transitionCompletionScheduled = false
 }
@@ -129,7 +115,6 @@ const finishTransition = async (): Promise<void> => {
   navigationDirection.value = 'release'
   await sleep(TRANSITION_PHASE_MS)
   navigationPending.value = false
-  navigationScope.value = 'root'
   isTransitioning = false
   transitionCompletionScheduled = false
 }
@@ -142,7 +127,7 @@ const router = createRouter({
 router.beforeEach(async (to, from) => {
   if (from.name === undefined) return true
   isTransitioning = true
-  navigationScope.value = scopeFor(from.name, to.name)
+  navigationPending.value = true
   const animation = animationFor(from.name, to.name)
   navigationDirection.value = animation.exit
   navigationFast.value = false
