@@ -45,7 +45,7 @@
           aria-label="Go back"
           @click="navigateBack"
         >
-          <svg-icon
+          <SvgIcon
             path="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
             icon-color="var(--icon-color)"
             class-name="navigation-icon"
@@ -61,7 +61,7 @@
           aria-label="Go forward"
           @click="navigateForward"
         >
-          <svg-icon
+          <SvgIcon
             path="m10 6-1.41 1.41L13.17 12l-4.58 4.59L10 18l6-6z"
             icon-color="var(--icon-color)"
             class-name="navigation-icon"
@@ -152,6 +152,7 @@
 import { computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
+import SvgIcon from '../../../assets/icons/SvgIcon.vue'
 import {
   navigate,
   navigateBack,
