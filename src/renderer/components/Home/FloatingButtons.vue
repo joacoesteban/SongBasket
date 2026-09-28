@@ -159,6 +159,10 @@ $t: var(--ts-g);
 .sb-fab {
   -webkit-app-region: no-drag;
   box-sizing: border-box;
+  border: none;
+  padding: 0;
+  font: inherit;
+  appearance: none;
   cursor: pointer;
   pointer-events: all;
   display: flex;
