@@ -9,12 +9,10 @@
 
 <script setup lang="ts">
 import { watch } from 'vue'
-import { useRouter } from 'vue-router'
 
-import { routeNames } from '../../router'
+import { navigateReplace, routeNames } from '../../router'
 import { useSongBasketState } from '../../state'
 
-const router = useRouter()
 const { status } = useSongBasketState()
 
 watch(
@@ -22,14 +20,14 @@ watch(
   (value) => {
     if (value === null) return
     if (value.APP_STATUS.IS_LOGGED) {
-      void router.replace({ name: routeNames.home })
+      void navigateReplace({ name: routeNames.home })
       return
     }
     if (value.APP_STATUS.FOLDERS.paths.length > 0) {
-      void router.replace({ name: routeNames.folderView })
+      void navigateReplace({ name: routeNames.folderView })
       return
     }
-    void router.replace({ name: routeNames.setup })
+    void navigateReplace({ name: routeNames.setup })
   },
   { immediate: true }
 )

@@ -10,23 +10,21 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 
-import { routeNames } from '../router'
+import { navigate, routeNames } from '../router'
 import { useSongBasketState } from '../state'
 
 defineOptions({ name: 'EmptyView' })
 
-const router = useRouter()
 const { state } = useSongBasketState()
 
 const goBack = (): void => {
-  void router.push({ name: routeNames.setup })
+  navigate({ name: routeNames.setup })
 }
 
 onMounted(() => {
   if ((state.value?.playlists.length ?? 0) > 0) {
-    void router.push({ name: routeNames.home })
+    navigate({ name: routeNames.home })
   }
 })
 </script>

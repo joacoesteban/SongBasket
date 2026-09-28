@@ -29,9 +29,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
 
-import { routeNames } from '../../../router'
+import { navigate, routeNames } from '../../../router'
 import Card from '../Generic/Card.vue'
 import type { TrackItem } from '../model'
 import { artistsString, trackImage, trackName } from '../model'
@@ -52,7 +51,6 @@ const props = withDefaults(
   }
 )
 
-const router = useRouter()
 const HOVER_SCALE_OFF = false
 const cardOptions = computed(() => {
   let size = ''
@@ -82,7 +80,7 @@ const statusLabel = computed(() => {
 })
 
 const handleClick = (): void => {
-  void router.push({
+  void navigate({
     name: routeNames.trackReview,
     params: { id: props.item.id }
   })

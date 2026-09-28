@@ -20,16 +20,14 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
 
-import { routeNames } from '../../router'
+import { navigate, routeNames } from '../../router'
 import { useSongBasketActions } from '../../state/useSongBasketActions'
 import Login from '../Login.vue'
 import SetHomeFolder from './SetHomeFolder.vue'
 
 defineOptions({ name: 'SetupView' })
 
-const router = useRouter()
 const actions = useSongBasketActions()
 const currentSlide = ref(0)
 const setupError = ref<string | null>(null)
@@ -51,7 +49,7 @@ const setHomeFolder = async (): Promise<void> => {
     return
   }
   if (result.isLogged) {
-    await router.push({ name: routeNames.home })
+    await navigate({ name: routeNames.home })
     return
   }
   currentSlide.value = 1
@@ -61,7 +59,7 @@ const login = async (): Promise<void> => {
   setupError.value = null
   await actions.login()
   await actions.unlockWindow()
-  await router.push({ name: routeNames.home })
+  await navigate({ name: routeNames.home })
 }
 </script>
 

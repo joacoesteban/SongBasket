@@ -2,6 +2,7 @@
   <div ref="listElement" class="pll-container">
     <div
       class="actual-list row hideable-container"
+      :class="{ hide: navigationPending }"
       style="--list-transition-time: 250ms"
     >
       <div v-if="playlists.length === 0" class="no-playlists">
@@ -34,14 +35,12 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 
-import { routeNames } from '../../router'
+import { navigate, navigationPending, routeNames } from '../../router'
 import { useSongBasketActions, useSongBasketState } from '../../state'
 import Playlist from './Playlist.vue'
 import type { Playlist as PlaylistModel } from './model'
 
-const router = useRouter()
 const { state } = useSongBasketState()
 const { loadMorePlaylists } = useSongBasketActions()
 const listElement = ref<HTMLElement | null>(null)
@@ -74,7 +73,7 @@ const allLoadedLabel = computed(() => {
 })
 
 const openPlaylist = (id: string): void => {
-  void router.push({ name: routeNames.playlistView, params: { id } })
+  void navigate({ name: routeNames.playlistView, params: { id } })
 }
 
 const loadMore = (): void => {

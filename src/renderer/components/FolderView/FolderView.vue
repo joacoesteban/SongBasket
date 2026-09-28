@@ -26,15 +26,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
 
-import { routeNames } from '../../router'
+import { navigate, routeNames } from '../../router'
 import { useSongBasketActions } from '../../state/useSongBasketActions'
 import { useSongBasketState } from '../../state/useSongBasketState'
 import Folder from './Folder.vue'
 
 const title = 'Your Folders'
-const router = useRouter()
 const actions = useSongBasketActions()
 const state = useSongBasketState()
 const folders = computed(
@@ -43,17 +41,17 @@ const folders = computed(
 
 const openFolder = async (path: string): Promise<void> => {
   await actions.setHomeFolder(path)
-  await router.push({ name: routeNames.home })
+  await navigate({ name: routeNames.home })
 }
 
 const addFolder = async (): Promise<void> => {
   const result = await actions.askHomeFolder()
   if (result.error !== null) return
   if (result.isLogged) {
-    await router.push({ name: routeNames.home })
+    await navigate({ name: routeNames.home })
     return
   }
-  await router.push({ name: routeNames.setup })
+  await navigate({ name: routeNames.setup })
 }
 </script>
 

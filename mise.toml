@@ -18,8 +18,8 @@ description = "Build and run the app as it ships"
 run = "electron-vite preview"
 
 [tasks.test]
-description = "Bundle and run SQLite persistence tests"
-run = "bun build tests/persistence.test.ts --target=node --outfile=temp/persistence.test.mjs && node --test temp/persistence.test.mjs"
+description = "Bundle and run persistence and route-animation tests"
+run = "bun build tests/persistence.test.ts --target=node --outfile=temp/persistence.test.mjs && bun build tests/animation.test.ts --target=node --outfile=temp/animation.test.mjs && node --test temp/persistence.test.mjs temp/animation.test.mjs"
 
 [tasks."typecheck:main"]
 description = "Typecheck the main process"

@@ -3,6 +3,7 @@
     <div
       ref="actual-list"
       class="actual-list row hideable-container"
+      :class="{ hide: navigationPending }"
       style="--list-transition-time: 250ms"
     >
       <div v-if="tracks.length === 0" class="no-tracks">No Tracks found</div>
@@ -16,6 +17,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+import { navigationPending } from '../../router'
 import { useSongBasketState } from '../../state'
 import Track from './PlaylistView/Track.vue'
 import type { Track as TrackModel } from './model'

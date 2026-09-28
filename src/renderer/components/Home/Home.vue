@@ -5,11 +5,9 @@
         <TopBar />
         <SearchBar />
       </div>
-      <div class="home-router">
+      <div class="home-router" :class="routerClasses">
         <RouterView v-slot="{ Component }">
-          <Transition :name="navigationDirection">
-            <component :is="Component" :key="route.fullPath" />
-          </Transition>
+          <component :is="Component" :key="route.fullPath" />
         </RouterView>
       </div>
       <FloatingButtons style="z-index: 1" />
@@ -18,10 +16,16 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
-import { RouterView, useRoute, useRouter } from 'vue-router'
+import { computed, onMounted, watch } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 
-import { navigationDirection, routeNames } from '../../router'
+import {
+  navigate,
+  navigationDirection,
+  navigationFast,
+  navigationScope,
+  routeNames
+} from '../../router'
 import { useSongBasketState } from '../../state'
 import FloatingButtons from './FloatingButtons.vue'
 import SearchBar from './TopBar/SearchBar.vue'
@@ -29,15 +33,18 @@ import TopBar from './TopBar/TopBar.vue'
 
 defineOptions({ name: 'HomeView' })
 
-const router = useRouter()
 const route = useRoute()
 const { state } = useSongBasketState()
+const routerClasses = computed<Record<string, boolean>>(() => ({
+  [navigationDirection.value]: navigationScope.value === 'home',
+  fast: navigationFast.value && navigationScope.value === 'home'
+}))
 
 watch(
   () => state.value?.currentPlaylist,
   (playlistId) => {
     if (playlistId === null || playlistId === undefined) return
-    void router.push({
+    void navigate({
       name: routeNames.playlistView,
       params: { id: playlistId }
     })
@@ -47,7 +54,7 @@ watch(
 onMounted(() => {
   const playlists = state.value?.playlists
   if (playlists !== undefined && playlists.length === 0) {
-    void router.push({ name: routeNames.empty })
+    void navigate({ name: routeNames.empty })
   }
 })
 </script>
@@ -70,38 +77,52 @@ onMounted(() => {
 .home-router {
   z-index: 1;
   max-height: 100%;
-  transition: padding var(--ts-g);
+  transition:
+    padding var(--ts-g),
+    transform var(--home-transition),
+    opacity var(--home-transition);
   padding-top: var(--filters-container-height);
   display: flex;
   box-sizing: border-box;
   overflow: auto;
+  opacity: 1;
+  transform: scale(1);
+  transform-origin: bottom;
 }
-</style>
-<style lang="scss" scoped>
-// .router-view {
-//   $transition: var(--home-transition);
-//   transition: transform $transition, opacity $transition;
-//   opacity: 1;
-//   transform: scale(1);
-//   transform-origin: bottom;
 
-//   &.fast {
-//     transition: transform 0s
-//   }
-//   &:not(.release) {
-//     transition-timing-function: var(--bezier-out);
-//   }
-//   &.push {
-//     transform: scale(.75);
-//     opacity: 0;
-//   }
-//   &.pull {
-//     transform: scale(1.5);
-//     opacity: 0;
-//   }
-//   &.release {
-//     opacity: 1;
-//     transform: scale(1)
-//   }
-// }
+.home-router.fast {
+  transition: transform 0s;
+}
+
+.home-router:not(.release) {
+  transition-timing-function: var(--bezier-out);
+}
+
+.home-router.push,
+.home-router.pull,
+.home-router.left,
+.home-router.right {
+  opacity: 0;
+}
+
+.home-router.push {
+  transform: scale(0.75);
+}
+
+.home-router.pull {
+  transform: scale(1.5);
+}
+
+.home-router.left {
+  transform: translateX(-3em);
+}
+
+.home-router.right {
+  transform: translateX(3em);
+}
+
+.home-router.release {
+  opacity: 1;
+  transform: scale(1) translateX(0);
+}
 </style>

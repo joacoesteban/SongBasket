@@ -1,5 +1,7 @@
 import { ref } from 'vue'
 import {
+  type NavigationFailure,
+  type RouteLocationRaw,
   type RouteRecordRaw,
   createRouter,
   createWebHashHistory
@@ -15,19 +17,14 @@ import TrackReview from '../components/Home/TrackReview/TrackReview.vue'
 import TracksList from '../components/Home/TracksList.vue'
 import LoadingScreen from '../components/LoadingScreen/LoadingScreen.vue'
 import Setup from '../components/Setup/Setup.vue'
+import {
+  type AnimationPhase,
+  animationFor,
+  isHomeRoute,
+  routeNames
+} from './animation'
 
-export const routeNames = {
-  loading: 'loading',
-  setup: 'setup',
-  folderView: 'folder-view',
-  empty: 'empty',
-  home: 'home',
-  playlistsList: 'playlists-list',
-  tracksList: 'tracks-list',
-  playlistView: 'playlist-view',
-  trackReview: 'track-review',
-  downloadsView: 'downloads-view'
-}
+export { routeNames } from './animation'
 
 const ROUTES: RouteRecordRaw[] = [
   {
@@ -91,29 +88,106 @@ const ROUTES: RouteRecordRaw[] = [
   }
 ]
 
-export const navigationDirection = ref<'pull' | 'push' | 'release'>('release')
+export type NavigationScope = 'home' | 'root'
+
+export const navigationDirection = ref<AnimationPhase | 'release'>('release')
+export const navigationFast = ref(false)
 export const navigationPending = ref(false)
+export const navigationScope = ref<NavigationScope>('root')
+
+const TRANSITION_EXIT_MS = 300
+const TRANSITION_PHASE_MS = 100
+
+let isTransitioning = false
+let transitionCompletionScheduled = false
+
+const sleep = (duration: number): Promise<void> => {
+  const { promise, resolve } = Promise.withResolvers<void>()
+  window.setTimeout(resolve, duration)
+  return promise
+}
+
+const scopeFor = (from: unknown, to: unknown): NavigationScope => {
+  if (isHomeRoute(from) && isHomeRoute(to)) return 'home'
+  return 'root'
+}
+
+const resetTransition = (): void => {
+  navigationDirection.value = 'release'
+  navigationFast.value = false
+  navigationPending.value = false
+  navigationScope.value = 'root'
+  isTransitioning = false
+  transitionCompletionScheduled = false
+}
+
+const finishTransition = async (): Promise<void> => {
+  if (transitionCompletionScheduled) return
+  transitionCompletionScheduled = true
+  await sleep(TRANSITION_PHASE_MS)
+  navigationFast.value = false
+  navigationDirection.value = 'release'
+  await sleep(TRANSITION_PHASE_MS)
+  navigationPending.value = false
+  navigationScope.value = 'root'
+  isTransitioning = false
+  transitionCompletionScheduled = false
+}
 
 const router = createRouter({
   history: createWebHashHistory(),
   routes: ROUTES
 })
 
-router.beforeEach((to) => {
-  navigationPending.value = true
-  if (to.name === routeNames.home) navigationDirection.value = 'pull'
-  else navigationDirection.value = 'push'
+router.beforeEach(async (to, from) => {
+  if (from.name === undefined) return true
+  isTransitioning = true
+  navigationScope.value = scopeFor(from.name, to.name)
+  const animation = animationFor(from.name, to.name)
+  navigationDirection.value = animation.exit
+  navigationFast.value = false
+  document.querySelector<HTMLElement>('.home-router')?.scrollTo({ top: 0 })
+
+  await sleep(TRANSITION_EXIT_MS)
+  navigationDirection.value = animation.enter
+  navigationFast.value = true
   return true
 })
 
-router.afterEach(() => {
-  navigationDirection.value = 'release'
-  navigationPending.value = false
+router.afterEach((_to, _from, failure) => {
+  if (failure !== undefined) {
+    window.setTimeout(() => {
+      if (isTransitioning) void finishTransition()
+    }, TRANSITION_EXIT_MS)
+    return
+  }
+  void finishTransition()
 })
 
 router.onError(() => {
-  navigationDirection.value = 'release'
-  navigationPending.value = false
+  resetTransition()
 })
+export const navigate = (
+  location: RouteLocationRaw
+): Promise<void | NavigationFailure> => {
+  if (isTransitioning) return Promise.resolve()
+  return router.push(location)
+}
+export const navigateReplace = (
+  location: RouteLocationRaw
+): Promise<void | NavigationFailure> => {
+  if (isTransitioning) return Promise.resolve()
+  return router.replace(location)
+}
+
+export const navigateBack = (): void => {
+  if (isTransitioning) return
+  router.back()
+}
+
+export const navigateForward = (): void => {
+  if (isTransitioning) return
+  router.forward()
+}
 
 export default router

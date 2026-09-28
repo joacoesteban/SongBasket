@@ -64,13 +64,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 
 import CloseIcon from '../../../../assets/icons/close-icon.vue'
 import DownloadIcon from '../../../../assets/icons/download-icon.vue'
 import PauseIcon from '../../../../assets/icons/pause-icon.vue'
 import PlayIcon from '../../../../assets/icons/play-icon.vue'
-import { routeNames } from '../../../../router'
+import { navigate, routeNames } from '../../../../router'
 import { useSongBasketActions, useSongBasketState } from '../../../../state'
 import { useModal } from '../../../../state/useModal'
 
@@ -81,7 +81,6 @@ type PlaylistStatus = {
 }
 
 const route = useRoute()
-const router = useRouter()
 const state = useSongBasketState()
 const actions = useSongBasketActions()
 const { openModal } = useModal()
@@ -153,7 +152,7 @@ const downloadPlaylist = (): void => {
   const current = playlist.value
   if (current === null) return
   void actions.download([current.id])
-  void router.push({ name: routeNames.downloadsView })
+  void navigate({ name: routeNames.downloadsView })
 }
 const unsyncPlaylist = (): void => {
   const current = playlist.value

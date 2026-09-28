@@ -1,6 +1,10 @@
 <template>
   <div class="plv-container w100">
-    <div class="track-list row hideable-container">
+    <div
+      class="track-list row hideable-container"
+      :class="{ hide: navigationPending }"
+      style="--list-transition-time: 250ms"
+    >
       <div
         ref="changesContainer"
         class="changes-container"
@@ -53,15 +57,14 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 
-import { routeNames } from '../../../router'
+import { navigate, navigationPending, routeNames } from '../../../router'
 import { useSongBasketState } from '../../../state'
 import type { Playlist, TrackItem } from '../model'
 import Track from './Track.vue'
 
 const route = useRoute()
-const router = useRouter()
 const { state } = useSongBasketState()
 const changesContainer = ref<HTMLElement | null>(null)
 const changesHeight = ref(0)
@@ -127,7 +130,7 @@ watch([playlistId, showingChanges], () => {
 
 watch(playlist, (value) => {
   if (value !== null) return
-  void router.push({ name: routeNames.playlistsList })
+  void navigate({ name: routeNames.playlistsList })
 })
 
 onBeforeUnmount(() => resizeObserver?.disconnect())

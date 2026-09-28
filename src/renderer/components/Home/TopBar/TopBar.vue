@@ -43,7 +43,7 @@
           :class="{ show: showPreviousButton }"
           :disabled="!showPreviousButton"
           aria-label="Go back"
-          @click="navigationBack"
+          @click="navigateBack"
         >
           <svg-icon
             path="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
@@ -59,7 +59,7 @@
           :class="{ show: showForwardButton }"
           :disabled="!showForwardButton"
           aria-label="Go forward"
-          @click="navigationForward"
+          @click="navigateForward"
         >
           <svg-icon
             path="m10 6-1.41 1.41L13.17 12l-4.58 4.59L10 18l6-6z"
@@ -111,7 +111,11 @@
               class="section-switch window-nodrag"
               :class="{ active: activeSection === section.routeName }"
             >
-              <button class="section-title semibold" @click="section.cb">
+              <button
+                class="section-title semibold"
+                :disabled="navigationPending"
+                @click="section.cb"
+              >
                 {{ section.title }}
               </button>
             </div>
@@ -146,10 +150,12 @@
 
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 
-import SvgIcon from '../../../assets/icons/SvgIcon.vue'
 import {
+  navigate,
+  navigateBack,
+  navigateForward,
   navigationDirection,
   navigationPending,
   routeNames
@@ -161,7 +167,6 @@ import PlaylistViewSlide from './Slides/PlaylistViewSlide.vue'
 import TrackReviewSlide from './Slides/TrackReviewSlide.vue'
 
 const route = useRoute()
-const router = useRouter()
 const state = useSongBasketState()
 const actions = useSongBasketActions()
 
@@ -206,18 +211,28 @@ const sliderPosition = computed(() => {
 const sliderStyle = computed<Record<string, string>>(() => ({
   '--position-ptg': `${sliderPosition.value}%`
 }))
-const showPreviousButton = computed(
-  () =>
-    router.options.history.state['back'] !== null &&
-    router.options.history.state['back'] !== undefined &&
+const navigationHistory = computed(() => ({
+  currentPath: route.fullPath,
+  historyState: history.state
+}))
+const showPreviousButton = computed(() => {
+  const current = navigationHistory.value
+  if (current.currentPath === '') return false
+  return (
+    current.historyState['back'] !== null &&
+    current.historyState['back'] !== undefined &&
     !navigationPending.value
-)
-const showForwardButton = computed(
-  () =>
-    router.options.history.state['forward'] !== null &&
-    router.options.history.state['forward'] !== undefined &&
+  )
+})
+const showForwardButton = computed(() => {
+  const current = navigationHistory.value
+  if (current.currentPath === '') return false
+  return (
+    current.historyState['forward'] !== null &&
+    current.historyState['forward'] !== undefined &&
     !navigationPending.value
-)
+  )
+})
 const status = computed(() => {
   const loading = state.loading.value
   if (loading.value) return loading.target ?? 'Loading'
@@ -233,13 +248,7 @@ const status = computed(() => {
 })
 
 const goTo = (name: string): void => {
-  void router.push({ name })
-}
-const navigationBack = (): void => {
-  if (showPreviousButton.value) router.back()
-}
-const navigationForward = (): void => {
-  if (showForwardButton.value) router.forward()
+  void navigate({ name })
 }
 const minimizeWindow = (): void => {
   void actions.minimizeWindow()
