@@ -5,14 +5,14 @@ import {
   SpotifySnapshotId
 } from '../../../@types/Spotify'
 import { cloneObject } from '../../../MAIN_PROCESS_UTILS'
-import VUEX_MAIN from '../mainProcessStore'
+import MAIN_STORE from '../mainProcessStore'
 
 const store = {
   get state() {
-    return VUEX_MAIN.STATE()
+    return MAIN_STORE.STATE()
   },
   get safe(): SongBasketSaveFile {
-    return cloneObject(VUEX_MAIN.STATE())
+    return cloneObject(MAIN_STORE.STATE())
   }
 }
 class CustomGetters {

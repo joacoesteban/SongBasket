@@ -1,4 +1,6 @@
 import { BrowserWindow } from 'electron'
+import { promises as fs } from 'fs'
+import * as PATH from 'path'
 
 import { SongBasketId, SongBasketTrack } from '../../../@types/SongBasket'
 import {
@@ -22,7 +24,16 @@ import {
   setUserId
 } from '../../Global/state'
 import GETTERS from '../../Store/Helpers/customGetters'
-import VUEX_MAIN from '../../Store/mainProcessStore'
+import MAIN_STORE, {
+  clearPersistenceSession,
+  setPersistenceSession
+} from '../../Store/mainProcessStore'
+import {
+  type PersistenceSession,
+  closeLibraryPersistence,
+  openLibraryPersistence,
+  readPersistenceSnapshot
+} from '../../persistence/persistence-coordinator'
 import * as QUERY_MAKER from '../../queryMaker'
 import {
   deleteCredential,
@@ -30,8 +41,11 @@ import {
   setCredential
 } from '../../utils/credentials'
 import FSController from '../FileSystem'
+import { ipcSend } from './ipc.controller'
 import ProtocolController, { UrlDecomposed } from './protocol.controller'
 import * as API from './sbFetch'
+
+let persistenceSession: PersistenceSession | null = null
 
 type PlaylistVersionMap = {
   id: SpotifyPlaylistId
@@ -42,9 +56,43 @@ type CompletionCb = (
   pl: PlaylistVersionMap,
   playlists: PlaylistVersionMap[]
 ) => void
+const errorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = error.message
+    if (typeof message === 'string') return message
+  }
+  return String(error)
+}
+
+const closePersistence = async (): Promise<void> => {
+  if (persistenceSession === null) return
+  const result = await closeLibraryPersistence(persistenceSession)
+  persistenceSession = null
+  clearPersistenceSession()
+  if (result.isErr()) throw result.error
+}
+
+const openPersistence = async (path: string): Promise<void> => {
+  await closePersistence()
+  const opened = await openLibraryPersistence(path)
+  if (opened.isErr()) throw opened.error
+  persistenceSession = opened.value
+  setPersistenceSession(opened.value)
+  const snapshot = readPersistenceSnapshot(opened.value)
+  if (snapshot.isErr()) {
+    await closePersistence()
+    throw snapshot.error
+  }
+  console.log(
+    'SQLite snapshot loaded',
+    snapshot.value.playlists.length,
+    'playlists'
+  )
+  MAIN_STORE.COMMIT.STORE_DATA_FROM_DISK(snapshot.value)
+}
 
 const core = {
-  // ---------------- FILESYSTEM ----------------
   setAppStatus: async () => {
     const status = getAppStatus()
     let folders
@@ -60,11 +108,12 @@ const core = {
       status.IS_LOGGED = true
       return true
     } catch (error) {
-      if (!folders) throw error
-      if (folders.selected) {
-        await FSController.UserMethods.removeFolder(folders.selected)
-      }
-      await core.setAppStatus()
+      console.error('Unable to open selected library', error)
+      await ipcSend('ERROR:CATCH', {
+        type: 'LIBRARY:OPEN',
+        error: { name: 'LibraryOpenError', message: errorMessage(error) }
+      })
+      status.IS_LOGGED = false
       return false
     }
   },
@@ -73,21 +122,24 @@ const core = {
   },
   setHomeFolder: async (path: string) => {
     await core.addHomeFolder(path)
-    await core.retrieveAndStoreState()
-  },
-  retrieveAndStoreState: async (path = getHomeFolder()) => {
-    const data = await FSController.UserMethods.retrieveState(path)
-    VUEX_MAIN.COMMIT.STORE_DATA_FROM_DISK(data)
-    // Check if folder has synced playlists to setup watchers
+    await openPersistence(path)
     await FSController.UserMethods.setFolderIcons()
     await FSController.FileWatchers.createPlaylistWatchers()
   },
+  retrieveAndStoreState: async (path = getHomeFolder()) => {
+    await openPersistence(path)
+  },
   stateExists: async (path = getHomeFolder()) => {
     try {
-      const data = await FSController.UserMethods.retrieveState(path)
-      return !!data
+      await fs.access(PATH.join(path, '.songbasket.db'))
+      return true
     } catch {
-      return false
+      try {
+        await fs.access(PATH.join(path, '.songbasket'))
+        return true
+      } catch {
+        return false
+      }
     }
   },
   clearUser: async () => {
@@ -97,10 +149,12 @@ const core = {
   },
   logout: async () => {
     await FSController.FileWatchers.clearAll()
+    await closePersistence()
     await FSController.UserMethods.unsetCurrentFolder()
-    VUEX_MAIN.COMMIT.LOGOUT()
+    MAIN_STORE.COMMIT.LOGOUT()
     await core.clearUser()
   },
+  closePersistence,
   // -------------
   initializeLogin: async () => {
     if (getLoginWindow()) throw new Error('LOGIN WINDOW EXISTS')
@@ -181,7 +235,7 @@ const core = {
     await core.updatePlaylists(params.playlistCompletionCallback ?? null)
   },
   updateSelf: async () => {
-    VUEX_MAIN.COMMIT.SET_USER(await API.getMe())
+    await MAIN_STORE.COMMIT.SET_USER(await API.getMe())
   },
   loadMorePlaylists: async () => {
     const userId = getUserId()
@@ -189,7 +243,9 @@ const core = {
       const response = await API.getUserPlaylists(userId, {
         offset: GETTERS.playlistsOffset
       })
-      VUEX_MAIN.COMMIT.UPDATE_USER_ENTITIES(response, { isLoadMore: true })
+      await MAIN_STORE.COMMIT.UPDATE_USER_ENTITIES(response, {
+        isLoadMore: true
+      })
     }
   },
   updatePlaylists: async (completionCb?: CompletionCb | null) => {
@@ -203,7 +259,7 @@ const core = {
     const userId = getUserId()
     if (userId) {
       const response = await API.getUserPlaylists(userId)
-      VUEX_MAIN.COMMIT.UPDATE_USER_ENTITIES(response)
+      await MAIN_STORE.COMMIT.UPDATE_USER_ENTITIES(response)
     }
   },
   getAndStorePlaylists: async (
@@ -224,7 +280,7 @@ const core = {
         }
         if (pl.snapshot_id) request.snapshot_id = pl.snapshot_id
         const playlist = await API.getPlaylist(request)
-        if (playlist) VUEX_MAIN.COMMIT.PLAYLIST_STORE_TRACKS(playlist)
+        if (playlist) await MAIN_STORE.COMMIT.PLAYLIST_STORE_TRACKS(playlist)
       } catch (error) {
         console.error('ERROR WHEN FETCHING PLAYLIST')
         throw error
@@ -271,12 +327,12 @@ const core = {
         trackShouldConvert,
         params.trackCompletionCallback
       )
-      VUEX_MAIN.COMMIT.YOUTUBIZE_RESULT(tracks)
+      await MAIN_STORE.COMMIT.YOUTUBIZE_RESULT(tracks)
       if (failed) throw new Error()
     } else {
       console.log('nothing to do, just committing')
     }
-    VUEX_MAIN.COMMIT.COMMIT_ALL_CHANGES()
+    await MAIN_STORE.COMMIT.COMMIT_ALL_CHANGES()
     console.log('Youtubize done from core')
   }
 }

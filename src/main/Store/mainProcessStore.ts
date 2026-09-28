@@ -14,9 +14,10 @@ import {
 } from '../../@types/Spotify'
 import { YouTubeResult } from '../../@types/YouTube'
 import * as UTILS from '../../MAIN_PROCESS_UTILS'
-import { getHomeFolder } from '../Global/state'
 import FileWatchers from '../controllers/FileSystem/FileWatchers'
 import UserMethods from '../controllers/FileSystem/UserMethods'
+import type { PersistenceSession } from '../persistence/persistence-coordinator'
+import { executePersistedCommand } from '../persistence/persistence-coordinator'
 import trackUtils from './Helpers/Tracks'
 
 const FSController = {
@@ -24,23 +25,40 @@ const FSController = {
   FileWatchers
 }
 
-let saveQueue = 0
+let persistenceSession: PersistenceSession | null = null
 
-const BLOCK = false
-function saveToDisk(check: boolean = false): void {
-  if (BLOCK) return
-  if (!check) {
-    saveQueue++
-    setTimeout(() => saveToDisk(true), 1000)
-    return
-  }
-
-  if (--saveQueue > 0) return
-  console.log(
-    '::::::::::::::::::::::::::::SAVING::::::::::::::::::::::::::::::::'
-  )
-  FSController.UserMethods.saveState({ state, path: getHomeFolder() })
+export const setPersistenceSession = (session: PersistenceSession): void => {
+  persistenceSession = session
 }
+
+export const clearPersistenceSession = (): void => {
+  persistenceSession = null
+}
+
+const persistCommand = async (
+  oldState: SongBasketSaveFile,
+  command: Parameters<typeof executePersistedCommand>[1]
+): Promise<void> => {
+  const session = persistenceSession
+  if (session === null) return
+  const result = await executePersistedCommand(session, command)
+  if (result.isErr()) {
+    state = oldState
+    throw result.error
+  }
+}
+
+const persistState = async (oldState: SongBasketSaveFile): Promise<void> => {
+  await persistCommand(oldState, {
+    kind: 'replace-playlist-page',
+    command: {
+      state: UTILS.cloneObject(state),
+      previousState: oldState
+    }
+  })
+}
+
+const previousState = (): SongBasketSaveFile => UTILS.cloneObject(state)
 
 const getDefaultState: () => SongBasketSaveFile = () => {
   return {
@@ -93,44 +111,19 @@ const mutations = {
     state = UTILS.cloneObject(newState)
   },
   STORE_DATA_FROM_DISK(data: SongBasketSaveFile): void {
-    const {
-      cachedPlaylists,
-      control,
-      playlists,
-      queuedPlaylists,
-      syncedPlaylists,
-      deletedPlaylists,
-      user,
-      convertedTracks,
-      lastSync
-    } = data
-
-    state.playlists = playlists
-    state.user = user
-    state.cachedPlaylists = cachedPlaylists
-    state.control = control
-    state.playlists = playlists
-    state.queuedPlaylists = queuedPlaylists
-    state.syncedPlaylists = syncedPlaylists
-    state.deletedPlaylists = deletedPlaylists
-    state.user = user
-    state.convertedTracks = convertedTracks
-    state.lastSync = (lastSync && new Date(lastSync)) || null
-
-    console.log('DATA STORED. ', playlists.length, 'playlists')
-
-    const initialMutation = false
-    if (initialMutation) this.REPROCESS_ALL_TRACKS()
-    // this.INVALIDATE_SYNCED_SNAPSHOT_IDS()
-    // SAVE_TO_DISK()
+    state = UTILS.cloneObject(data)
+    console.log('DATA STORED. ', data.playlists.length, 'playlists')
   },
-  SET_USER(userData: SpotifyUser): void {
+  async SET_USER(userData: SpotifyUser): Promise<void> {
+    const oldState = previousState()
     state.user = userData
+    await persistState(oldState)
   },
-  UPDATE_USER_ENTITIES(
+  async UPDATE_USER_ENTITIES(
     playlists: SpotifyApiPlaylistsResponse,
     params = { isLoadMore: false }
-  ) {
+  ): Promise<void> {
+    const oldState = previousState()
     function isCachedOrSynced(id: SpotifyPlaylistId): {
       c: SpotifySnapshotId | boolean
       s: boolean
@@ -176,7 +169,7 @@ const mutations = {
                 playlists.items.splice(i, 1, storedPlaylist)
               }
             } else {
-              this.FIND_AND_UNCACHE({ id: currentPlaylist.id })
+              await this.FIND_AND_UNCACHE({ id: currentPlaylist.id }, false)
             }
             continue
           }
@@ -226,7 +219,7 @@ const mutations = {
     }
 
     if (!params.isLoadMore) state.lastSync = new Date()
-    saveToDisk()
+    await persistState(oldState)
   },
 
   LOGOUT() {
@@ -234,17 +227,18 @@ const mutations = {
     Object.assign(state, getDefaultState())
   },
 
-  PLAYLIST_STORE_TRACKS(playlist: SpotifyPlaylist): void {
+  async PLAYLIST_STORE_TRACKS(playlist: SpotifyPlaylist): Promise<void> {
+    const oldState = previousState()
     const index = findById(playlist.id, state.playlists)
     if (index === -1)
       throw new Error(
-        'PLAYLIST NOT FOUND WHEN SETTING TRACKS INSIDE STATE (VUEX)'
+        'PLAYLIST NOT FOUND WHEN SETTING TRACKS INSIDE STATE STORE'
       )
 
     const statePl = state.playlists[index]
     if (!statePl)
       throw new Error(
-        'PLAYLIST NOT FOUND WHEN SETTING TRACKS INSIDE STATE (VUEX)'
+        'PLAYLIST NOT FOUND WHEN SETTING TRACKS INSIDE STATE STORE'
       )
 
     if (state.syncedPlaylists.some((p) => p === playlist.id)) {
@@ -301,18 +295,27 @@ const mutations = {
         removed: []
       }
       const { id, snapshot_id } = playlist
-      this.PLAYLIST_UPDATE_CACHED({ id, snapshot_id })
+      await this.PLAYLIST_UPDATE_CACHED({ id, snapshot_id }, false)
       void FSController.UserMethods.setFolderIcons(playlist.id, { force: true })
     }
-    state.playlists[index] = playlist
-
-    saveToDisk()
+    await persistCommand(oldState, {
+      kind: 'replace-playlist-tracks',
+      command: {
+        state: UTILS.cloneObject(state),
+        previousState: oldState,
+        playlistId: playlist.id
+      }
+    })
   },
 
-  PLAYLIST_UPDATE_CACHED(params: {
-    id: SpotifyPlaylistId
-    snapshot_id: SpotifySnapshotId
-  }): void {
+  async PLAYLIST_UPDATE_CACHED(
+    params: {
+      id: SpotifyPlaylistId
+      snapshot_id: SpotifySnapshotId
+    },
+    persist = true
+  ): Promise<void> {
+    const oldState = previousState()
     const { id, snapshot_id } = params
     let found = false
     for (let i = 0; i < state.cachedPlaylists.length; i++) {
@@ -327,24 +330,42 @@ const mutations = {
         ...state.cachedPlaylists,
         { id, time: Date.now(), snapshot_id }
       ]
-    saveToDisk()
+    if (persist) {
+      const entry = state.cachedPlaylists.find((item) => item.id === id)
+      if (entry)
+        await persistCommand(oldState, {
+          kind: 'set-playlist-cache',
+          command: {
+            playlistId: id,
+            time: entry.time,
+            snapshotId: entry.snapshot_id
+          }
+        })
+    }
   },
-  SET_CURRENT_PLAYLIST(id: SpotifyPlaylistId): void {
+  async SET_CURRENT_PLAYLIST(id: SpotifyPlaylistId): Promise<void> {
+    const oldState = previousState()
     state.currentPlaylist = id
+    await persistState(oldState)
   },
-  QUEUE_PLAYLIST(id: SpotifyPlaylistId): void {
+  async QUEUE_PLAYLIST(id: SpotifyPlaylistId): Promise<void> {
+    const oldState = previousState()
     let found = false
     for (let i = 0; i < state.queuedPlaylists.length; i++) {
       const pl = state.queuedPlaylists[i]
       if (pl === id) {
-        // Unqueues if found
         found = true
         state.queuedPlaylists.splice(i, 1)
       }
     }
     if (!found) state.queuedPlaylists = [...state.queuedPlaylists, id]
+    await persistState(oldState)
   },
-  FIND_AND_UNQUEUE(params: { id: SpotifyPlaylistId }): void {
+  async FIND_AND_UNQUEUE(
+    params: { id: SpotifyPlaylistId },
+    persist = true
+  ): Promise<void> {
+    const oldState = previousState()
     const { id } = params
     const index = findById(
       id,
@@ -352,29 +373,43 @@ const mutations = {
         return { id: pl }
       })
     )
-    // console.log('Unqueueing', id, index)
     if (index >= 0) {
       state.queuedPlaylists.splice(index, 1)
     }
+    if (persist)
+      await persistCommand(oldState, {
+        kind: 'replace-playlist-page',
+        command: { state: UTILS.cloneObject(state), previousState: oldState }
+      })
   },
-  FIND_AND_UNCACHE(params: { id: SpotifyPlaylistId }): void {
+  async FIND_AND_UNCACHE(
+    params: { id: SpotifyPlaylistId },
+    persist = true
+  ): Promise<void> {
+    const oldState = previousState()
     const { id } = params
     const index = findById(id, state.cachedPlaylists)
-    // console.log('Uncaching', id, index)
     if (index >= 0) {
       state.cachedPlaylists.splice(index, 1)
     }
-    saveToDisk()
+    if (persist)
+      await persistCommand(oldState, {
+        kind: 'clear-playlist-cache',
+        playlistId: id
+      })
   },
-  REMOVE_CONVERSION_DUPLICATES(): void {
+  async REMOVE_CONVERSION_DUPLICATES(): Promise<void> {
+    const oldState = previousState()
     const seen = new Set<string>()
     state.convertedTracks = state.convertedTracks.filter((track) => {
       if (seen.has(track.id)) return false
       seen.add(track.id)
       return true
     })
+    await persistState(oldState)
   },
-  CLEAN_TRACKS(): void {
+  async CLEAN_TRACKS(): Promise<void> {
+    const oldState = previousState()
     const playlists = state.syncedPlaylists
       .map((id) => state.playlists.find((pl) => pl.id === id))
       .filter((playlist): playlist is SpotifyPlaylist => playlist !== undefined)
@@ -388,13 +423,15 @@ const mutations = {
         return track.playlists.length > 0
       }
     )
+    await persistState(oldState)
   },
-  REPROCESS_ALL_TRACKS(
+  async REPROCESS_ALL_TRACKS(
     params: { resetSelection: boolean; forceCustom: boolean } = {
       resetSelection: false,
       forceCustom: false
     }
-  ): void {
+  ): Promise<void> {
+    const oldState = previousState()
     state.convertedTracks = state.convertedTracks.map((convertedTrack) => {
       if (params.resetSelection) convertedTrack.selection = null
       if (convertedTrack.custom) {
@@ -411,8 +448,10 @@ const mutations = {
       return trackUtils.calculateBestMatch(convertedTrack, true)
     })
     console.log('all tracks reprocessed')
+    await persistState(oldState)
   },
   async YOUTUBIZE_RESULT(convertedTracks: SongBasketTrack[]): Promise<void> {
+    const oldState = previousState()
     state.convertedTracks = convertedTracks.map((convertedTrack) =>
       trackUtils.calculateBestMatch(convertedTrack)
     )
@@ -422,24 +461,40 @@ const mutations = {
       state.cachedPlaylists = state.cachedPlaylists.filter((p) => p.id !== pl)
     })
     console.log('Total converted tracks', state.convertedTracks.length)
-    saveToDisk()
+    await persistCommand(oldState, {
+      kind: 'replace-conversions',
+      command: { state: UTILS.cloneObject(state), previousState: oldState }
+    })
   },
-  COMMIT_ALL_CHANGES(): void {
-    getters.syncedPlaylists_safe.forEach((pl) => this.COMMIT_TRACK_CHANGES(pl))
-    saveToDisk()
+  async COMMIT_ALL_CHANGES(): Promise<void> {
+    const oldState = previousState()
+    for (const playlist of getters.syncedPlaylists_safe) {
+      await this.COMMIT_TRACK_CHANGES(playlist, false)
+    }
+    await persistState(oldState)
   },
-  INVALIDATE_SYNCED_SNAPSHOT_IDS(): void {
+  async INVALIDATE_SYNCED_SNAPSHOT_IDS(): Promise<void> {
+    const oldState = previousState()
     getters.syncedPlaylists_safe
       .map((id) => state.playlists.find((pl) => pl.id === id))
       .forEach((pl) => {
         if (!pl) throw new Error('SYNCED PLAYLIST NOT FOUND IN PLAYLIST LIST')
         pl.snapshot_id = ''
       })
+    await persistState(oldState)
   },
-  SET_CONVERTED_TRACKS_PROCESSED_FLAG(val: boolean = true): void {
+  async SET_CONVERTED_TRACKS_PROCESSED_FLAG(
+    val: boolean = true
+  ): Promise<void> {
+    const oldState = previousState()
     state.convertedTracks.forEach((t) => (t.flags.processed = val))
+    await persistState(oldState)
   },
-  COMMIT_TRACK_CHANGES(id: SpotifyPlaylistId): void {
+  async COMMIT_TRACK_CHANGES(
+    id: SpotifyPlaylistId,
+    persist = true
+  ): Promise<void> {
+    const oldState = previousState()
     const index = findById(id, state.playlists)
     if (index === -1) {
       console.error('PLAYLIST NOT FOUND WHEN COMMITING CHANGES')
@@ -462,11 +517,13 @@ const mutations = {
     playlist.tracks.items.push(...tracks.added)
     playlist.tracks.added = []
     playlist.tracks.removed = []
+    if (persist) await persistState(oldState)
   },
-  CHANGE_YT_TRACK_SELECTION(params: {
+  async CHANGE_YT_TRACK_SELECTION(params: {
     trackId: SpotifyTrackId
     newId: SongBasketTrackConversionSelection
-  }) {
+  }): Promise<void> {
+    const oldState = previousState()
     const { trackId, newId } = params
     if (newId === undefined)
       throw new Error(
@@ -488,9 +545,17 @@ const mutations = {
     track.selection = newId
     track.flags.selectionIsApplied = newId !== null
 
-    saveToDisk()
+    await persistCommand(oldState, {
+      kind: 'set-track-selection',
+      command: {
+        trackId,
+        selection: newId,
+        applied: newId !== null
+      }
+    })
   },
   async UNSYNC_PLAYLIST(id: SpotifyPlaylistId): Promise<void> {
+    const oldState = previousState()
     console.log('UNSYNCING ', id)
     if (!state.syncedPlaylists.some((pl) => pl === id))
       throw new Error('Playlist not found inside SyncedPlaylists list')
@@ -502,14 +567,15 @@ const mutations = {
     playlist.tracks.items = []
     playlist.tracks.added = []
 
-    this.COMMIT_TRACK_CHANGES(id)
+    await this.COMMIT_TRACK_CHANGES(id, false)
 
+    await persistState(oldState)
     await FSController.UserMethods.deletePlaylist(
       playlist.folderName || playlist.name
     )
-    saveToDisk()
   },
-  PAUSE_PLAYLIST(id: SpotifyPlaylistId): void {
+  async PAUSE_PLAYLIST(id: SpotifyPlaylistId): Promise<void> {
+    const oldState = previousState()
     console.log('PAUSING ', id)
     if (!state.syncedPlaylists.some((pl) => pl === id))
       throw new Error('Playlist not found inside SyncedPlaylists list')
@@ -518,9 +584,13 @@ const mutations = {
 
     playlist.isPaused = !playlist.isPaused
 
-    saveToDisk()
+    await persistCommand(oldState, {
+      kind: 'set-playlist-paused',
+      command: { playlistId: id, paused: playlist.isPaused }
+    })
   },
-  PAUSE_TRACK(id: SpotifyTrackId): void {
+  async PAUSE_TRACK(id: SpotifyTrackId): Promise<void> {
+    const oldState = previousState()
     if (!id)
       throw new Error(
         'New selection id does not exist:: @ mainProcessStore :: CHANGE_YT_TRACK_SELECTION'
@@ -534,24 +604,31 @@ const mutations = {
 
     track.flags.paused = !track.flags.paused
 
-    saveToDisk()
+    await persistCommand(oldState, {
+      kind: 'set-track-paused',
+      command: { trackId: id, paused: track.flags.paused }
+    })
   },
-  CUSTOM_TRACK_URL(params: {
+  async CUSTOM_TRACK_URL(params: {
     details: YouTubeResult
     trackId: SpotifyTrackId
-  }): void {
+  }): Promise<void> {
+    const oldState = previousState()
     const { details, trackId } = params
     const track =
       state.convertedTracks[findById(trackId, state.convertedTracks)]
-    if (!track)
-      return console.error(
-        'TRACK NOT FOUND IN CONVERTED TRACKS :: CUSTOM_TRACK_URL'
-      )
+    if (!track) {
+      console.error('TRACK NOT FOUND IN CONVERTED TRACKS :: CUSTOM_TRACK_URL')
+      return
+    }
 
     details.isCustomTrack = true
     track.custom = details
     track.selection = false
-    saveToDisk()
+    await persistCommand(oldState, {
+      kind: 'set-custom-track',
+      command: { trackId, result: details }
+    })
   }
 }
 

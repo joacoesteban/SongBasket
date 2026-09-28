@@ -5,7 +5,6 @@ import * as iconv from 'iconv-lite'
 import * as PATH from 'path'
 
 import {
-  SongBasketSaveFile,
   SongBasketTrackFile,
   SongbasketCustomMp3Tag,
   SongbasketFoldersFile
@@ -48,68 +47,11 @@ const isFoldersFile = (value: unknown): value is SongbasketFoldersFile => {
   )
 }
 
-const isSongBasketSaveFile = (value: unknown): value is SongBasketSaveFile => {
-  if (typeof value !== 'object' || value === null) return false
-  if (
-    !('user' in value) ||
-    !('playlists' in value) ||
-    !('syncedPlaylists' in value) ||
-    !('queuedPlaylists' in value) ||
-    !('cachedPlaylists' in value) ||
-    !('deletedPlaylists' in value) ||
-    !('convertedTracks' in value) ||
-    !('currentPlaylist' in value) ||
-    !('control' in value) ||
-    !('lastSync' in value)
-  ) {
-    return false
-  }
-  const playlists = value.playlists
-  const syncedPlaylists = value.syncedPlaylists
-  const queuedPlaylists = value.queuedPlaylists
-  const deletedPlaylists = value.deletedPlaylists
-  const convertedTracks = value.convertedTracks
-  const control = value.control
-  return (
-    typeof value.user === 'object' &&
-    value.user !== null &&
-    Array.isArray(playlists) &&
-    playlists.every(
-      (playlist) => typeof playlist === 'object' && playlist !== null
-    ) &&
-    Array.isArray(syncedPlaylists) &&
-    syncedPlaylists.every((id) => typeof id === 'string') &&
-    Array.isArray(queuedPlaylists) &&
-    queuedPlaylists.every((id) => typeof id === 'string') &&
-    Array.isArray(value.cachedPlaylists) &&
-    Array.isArray(deletedPlaylists) &&
-    deletedPlaylists.every(
-      (playlist) => typeof playlist === 'object' && playlist !== null
-    ) &&
-    Array.isArray(convertedTracks) &&
-    convertedTracks.every(
-      (track) => typeof track === 'object' && track !== null
-    ) &&
-    (typeof value.currentPlaylist === 'string' ||
-      value.currentPlaylist === null) &&
-    typeof control === 'object' &&
-    control !== null &&
-    'total' in control &&
-    'offset' in control &&
-    typeof control.total === 'number' &&
-    typeof control.offset === 'number' &&
-    (typeof value.lastSync === 'string' ||
-      typeof value.lastSync === 'number' ||
-      value.lastSync === null)
-  )
-}
-
 const PATHS = {
   userDataPath: APP_SUPPORT_PATH,
   get foldersJsonPath() {
     return PATH.join(this.userDataPath, '.songbasket-folders')
-  },
-  stateFileName: '/.songbasket'
+  }
 }
 
 const getEmptyFolders: () => Constants['APP_STATUS']['FOLDERS'] = () => ({
@@ -206,44 +148,6 @@ class UserMethods {
   ): Promise<void> {
     await fs.writeFile(PATHS.foldersJsonPath, JSON.stringify(folders), 'utf8')
     setSessionFolderPaths(folders)
-  }
-
-  async saveState(params: {
-    state: SongBasketSaveFile
-    path: string
-  }): Promise<void> {
-    const { state, path } = params
-    // console.log('Saving state to', path)
-    if (!(await utils.pathDoesExist(path))) {
-      // TODO Handle non existing folder
-    } else {
-      const jsonState = JSON.stringify(state)
-      await fs.writeFile(
-        PATH.join(path, PATHS.stateFileName),
-        jsonState,
-        'utf8'
-      )
-    }
-  }
-
-  async retrieveState(path: string): Promise<SongBasketSaveFile> {
-    const filePath = path + PATHS.stateFileName
-    console.log('retrieving from ', path)
-    await fs.access(filePath)
-    const data = await fs.readFile(filePath, 'utf-8')
-    try {
-      const parsedState: unknown = JSON.parse(data)
-      if (!isSongBasketSaveFile(parsedState)) {
-        throw new Error('Invalid state file')
-      }
-      return parsedState
-    } catch (error) {
-      console.error(
-        'ERROR WHEN PARSING STATE JSON FILE::: FileSystem/index.js',
-        error
-      )
-      throw error
-    }
   }
 
   async retrieveLocalTracks(
