@@ -1,10 +1,18 @@
 <template>
   <div class="plv-container w100">
-    <div class="track-list row hideable-container" :class="listAnimationClass">
-
-      <div class="changes-container" :class="{ show: showingChanges }"
-        :style="{ '--changes-height': changesHeightFormmated }">
-        <div class="pb-1" v-if="added.length">
+    <div
+      class="track-list row hideable-container"
+      :class="listAnimationClass"
+    >
+      <div
+        class="changes-container"
+        :class="{ show: showingChanges }"
+        :style="{ '--changes-height': changesHeightFormmated }"
+      >
+        <div
+          v-if="added.length"
+          class="pb-1"
+        >
           <div class="list">
             <div class="label-container">
               <span class="point75-em">
@@ -13,11 +21,19 @@
             </div>
           </div>
           <div class="horizontal-scroller pt-0">
-            <Track v-for="(item, index) in added" :isNew="true" :item="item" :key="index" />
+            <Track
+              v-for="(item, index) in added"
+              :key="index"
+              :is-new="true"
+              :item="item"
+            />
           </div>
         </div>
 
-        <div class="pb-1" v-if="removed.length">
+        <div
+          v-if="removed.length"
+          class="pb-1"
+        >
           <div class="list">
             <div class="label-container">
               <span class="point75-em">
@@ -26,14 +42,23 @@
             </div>
           </div>
           <div class="horizontal-scroller pt-0">
-            <Track v-for="(item, index) in removed" :isRemoved="true" :item="item" :key="index" />
+            <Track
+              v-for="(item, index) in removed"
+              :key="index"
+              :is-removed="true"
+              :item="item"
+            />
           </div>
         </div>
       </div>
 
       <div class="list">
-        <Track v-for="(item, index) in (iterableItemsFiltered || iterableItems)" :item="item" :key="index"
-          @review-track="reviewTrack(item)" />
+        <Track
+          v-for="(item, index) in (iterableItemsFiltered || iterableItems)"
+          :key="index"
+          :item="item"
+          @review-track="reviewTrack(item)"
+        />
       </div>
     </div>
   </div>
@@ -43,6 +68,12 @@
 import Track from './Track.vue'
 
 export default {
+  components: {
+    Track
+  },
+  props: {
+    currentPlaylist: String
+  },
   data () {
     return {
       conversion: [],
@@ -61,12 +92,6 @@ export default {
       playlist: {},
       statusObj: {}
     }
-  },
-  components: {
-    Track
-  },
-  props: {
-    currentPlaylist: String
   },
   computed: {
     playlistImage () {

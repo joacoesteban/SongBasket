@@ -1,12 +1,27 @@
 <template>
-  <div class="login-container window-drag-recursive" :style="'--offset: ' + offsetPtg + '%'">
+  <div
+    class="login-container window-drag-recursive"
+    :style="'--offset: ' + offsetPtg + '%'"
+  >
     <set-home-folder @handleClick="setHomeFolder" />
     <div class="user-login-container">
-      <div class="setup-header">{{ header.text }}</div>
+      <div class="setup-header">
+        {{ header.text }}
+      </div>
       <div class="slider-container">
-        <div class="slider" :style="{ '--offset-x': offsetXPtg }">
-          <Login v-if="showLogin" @login="login" @guestLogin="nextSub" />
-          <Guest @backLogin="backLogin" v-if="showLogin" />
+        <div
+          class="slider"
+          :style="{ '--offset-x': offsetXPtg }"
+        >
+          <Login
+            v-if="showLogin"
+            @login="login"
+            @guestLogin="nextSub"
+          />
+          <Guest
+            v-if="showLogin"
+            @backLogin="backLogin"
+          />
           <guest-verify v-if="showLogin" />
         </div>
       </div>
@@ -64,6 +79,29 @@ export default {
     // showGuestVerify () {
     //   return this.currentSlide === 1 && this.currentSubSlide === 2
     // }
+  },
+  mounted () {
+    this.$root.$IPC.answerMain('continueToLogin', async () => {
+      this.redirect('login')
+    })
+
+    this.$root.$IPC.answerMain('not-found', async () => {
+      this.$store.dispatch('SETUP_LOADING_STATE', 'not found')
+    })
+    this.$root.$IPC.answerMain('invalid', async () => {
+      this.$store.dispatch('SETUP_LOADING_STATE', 'invalid id')
+    })
+
+    this.$root.$IPC.answerMain('user-found', async (user) => {
+      this.$store.dispatch('SETUP_LOADING_STATE', 'found')
+      this.userOnHold = user
+      this.redirect('guest-verify', user)
+    })
+
+    this.$root.$IPC.answerMain('playlists done', async () => {
+      this.$store.dispatch('SETUP_LOADING_STATE', 'found')
+      this.redirect('home')
+    })
   },
   methods: {
     async setHomeFolder () {
@@ -142,29 +180,6 @@ export default {
       this.$root.$IPC.callMain('guestConfirm', this.userOnHold.id)
     }
 
-  },
-  mounted () {
-    this.$root.$IPC.answerMain('continueToLogin', async () => {
-      this.redirect('login')
-    })
-
-    this.$root.$IPC.answerMain('not-found', async () => {
-      this.$store.dispatch('SETUP_LOADING_STATE', 'not found')
-    })
-    this.$root.$IPC.answerMain('invalid', async () => {
-      this.$store.dispatch('SETUP_LOADING_STATE', 'invalid id')
-    })
-
-    this.$root.$IPC.answerMain('user-found', async (user) => {
-      this.$store.dispatch('SETUP_LOADING_STATE', 'found')
-      this.userOnHold = user
-      this.redirect('guest-verify', user)
-    })
-
-    this.$root.$IPC.answerMain('playlists done', async () => {
-      this.$store.dispatch('SETUP_LOADING_STATE', 'found')
-      this.redirect('home')
-    })
   }
 }
 </script>

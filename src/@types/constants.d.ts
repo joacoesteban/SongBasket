@@ -11,7 +11,8 @@ type WindowConfig = {
   useContentSize: boolean,
   resizable?: boolean,
   webPreferences: {
-    nodeIntegration: boolean
+    nodeIntegration: boolean,
+    contextIsolation: boolean
   }
 }
 
@@ -49,6 +50,7 @@ export type Constants = {
     BASE: 'songbasket'
   },
   FFMPEG_BINARIES_PATH: string,
+  FFMPEG_VERSION_CONTROL_PATH: string,
   YTDL_BINARIES_PATH: string,
   YTDL_VERSION_CONTROL_PATH: string,
   // -------------

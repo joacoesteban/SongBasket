@@ -62,13 +62,13 @@ const FileWatchers: {
   async createPlaylistWatchers () {
     // TODO Create watchers anyway
     if (!(await UserMethods.retrieveLocalTracks()).length) return
-    let syncedPlaylists = customGetters.SyncedPlaylistsSp()
+    const syncedPlaylists = customGetters.SyncedPlaylistsSp()
     syncedPlaylists.forEach(pl => {
-      let path = homeFolderPath() + '/' + utils.encodeIntoFilename(pl.folderName || pl.name)
+      const path = homeFolderPath() + '/' + utils.encodeIntoFilename(pl.folderName || pl.name)
 
       // READY++
 
-      let watcher = chokidar.watch(path, {
+      const watcher = chokidar.watch(path, {
         ignored: /[/\\]\./
       })
       this.watchers.push(watcher)
@@ -142,7 +142,7 @@ const FileWatchers: {
     }
     return tracksFormatted
   },
-  // eslint-disable-next-line camelcase
+
   addTrack (path, { spotify_id, youtube_id }) {
     for (const key in this.tracks) {
       if (key === path && this.tracks[key]) return

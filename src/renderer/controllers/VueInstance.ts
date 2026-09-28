@@ -1,10 +1,9 @@
 import Vue from 'vue'
-
-let VueInstance: Vue
+import VueApp from '../main'
 
 const env = {
   get instance (): Vue {
-    return VueInstance || (VueInstance = require('../main').default)
+    return VueApp
   },
   get ipc () {
     return this.instance?.$IPC

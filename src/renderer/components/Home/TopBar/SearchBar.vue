@@ -1,17 +1,25 @@
 <template>
-  <div class="global-search-bar-container" :class="{ hide: hide }">
+  <div
+    class="global-search-bar-container"
+    :class="{ hide: hide }"
+  >
     <div class="filters-container">
       <div class="filters-content">
         <div class="search-bar global-scroll-shadow">
-          <div class="filters-background show-on-scroll">
-          </div>
-          <input placeholder="Start Typing" autofocus ref="search-input" class="input-light semibold" type="text"
-            @focus="searchInputOnFocus" @blur="searchInputOnBlur" v-model.trim="searchInput"
-            @keydown.enter="handleInputConfirm">
+          <div class="filters-background show-on-scroll" />
+          <input
+            ref="search-input"
+            v-model.trim="searchInput"
+            placeholder="Start Typing"
+            autofocus
+            class="input-light semibold"
+            type="text"
+            @focus="searchInputOnFocus"
+            @blur="searchInputOnBlur"
+            @keydown.enter="handleInputConfirm"
+          >
         </div>
-        <div class="filter-buttons">
-
-        </div>
+        <div class="filter-buttons" />
       </div>
     </div>
   </div>
@@ -32,10 +40,6 @@ export default {
       hide: false
     }
   },
-  mounted () {
-    this.searchInputOnBlur()
-    this.$root.$sbRouter.beforeTransition(this.onBeforeTransition)
-  },
   computed: {
   },
   watch: {
@@ -43,6 +47,10 @@ export default {
       this.model.writeEvent = !this.model.writeEvent
       this.model.value = val
     }
+  },
+  mounted () {
+    this.searchInputOnBlur()
+    this.$root.$sbRouter.beforeTransition(this.onBeforeTransition)
   },
   methods: {
     onBeforeTransition (to, from) {

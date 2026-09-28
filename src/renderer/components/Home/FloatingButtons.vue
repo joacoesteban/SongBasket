@@ -1,35 +1,75 @@
 <template>
-  <div class="floating-buttons-container" :class="{ show: showComponent }">
-    <div class="gradient"></div>
+  <div
+    class="floating-buttons-container"
+    :class="{ show: showComponent }"
+  >
+    <div class="gradient" />
     <div class="df jucb">
       <div class="df floater-container">
-        <div class="floater rel" v-if="!forceKill.all && !forceKill.dropdown">
+        <div
+          v-if="!forceKill.all && !forceKill.dropdown"
+          class="floater rel"
+        >
           <!-- <div class="dropdown"></div> -->
-          <div class="sb-fab" @click="toggleDropdown" :class="{ show: showDropdown }">
-            <font-awesome-icon size="xs" icon="chevron-up" />
+          <div
+            class="sb-fab"
+            :class="{ show: showDropdown }"
+            @click="toggleDropdown"
+          >
+            <font-awesome-icon
+              size="xs"
+              icon="chevron-up"
+            />
           </div>
         </div>
       </div>
       <div class="df floater-container">
-        <div class="floater" v-if="!forceKill.all && !forceKill.refresh">
-          <div class="sb-fab" @click="refresh" :class="{ show: showRefresh }">
-            <sync-icon></sync-icon>
+        <div
+          v-if="!forceKill.all && !forceKill.refresh"
+          class="floater"
+        >
+          <div
+            class="sb-fab"
+            :class="{ show: showRefresh }"
+            @click="refresh"
+          >
+            <sync-icon />
           </div>
         </div>
-        <div class="floater" v-if="!forceKill.all && !forceKill.sync">
-          <div class="sb-fab" @click="sync" :class="{ show: showSync }">
-            <cloud-search-icon></cloud-search-icon>
+        <div
+          v-if="!forceKill.all && !forceKill.sync"
+          class="floater"
+        >
+          <div
+            class="sb-fab"
+            :class="{ show: showSync }"
+            @click="sync"
+          >
+            <cloud-search-icon />
           </div>
         </div>
-        <div class="floater" v-if="!forceKill.all && !forceKill.download">
-          <div class="sb-fab" @click="download" :class="{ show: showDl }">
-            <download-icon></download-icon>
+        <div
+          v-if="!forceKill.all && !forceKill.download"
+          class="floater"
+        >
+          <div
+            class="sb-fab"
+            :class="{ show: showDl }"
+            @click="download"
+          >
+            <download-icon />
           </div>
         </div>
-        <div class="floater error-floater" v-if="!errorPill.kill">
-          <div class="sb-fab error-pill-container" :class="{ show: showError }">
+        <div
+          v-if="!errorPill.kill"
+          class="floater error-floater"
+        >
+          <div
+            class="sb-fab error-pill-container"
+            :class="{ show: showError }"
+          >
             <span>
-              <span v-html="errorPill.message"></span>
+              <span v-html="errorPill.message" />
             </span>
           </div>
         </div>
@@ -132,13 +172,6 @@ export default {
       return this.$store.state.CurrentUser.syncedPlaylists
     }
   },
-  created () {
-    this.$root.$sbRouter.beforeTransition(this.handleTransition)
-  },
-  async mounted () {
-    await this.$root.$sleep(1000)
-    this.handleTransition()
-  },
   watch: {
     globalError (val) {
       this.handleError(val)
@@ -152,6 +185,13 @@ export default {
         time: 10000
       })
     }
+  },
+  created () {
+    this.$root.$sbRouter.beforeTransition(this.handleTransition)
+  },
+  async mounted () {
+    await this.$root.$sleep(1000)
+    this.handleTransition()
   },
   methods: {
     handleTransition (to) {

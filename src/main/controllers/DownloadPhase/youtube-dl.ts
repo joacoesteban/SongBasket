@@ -1,6 +1,5 @@
-import * as fs from 'fs'
 import * as PATH from 'path'
-import * as youtubedl from 'youtube-dl'
+import { downloadAudio } from './yt-dlp'
 
 import { extractMp3, applyTags } from './FfmpegController'
 import customGetters from '../../Store/Helpers/customGetters'
@@ -46,7 +45,6 @@ type DownloaderInstance = {
     size: number,
     currentSize: number,
   },
-  downloader: youtubedl.Youtubedl | null,
   downloadVideo: () => Promise<void>,
 }
 
@@ -59,7 +57,6 @@ type ExtractorInstance = {
 
 type DownloadInstance = {
   id: string,
-  downloadFormat: string, // TODO make this an enum of webm/mp4
   info: {
     download: {
       ptg: number,
@@ -97,7 +94,6 @@ type DownloadInstance = {
     fileNameAlt: string,
   },
   controller: {
-    setFormat: () => Promise<void>,
     constructDownload: () => void,
     constructExtraction: () => void,
     execute: () => Promise<void>
@@ -182,7 +178,6 @@ function constructDownloads (tracks: QueryTrack[]) {
     const { id, playlists, data, selection } = track
     const instance: DownloadInstance = {
       id,
-      downloadFormat: '',
       info: {
         download: {
           ptg: 0,
@@ -224,7 +219,6 @@ function constructDownloads (tracks: QueryTrack[]) {
         fileNameAlt: '',
       },
       controller: {
-        setFormat: async () => getTrackFormat(instance),
         constructDownload: () => constructVideoDownload(instance),
         constructExtraction: () => constructVideoExtraction(instance),
         execute: async () => executeDownload(instance)
@@ -248,70 +242,46 @@ function constructDownloads (tracks: QueryTrack[]) {
     return instance
   }
 
-  const getTrackFormat = (track: DownloadInstance): Promise<void> => {
-    // TODO evaluate going for webm again or not
-    return new Promise((resolve, reject) => {
-      track.downloadFormat = 'mp4'
-      resolve()
-      // youtubedl.exec(track.ytId, ['-F'], {}, function(err, output) {
-      //   if (err) reject(err)
-      //   // track.format = output.some(format => format.includes('251          webm')) ? 'webm' : 'mp4'
-      //   track.format = 'mp4'
-      //   resolve()
-      // })
-    })
-  }
-
   const constructVideoDownload = (instance: DownloadInstance) => {
     instance.download = {
       info: {
         size: 0,
         currentSize: 0
       },
-      downloader: null,
-      downloadVideo: () => {
-        return new Promise(async (resolve, reject) => {
-          if (!instance.yt) return reject(new Error('NO TRACK SELECTION'))
-          console.log('about to download', instance.yt)
-          const download = instance.download!.downloader = youtubedl(instance.yt,
-            ['--format=' + getDownloadFormatId(instance.downloadFormat)],
-            { cwd: instance.paths.downloadCWD })
+      downloadVideo: async () => {
+        if (!instance.yt) throw new Error('NO TRACK SELECTION')
+        console.log('about to download', instance.yt)
 
-          // -------------EVENTS-------------
-          // Will be called when the download starts.
-          download.on('info', info => {
-            instance.info.download.size = info.size
-            instance.info.currentStatus = DownloadStatus.Downloading
-            emitEvent.download({ type: LifeCycle.Start, id: instance.id })
+        try {
+          await downloadAudio(instance.yt, instance.paths.mp4FilePath, {
+            onStart: ({ totalBytes }) => {
+              instance.info.download.size = totalBytes ?? 0
+              instance.info.currentStatus = DownloadStatus.Downloading
+              emitEvent.download({ type: LifeCycle.Start, id: instance.id })
+            },
+            onProgress: ({ downloadedBytes, totalBytes }) => {
+              instance.info.download.currentSize = downloadedBytes
+              const size = totalBytes ?? instance.info.download.size
+              if (!size) return
+
+              const ptg = Math.round(downloadedBytes / size * 100)
+              instance.info.ptg = instance.info.download.ptg = ptg
+              emitEvent.download({ type: LifeCycle.Progress, id: instance.id, ptg })
+            }
           })
+        } catch (error) {
+          console.error('Error when downloading video::::', error)
+          instance.info.download.error = error as Error
+          instance.info.currentStatus = DownloadStatus.DownloadError
+          emitEvent.download({ type: LifeCycle.Error, id: instance.id })
+          throw error
+        }
 
-          download.on('data', chunk => {
-            instance.info.download.currentSize += chunk.length
-            const ptg = Math.round(instance.info.download.currentSize / instance.info.download.size * 100)
-            instance.info.ptg = instance.info.download.ptg = ptg
-            emitEvent.download({ type: LifeCycle.Progress, id: instance.id, ptg })
-          })
-
-          download.on('error', (error) => {
-            console.error('Error when downloading video::::', error)
-            instance.info.download.error = error
-            instance.info.currentStatus = DownloadStatus.DownloadError
-            emitEvent.download({ type: LifeCycle.Error, id: instance.id })
-            return reject(error)
-          })
-
-          download.on('end', async () => {
-            instance.info.download.finished = true
-            if (instance.info.download.error) return
-            instance.info.download.ptg = 100
-            instance.info.currentStatus = DownloadStatus.DownloadEnd
-            console.log('video downloaded')
-            emitEvent.download({ type: LifeCycle.End, id: instance.id })
-            return resolve()
-          })
-
-          download.pipe(fs.createWriteStream(instance.paths.mp4FilePath))
-        })
+        instance.info.download.finished = true
+        instance.info.download.ptg = 100
+        instance.info.currentStatus = DownloadStatus.DownloadEnd
+        console.log('video downloaded')
+        emitEvent.download({ type: LifeCycle.End, id: instance.id })
       }
     }
   }
@@ -324,8 +294,8 @@ function constructDownloads (tracks: QueryTrack[]) {
             instance.info.currentStatus = DownloadStatus.Extracting
             emitEvent.extraction({ type: LifeCycle.Start, id: instance.id })
             instance.info.ptg = 0
-            await extractMp3(instance.paths.mp3FilePath, instance.paths.mp4FilePath, instance.downloadFormat, progress => {
-              const ptg = Math.round(progress.percent)
+            await extractMp3(instance.paths.mp3FilePath, instance.paths.mp4FilePath, progress => {
+              const ptg = Math.round(progress.percent ?? 0)
               instance.info.ptg = instance.info.extraction.ptg = ptg
               emitEvent.extraction({ type: LifeCycle.Progress, id: instance.id, ptg })
             })
@@ -372,7 +342,6 @@ function constructDownloads (tracks: QueryTrack[]) {
     if (!instance.download) throw new Error('NO DOWNLOADER')
     if (!instance.extraction) throw new Error('NO EXTRACTOR')
 
-    await instance.controller.setFormat()
     instance.controller.constructDownload()
     instance.controller.constructExtraction()
 
@@ -424,13 +393,4 @@ function constructDownloads (tracks: QueryTrack[]) {
   }
 
   return exec()
-}
-
-function getDownloadFormatId (format: string) {
-  switch (format) {
-    case 'webm':
-      return '251'
-    case 'mp4':
-      return '18'
-  }
 }

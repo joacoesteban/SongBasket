@@ -1,5 +1,3 @@
-import * as open from 'open'
-
 import FSController from '../FileSystem/index'
 // import customGetters from '../Store/Helpers/customGetters'
 import * as sbFetch from './sbFetch'
@@ -7,7 +5,6 @@ import FileWatchers from '../FileSystem/FileWatchers'
 // import IpcController from './ipc.controller'
 import youtubeDl from '../DownloadPhase/youtube-dl'
 import VUEX_MAIN from '../../Store/mainProcessStore'
-// import { v4 as uuid } from 'uuid'
 
 import core from './core.controller'
 import { AppStatus, LoadingController, SongBasketSaveFile } from '../../../@types/SongBasket'
@@ -15,7 +12,7 @@ import { SpotifyPlaylistId, SpotifyTrackId } from '../../../@types/Spotify'
 import { YouTubeResultId } from '../../../@types/YouTube'
 import { dialog, shell } from 'electron'
 
-const openBrowser = global.openUrl = open
+const openBrowser = global.openUrl = shell.openExternal
 
 // const ipcOnce = IpcController.once
 
@@ -59,7 +56,7 @@ const loadingController: LoadingController = {
     return this.fn(-1)
   },
   ptg (target, ptg) {
-    this.reflect({ target: target, value: this.isLoading, ptg })
+    this.reflect({ target, value: this.isLoading, ptg })
   },
   fn (val) {
     return (target) => {

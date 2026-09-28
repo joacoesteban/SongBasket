@@ -1,20 +1,16 @@
-// import { ipcRenderer } from 'electron'
-import { ipcRenderer } from 'electron-better-ipc'
-import * as $ from 'jquery'
+import ipc from './ipc'
+import $ from 'jquery'
 import { sleep } from '../utils'
 import vue from '../controllers/VueInstance'
 // import Vue, { VueConstructor } from 'vue'
 import VueApp from '../main'
-
-const ipc = ipcRenderer
 
 const env = {
   propagationTimeout: null,
   propagationTrackQueue: []
 }
 export default function () {
-  VueApp.$IPC = ipcRenderer
-  console.log(ipc)
+  VueApp.$IPC = ipc
 
   ipc.answerMain('STATUS:SET', onDocumentReady)
   ipc.answerMain('FFMPEG_BINS_DOWNLOADED', onFfmpegBinaries)

@@ -104,13 +104,13 @@ const mutations = {
       // If it's cached I want to compare the version with the currently stored one.
       // If they match I will keep the tracks (currently stored version)
       // If they don't I will keep the new version without tracks and the playlist will be uncached
-      let c = ((cacheEntry) => {
+      const c = ((cacheEntry) => {
         if (cacheEntry >= 0) return state.cachedPlaylists[cacheEntry].snapshot_id
         return false
       })(findById(id, state.cachedPlaylists))
 
       // I dont care about the version controlling synced ones in here because version control has been handled elsewhere
-      let s = findById(id, state.syncedPlaylists) >= 0
+      const s = findById(id, state.syncedPlaylists) >= 0
 
       return { c, s }
     }
@@ -124,8 +124,8 @@ const mutations = {
     if (!params.isLoadMore) {
       if (state.cachedPlaylists.length > 0 || state.syncedPlaylists.length > 0) {
         for (let i = 0; i < playlists.items.length; i++) {
-          let currentPlaylist = playlists.items[i]
-          let cachedOrSynced = isCachedOrSynced(currentPlaylist.id)
+          const currentPlaylist = playlists.items[i]
+          const cachedOrSynced = isCachedOrSynced(currentPlaylist.id)
           if (!cachedOrSynced.c && !cachedOrSynced.s) {
             normalizePlaylist(playlists.items[i])
           }
@@ -141,7 +141,7 @@ const mutations = {
           }
           if (cachedOrSynced.s) {
             // If playlist is synced, it will have already been processed, so im just replacing it
-            let index = findById(currentPlaylist.id, state.playlists)
+            const index = findById(currentPlaylist.id, state.playlists)
             playlists.items.splice(i, 1, state.playlists[index])
             continue
           }
@@ -156,8 +156,8 @@ const mutations = {
       // TODO so if the playlist is not in the response it is assumed to have been deleted wrongly
       // TODO if there's need to implement this logic, it should also unlink the playlist from every track in convertedTracks which contains the playlist
       for (let i = 0; i < state.syncedPlaylists.length; i++) {
-        let pl = state.syncedPlaylists[i]
-        let index = findById(pl, playlists.items)
+        const pl = state.syncedPlaylists[i]
+        const index = findById(pl, playlists.items)
         if (index === -1) {
           const deletedPlaylist = state.playlists[findById(pl, state.playlists)]
           state.deletedPlaylists.push(deletedPlaylist)
@@ -259,7 +259,7 @@ const mutations = {
   QUEUE_PLAYLIST (id: SpotifyPlaylistId): void {
     let found = false
     for (let i = 0; i < state.queuedPlaylists.length; i++) {
-      let pl = state.queuedPlaylists[i]
+      const pl = state.queuedPlaylists[i]
       if (pl === id) { // Unqueues if found
         found = true
         state.queuedPlaylists.splice(i, 1)
@@ -269,7 +269,7 @@ const mutations = {
   },
   FIND_AND_UNQUEUE (params: { id: SpotifyPlaylistId }): void {
     const { id } = params
-    let index = findById(id, state.queuedPlaylists.map(pl => {
+    const index = findById(id, state.queuedPlaylists.map(pl => {
       return { id: pl }
     }))
     // console.log('Unqueueing', id, index)
@@ -279,7 +279,7 @@ const mutations = {
   },
   FIND_AND_UNCACHE (params: { id: SpotifyPlaylistId }): void {
     const { id } = params
-    let index = findById(id, state.cachedPlaylists)
+    const index = findById(id, state.cachedPlaylists)
     // console.log('Uncaching', id, index)
     if (index >= 0) {
       state.cachedPlaylists.splice(index, 1)
@@ -287,7 +287,7 @@ const mutations = {
     SAVE_TO_DISK()
   },
   REMOVE_CONVERSION_DUPLICATES (): void {
-    let cloned = [...state.convertedTracks]
+    const cloned = [...state.convertedTracks]
     console.log(cloned[0].id)
 
     for (const key in cloned) {
@@ -331,9 +331,11 @@ const mutations = {
         if (params.forceCustom) convertedTrack.selection = false
         if (!convertedTrack.custom.youtube_id) convertedTrack.custom.youtube_id = convertedTrack.custom.id
       }
-      if (convertedTrack.conversion) convertedTrack.conversion.yt.forEach(t => {
-        if (!t.youtube_id) t.youtube_id = t.id
-      })
+      if (convertedTrack.conversion) {
+        convertedTrack.conversion.yt.forEach(t => {
+          if (!t.youtube_id) t.youtube_id = t.id
+        })
+      }
       if (!convertedTrack.flags) {
         convertedTrack.flags = {
           converted: !!convertedTrack.conversion,
@@ -380,12 +382,12 @@ const mutations = {
     state.convertedTracks.forEach(t => t.flags.processed = val)
   },
   COMMIT_TRACK_CHANGES (id: SpotifyPlaylistId): void {
-    let index = findById(id, state.playlists)
+    const index = findById(id, state.playlists)
     if (index === -1) {
       console.error('PLAYLIST NOT FOUND WHEN COMMITING CHANGES')
       return
     }
-    let tracks = state.playlists[index].tracks
+    const tracks = state.playlists[index].tracks
 
     // Remove playlist from converted tracks registries
     if (tracks.removed && tracks.removed.length) {
@@ -486,7 +488,7 @@ const controller = {
 function findById (id: string, obj: (string | { id: string })[]): number {
   for (let i = 0; i < obj.length; i++) {
     const _obj = obj[i]
-    let pl = (typeof _obj !== 'string' && _obj.id) || _obj
+    const pl = (typeof _obj !== 'string' && _obj.id) || _obj
     if (pl === id) {
       return i
     }
@@ -499,18 +501,18 @@ function playlistComputeChanges (oldPlaylistTracks: SpotifyTrack[], newPlaylistT
   // Tracks will be compared between both arrays and if it's a match, then both will be spliced from both arrays
   // If there are no changes, then both arrays will be empty
 
-  let added = [...newPlaylistTracks]
+  const added = [...newPlaylistTracks]
   let removed = [...oldPlaylistTracks]
   let items: SpotifyTrack[] = [] // Tracks that are preserved between versions
 
   if (removed.length > 0) { // This checks if the synced playlist has not been added to DB yet, if so, then every song will be 'new'
     let i = 0
     while (i < added.length) {
-      let a = added[i]
+      const a = added[i]
       let found = false
 
       for (let o = 0; o < removed.length; o++) {
-        let r = removed[o]
+        const r = removed[o]
 
         if (a.id === r.id) {
           // No changes to track

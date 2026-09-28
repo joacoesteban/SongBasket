@@ -1,12 +1,26 @@
 <template>
-  <Card @click="handleClick" :pressed="isQueued" :item="playlistFormatted" :options="cardOptions"
-    :row-classes="rowClasses">
+  <Card
+    :pressed="isQueued"
+    :item="playlistFormatted"
+    :options="cardOptions"
+    :row-classes="rowClasses"
+    @click="handleClick"
+  >
     <div class="playlist-data">
-      <div v-if="showChanges" class="track-changes-container">
-        <div v-if="playlist.tracks.added && playlist.tracks.added.length" class="track-change added">
+      <div
+        v-if="showChanges"
+        class="track-changes-container"
+      >
+        <div
+          v-if="playlist.tracks.added && playlist.tracks.added.length"
+          class="track-change added"
+        >
           <span class="bold">+{{ playlist.tracks.added.length }}</span>
         </div>
-        <div v-if="playlist.tracks.removed && playlist.tracks.removed.length" class="track-change removed">
+        <div
+          v-if="playlist.tracks.removed && playlist.tracks.removed.length"
+          class="track-change removed"
+        >
           <span class="bold">-{{ playlist.tracks.removed.length }}</span>
         </div>
       </div>
@@ -21,7 +35,11 @@
           {{ trackAmmountStr }}
         </span>
       </div>
-      <div class="playlist-status-indicator" :class="status.slug" :style="{ '--status-color': status.color }">
+      <div
+        class="playlist-status-indicator"
+        :class="status.slug"
+        :style="{ '--status-color': status.color }"
+      >
         <span class="bold uppercase">
           {{ status.msg }}
         </span>
@@ -36,6 +54,9 @@ import 'vuex'
 import Card from './Generic/Card.vue'
 
 export default {
+  components: {
+    Card
+  },
   props: {
     playlist: Object,
     status: Object
@@ -79,10 +100,12 @@ export default {
     },
     // -------------
     cardOptions () {
-      return this.isSynced ? {
-        size: '.8em',
-        height: '3.5em'
-      } : {}
+      return this.isSynced
+        ? {
+            size: '.8em',
+            height: '3.5em'
+          }
+        : {}
     },
     rowClasses () {
       return this.isPaused ? 'col-lg-3 col-md-5 col-xs-12' : null
@@ -106,9 +129,6 @@ export default {
         payload: { id: this.playlist.id }
       })
     }
-  },
-  components: {
-    Card
   }
 }
 </script>

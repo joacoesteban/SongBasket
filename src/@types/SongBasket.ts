@@ -89,9 +89,8 @@ export type LoadingController = {
   fn (val: number): (target: string) => void
 }
 
-
 export type AppStatus = {
-  APP_STATUS: Constants["APP_STATUS"],
+  APP_STATUS: Constants['APP_STATUS'],
   state: SongBasketSaveFile | null,
   downloadedTracks: TrackList | null,
   FFMPEG_BINS_DOWNLOADED: boolean,
@@ -110,5 +109,5 @@ export type SongBasketTrackFile = {
   path: string,
   file: string,
 } & {
-    [key in SongbasketCustomMp3Tags]?: string
-  }
+  [key in SongbasketCustomMp3Tags]?: string
+}

@@ -1,36 +1,36 @@
 <template>
-  <div v-show="!(!transitioning && !showLocal)" class="modal-wrapper">
-    <div :class="{ 'show': showLocal }" class="modal-container">
+  <div
+    v-show="!(!transitioning && !showLocal)"
+    class="modal-wrapper"
+  >
+    <div
+      :class="{ 'show': showLocal }"
+      class="modal-container"
+    >
       <div class="content box-shadow">
         <modal-loader @close="close" />
       </div>
     </div>
-    <div @click="close" :class="{ 'show': showLocal }" class="dark-body" />
+    <div
+      :class="{ 'show': showLocal }"
+      class="dark-body"
+      @click="close"
+    />
   </div>
 </template>
 
 <script lang="ts">
 import ModalLoader from './ModalLoader.vue'
 export default {
+  components: {
+    ModalLoader
+  },
   data () {
     return {
       showLocal: false,
       transitioning: false,
       // TODO adapt to global transition scale factor
       transitionTime: 300
-    }
-  },
-  components: {
-    ModalLoader
-  },
-  methods: {
-    close () {
-      if (this.transitioning) return
-      this.$root.$(window).off('keyup', this.onKeyUp)
-      this.$store._actions.closeModal[0]()
-    },
-    onKeyUp ({ key }) {
-      return key === 'Escape' ? this.close() : null
     }
   },
   computed: {
@@ -51,6 +51,16 @@ export default {
           this.transitioning = false
         }, this.transitionTime)
       }, 0)
+    }
+  },
+  methods: {
+    close () {
+      if (this.transitioning) return
+      this.$root.$(window).off('keyup', this.onKeyUp)
+      this.$store._actions.closeModal[0]()
+    },
+    onKeyUp ({ key }) {
+      return key === 'Escape' ? this.close() : null
     }
   }
 }

@@ -1,8 +1,14 @@
 <template>
-  <div v-if="playlist" class="pl-view-slide-container">
-    <div class="image" :style="{ 'background-image': `url(${image})` }">
+  <div
+    v-if="playlist"
+    class="pl-view-slide-container"
+  >
+    <div
+      class="image"
+      :style="{ 'background-image': `url(${image})` }"
+    >
       <div class="rel-full">
-        <div class="gradient abs-full"></div>
+        <div class="gradient abs-full" />
         <!-- <div class="gradient-y abs-full"></div> -->
       </div>
     </div>
@@ -13,28 +19,48 @@
           {{ playlist.name }}
         </span>
         <div class="controls-container">
-          <div class="icon-wrapper" :class="{ show: showDownload }">
-            <button class="icon window-nodrag" @click="downloadPlaylist">
-              <download-icon>
-              </download-icon>
+          <div
+            class="icon-wrapper"
+            :class="{ show: showDownload }"
+          >
+            <button
+              class="icon window-nodrag"
+              @click="downloadPlaylist"
+            >
+              <download-icon />
             </button>
           </div>
-          <div class="icon-wrapper" :class="{ show: showUnsync }">
-            <button class="icon window-nodrag" @click="unsyncPlaylist">
-              <close-icon>
-              </close-icon>
+          <div
+            class="icon-wrapper"
+            :class="{ show: showUnsync }"
+          >
+            <button
+              class="icon window-nodrag"
+              @click="unsyncPlaylist"
+            >
+              <close-icon />
             </button>
           </div>
-          <div class="icon-wrapper" :class="{ show: showPause }">
-            <button class="icon window-nodrag" @click="pausePlaylist">
-              <pause-icon>
-              </pause-icon>
+          <div
+            class="icon-wrapper"
+            :class="{ show: showPause }"
+          >
+            <button
+              class="icon window-nodrag"
+              @click="pausePlaylist"
+            >
+              <pause-icon />
             </button>
           </div>
-          <div class="icon-wrapper" :class="{ show: showUnPause }">
-            <button class="icon window-nodrag" @click="pausePlaylist">
-              <play-icon>
-              </play-icon>
+          <div
+            class="icon-wrapper"
+            :class="{ show: showUnPause }"
+          >
+            <button
+              class="icon window-nodrag"
+              @click="pausePlaylist"
+            >
+              <play-icon />
             </button>
           </div>
         </div>
@@ -44,13 +70,15 @@
           {{ trackAmmountStr }}
         </span>
       </div>
-      <div class="playlist-status-indicator" :style="{ '--status-color': statusObj.color }">
+      <div
+        class="playlist-status-indicator"
+        :style="{ '--status-color': statusObj.color }"
+      >
         <span class="bold uppercase">
           {{ statusObj.msg }}
         </span>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -102,9 +130,6 @@ export default {
       return !this.showPause
     }
   },
-  created () {
-    this.$root.$sbRouter.beforeTransition(this.getPlaylist)
-  },
   watch: {
     playlistTracksReComputed () {
       this.setStatus()
@@ -112,6 +137,9 @@ export default {
     playlistStateChanged () {
       this.getPlaylist()
     }
+  },
+  created () {
+    this.$root.$sbRouter.beforeTransition(this.getPlaylist)
   },
   methods: {
     getPlaylist (path = this.$root.$sbRouter.giveMeCurrent()) {

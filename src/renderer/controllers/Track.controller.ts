@@ -1,4 +1,3 @@
-
 import env from './VueInstance'
 const TrackController = {
   getArtistsString: (item) => (item.artists || item.data.artists).map(({ name }) => name).join(', '),
@@ -47,10 +46,10 @@ const TrackController = {
 }
 
 const SortOrders = {
-  'paused': 1000,
-  'error': 1,
+  paused: 1000,
+  error: 1,
   'awaiting-conversion': 5,
-  'downloaded': 100,
+  downloaded: 100,
   'awaiting-download': 10,
   'custom:awaiting-download': 10,
   'review-conversion': 3,
@@ -58,20 +57,20 @@ const SortOrders = {
 }
 
 const Colors = {
-  'paused': 'var(--global-grey)',
-  'error': 'var(--red-cancel)',
+  paused: 'var(--global-grey)',
+  error: 'var(--red-cancel)',
   'awaiting-conversion': 'var(--global-grey)',
-  'downloaded': 'var(--green-accept)',
+  downloaded: 'var(--green-accept)',
   'awaiting-download': 'var(--button-purple)',
   'custom:awaiting-download': 'var(--custom-selection-color)',
   'review-conversion': 'var(--orange-warning)',
   'no-conversion': 'var(--global-grey)'
 }
 const Strings = {
-  'paused': 'paused',
-  'error': 'conversion error',
+  paused: 'paused',
+  error: 'conversion error',
   'awaiting-conversion': 'awaiting conversion',
-  'downloaded': 'downloaded',
+  downloaded: 'downloaded',
   'awaiting-download': 'awaiting download',
   'custom:awaiting-download': 'awaiting download | custom',
   'review-conversion': 'review conversion',

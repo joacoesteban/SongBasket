@@ -16,7 +16,7 @@ import Home from '../components/Home/Home.vue'
 
 Vue.use(Router)
 
-let router = new Router({
+const router = new Router({
   routes: [
     {
       path: '*',
@@ -54,8 +54,8 @@ const beforeEachQueue = [(to: Route, from: Route, next: () => void) => {
   transitioning = true
   let anim1
   let anim2 = 'fast '
-  let pull = 'pull'
-  let push = 'push'
+  const pull = 'pull'
+  const push = 'push'
 
   if (to.fullPath === '/home') {
     anim1 = pull

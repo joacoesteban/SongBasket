@@ -1,13 +1,7 @@
 {
-  "compilerOptions": {
-    "outDir": "./dist/ts/",
-    "noImplicitAny": true,
-    "target": "ES6",
-    "module": "es2015",
-    "strict": true,
-    "moduleResolution": "node",
-    "typeRoots": ["src/@types", "./node_modules/@types"],
-    "checkJs": false
-  },
-  "include": ["src", "@types"]
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.main.json" },
+    { "path": "./tsconfig.renderer.json" }
+  ]
 }

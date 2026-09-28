@@ -1,11 +1,23 @@
 <template>
-    <div>
-        <unsync @close="$emit('close')" v-show="options.wich === 'unsync'" />
-        <custom-track-url @close="$emit('close')" v-show="options.wich === 'custom-track-url'" />
-        <reset-all-playlist-tracks @close="$emit('close')" v-show="options.wich === 'reset-all-playlist-tracks'" />
-        <!-- <track-review @close="$emit('close')" v-show="options.wich === 'track-review'" :options="options.payload" /> -->
-        <delete-folder @close="$emit('close')" v-show="options.wich === 'delete-folder'" />
-    </div>
+  <div>
+    <unsync
+      v-show="options.wich === 'unsync'"
+      @close="$emit('close')"
+    />
+    <custom-track-url
+      v-show="options.wich === 'custom-track-url'"
+      @close="$emit('close')"
+    />
+    <reset-all-playlist-tracks
+      v-show="options.wich === 'reset-all-playlist-tracks'"
+      @close="$emit('close')"
+    />
+    <!-- <track-review @close="$emit('close')" v-show="options.wich === 'track-review'" :options="options.payload" /> -->
+    <delete-folder
+      v-show="options.wich === 'delete-folder'"
+      @close="$emit('close')"
+    />
+  </div>
 </template>
 
 <script lang="ts">

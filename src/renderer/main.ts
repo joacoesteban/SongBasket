@@ -1,5 +1,3 @@
-
-import 'regenerator-runtime/runtime'
 import Vue from 'vue'
 import App from './App.vue'
 import router from './router'
@@ -7,12 +5,9 @@ import store from './store'
 import { setEnvironment, configureApp } from './environment'
 
 const VueApp = new Vue({
-  components: {
-    App
-  },
   router,
   store,
-  template: '<App/>'
+  render: h => h(App)
 })
 
 export default VueApp

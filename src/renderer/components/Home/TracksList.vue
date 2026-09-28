@@ -1,11 +1,25 @@
 <template>
-  <div ref="tracks-list" class="tkl-container">
-    <div ref="actual-list" class="actual-list row hideable-container" :class="listAnimationClass">
-      <div v-if="noTracks" class="no-tracks">
+  <div
+    ref="tracks-list"
+    class="tkl-container"
+  >
+    <div
+      ref="actual-list"
+      class="actual-list row hideable-container"
+      :class="listAnimationClass"
+    >
+      <div
+        v-if="noTracks"
+        class="no-tracks"
+      >
         No Tracks found
       </div>
       <div class="list row">
-        <Track v-for="track in tracksFiltered ? tracksFiltered : tracks" :item="track" :key="track.id" />
+        <Track
+          v-for="track in tracksFiltered ? tracksFiltered : tracks"
+          :key="track.id"
+          :item="track"
+        />
       </div>
     </div>
   </div>
@@ -15,6 +29,9 @@
 import Track from './PlaylistView/Track.vue'
 
 export default {
+  components: {
+    Track
+  },
   data () {
     return {
       user: this.$store.state.CurrentUser.user,
@@ -29,9 +46,6 @@ export default {
       filterMap: {},
       scrollOpKey: 'scroll-opacity'
     }
-  },
-  components: {
-    Track
   },
   computed: {
     searchInput () {
@@ -61,6 +75,17 @@ export default {
     playlistStateChanged () {
       this.refreshAll()
     }
+  },
+  mounted () {
+    this.refreshAll()
+    this.$refs['actual-list'].style.setProperty('--list-transition-time', this.listAnimationTime + 'ms')
+    // this.$root.plListEnv = this
+    // this.$root.onComponentLoaderMount = function () {
+    //   console.log('dousinho')
+    //   const env = this.$root.plListEnv
+    //   this.$root.$(env.getContainerElement()).on('scroll', env.calcScrollOpacity)
+    //   env.calcScrollOpacity()
+    // }
   },
   methods: {
     isMounted () {
@@ -117,17 +142,6 @@ export default {
       const { name, artists } = track.data
       return [name, ...artists.map(({ name }) => name)].some(token => token.toLowerCase().includes(txt))
     }
-  },
-  mounted () {
-    this.refreshAll()
-    this.$refs['actual-list'].style.setProperty('--list-transition-time', this.listAnimationTime + 'ms')
-    // this.$root.plListEnv = this
-    // this.$root.onComponentLoaderMount = function () {
-    //   console.log('dousinho')
-    //   const env = this.$root.plListEnv
-    //   this.$root.$(env.getContainerElement()).on('scroll', env.calcScrollOpacity)
-    //   env.calcScrollOpacity()
-    // }
   }
 }
 </script>

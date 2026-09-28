@@ -1,12 +1,25 @@
 <template>
-  <div :class="'router-view ' + routerAnimation" ref="home-router">
-    <playlists-list v-show="showPlList" @openPlaylist="$emit('openPlaylist', $event)"></playlists-list>
-    <tracks-list v-show="showTracksList" @openPlaylist="$emit('openPlaylist', $event)"></tracks-list>
-    <playlist-view v-show="componentBeingShown === 'playlist-view'"
-      :currentPlaylist="currentPath.params && currentPath.params.id"></playlist-view>
-    <track-review :refresh="componentBeingShown === 'track-review'"
-      v-show="componentBeingShown === 'track-review'"></track-review>
-    <downloads-view v-show="componentBeingShown === 'downloads-view'"></downloads-view>
+  <div
+    ref="home-router"
+    :class="'router-view ' + routerAnimation"
+  >
+    <playlists-list
+      v-show="showPlList"
+      @openPlaylist="$emit('openPlaylist', $event)"
+    />
+    <tracks-list
+      v-show="showTracksList"
+      @openPlaylist="$emit('openPlaylist', $event)"
+    />
+    <playlist-view
+      v-show="componentBeingShown === 'playlist-view'"
+      :current-playlist="currentPath.params && currentPath.params.id"
+    />
+    <track-review
+      v-show="componentBeingShown === 'track-review'"
+      :refresh="componentBeingShown === 'track-review'"
+    />
+    <downloads-view v-show="componentBeingShown === 'downloads-view'" />
   </div>
 </template>
 

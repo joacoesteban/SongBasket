@@ -1,12 +1,12 @@
-import { ipcMain } from 'electron-better-ipc'
-
-const w = () => global.CONSTANTS.MAIN_WINDOW
+import { ipcMain } from 'electron'
 
 const IpcController = {
-  send (...args: any) {
-    const window = w()
-    if (!window) return // throw new Error('Main window does\'nt exist')
-    return ipcMain.callRenderer(window, args[0], args[1])
+  async send (channel: string, data?: unknown): Promise<void> {
+    global.CONSTANTS.MAIN_WINDOW?.webContents.send(channel, data)
+  },
+  answerRenderer<T>(channel: string, handler: (data: T) => unknown) {
+    ipcMain.removeHandler(channel)
+    ipcMain.handle(channel, (_event, data) => handler(data))
   }
 }
 

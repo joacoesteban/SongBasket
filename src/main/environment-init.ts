@@ -40,10 +40,6 @@ const CATCH_TO_FILE = false;
     // @ts-ignore
     process.stdout.write = process.stderr.write = access.write.bind(access)
   }
-
-  if (process.env.NODE_ENV !== 'development') {
-    global.__static = path.join(__dirname, '/static').replace(/\\/g, '\\\\')
-  }
 })()
 
 global.emptyFn = () => {}

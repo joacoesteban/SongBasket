@@ -1,9 +1,15 @@
 <template>
-  <div class="track-banner-container w100"
-    :class="isDownload ? 'download ' + downloadStatus.state : isConversion ? 'conversion' : ''">
+  <div
+    class="track-banner-container w100"
+    :class="isDownload ? 'download ' + downloadStatus.state : isConversion ? 'conversion' : ''"
+  >
     <banner>
-      <div class="background-progress" :style="{ '--progress': (downloadStatus.ptg || 0) + '%' }"
-        :class="downloadStatus.state" v-if="isDownload">
+      <div
+        v-if="isDownload"
+        class="background-progress"
+        :style="{ '--progress': (downloadStatus.ptg || 0) + '%' }"
+        :class="downloadStatus.state"
+      >
         <div class="progress-label df alic">
           <span class="uppercase half-op point5-em semibold">
             {{ downloadStatus.state + ' ' + downloadStatus.ptg }}%
@@ -12,65 +18,113 @@
       </div>
       <div class="track-data w100">
         <div class="track-image">
-          <div v-if="isDownload" class="see-track-link">
+          <div
+            v-if="isDownload"
+            class="see-track-link"
+          >
             <span class="sb-link uppercase semibold">
               see track
             </span>
           </div>
-          <Card row-classes="w100 h100 p-0imp track-banner-card" :item="cardItem" :options="cardOptions">
-          </Card>
+          <Card
+            row-classes="w100 h100 p-0imp track-banner-card"
+            :item="cardItem"
+            :options="cardOptions"
+          />
         </div>
         <div class="track-info df fldc jucb ellipsis h100">
           <div class="df alic">
-            <div v-if="isConversion" class="sb-tag mr-1 hidable-item gradient-background-cycle-less"
-              :class="{ hidden: !isSelected }" style="--fz: .7em">
+            <div
+              v-if="isConversion"
+              class="sb-tag mr-1 hidable-item gradient-background-cycle-less"
+              :class="{ hidden: !isSelected }"
+              style="--fz: .7em"
+            >
               <b>
                 Selected
               </b>
             </div>
-            <div class="df alic text-secondary" v-if="isConversion && trackFormatted.issue">
-              <div class="svg-icon" style="--size: .75em; margin-right: .3em" v-if="trackFormatted.issue.warn">
-                <warning-icon></warning-icon>
+            <div
+              v-if="isConversion && trackFormatted.issue"
+              class="df alic text-secondary"
+            >
+              <div
+                v-if="trackFormatted.issue.warn"
+                class="svg-icon"
+                style="--size: .75em; margin-right: .3em"
+              >
+                <warning-icon />
               </div>
               <span class="conversion-status df alic">
-                <span class="bold point75-em color-transition" :style="{ color: trackFormatted.issue.color || '' }">
+                <span
+                  class="bold point75-em color-transition"
+                  :style="{ color: trackFormatted.issue.color || '' }"
+                >
                   {{ trackFormatted.issue.msg }}
                 </span>
               </span>
             </div>
           </div>
           <div class="ellipsis lh1point5">
-            <span class="name" v-html="trackFormatted.name">
-            </span>
+            <span
+              class="name"
+              v-html="trackFormatted.name"
+            />
           </div>
           <div class="ellipsis">
             <span class="artists">
               {{ trackFormatted.creator }}
             </span>
           </div>
-          <div v-if="isConversion" class="track-controls df mt-1">
-            <button :class="{ hidden: !canSelect }" class="hidable-item link-button m-0" style="margin-right: .5em"
-              @click="select">
+          <div
+            v-if="isConversion"
+            class="track-controls df mt-1"
+          >
+            <button
+              :class="{ hidden: !canSelect }"
+              class="hidable-item link-button m-0"
+              style="margin-right: .5em"
+              @click="select"
+            >
               {{ isSelected && isDoubtly ? 'Apply Selection' : 'Select' }}
             </button>
-            <button class="link-button m-0" @click="openVideo">
+            <button
+              class="link-button m-0"
+              @click="openVideo"
+            >
               Open
             </button>
           </div>
-          <div v-if="!isConversion" class="ellipsis">
+          <div
+            v-if="!isConversion"
+            class="ellipsis"
+          >
             <span class="playlists">
               Inside <b>{{ $root.$controllers.track.getPlaylistsString(track) }}</b>
             </span>
           </div>
-          <div v-if="!isConversion && !isDownload" class="df">
-            <span class="bold uppercase point5-em color-transition" v-if="trackFormatted.status"
-              :style="{ color: trackFormatted.status.color }">
+          <div
+            v-if="!isConversion && !isDownload"
+            class="df"
+          >
+            <span
+              v-if="trackFormatted.status"
+              class="bold uppercase point5-em color-transition"
+              :style="{ color: trackFormatted.status.color }"
+            >
               {{ trackFormatted.status.str }}
             </span>
           </div>
         </div>
-        <div class="duration" v-if="!isDownload">
-          <div class="default-title bold" :style="{ color: duration.color }" style="--fz: 2em">
+        <div
+          v-if="!isDownload"
+          class="duration"
+        >
+          <div
+            class="default-title bold"
+            :style="{ color: duration.color }"
+            style="--fz: 2em"
+          >
             {{ duration.str }}
           </div>
         </div>
@@ -88,6 +142,20 @@ export default {
     Banner,
     Card,
     WarningIcon
+  },
+  props: {
+    track: Object,
+    parentRef: Object,
+    isDownload: Boolean,
+    isConversion: Boolean,
+    isSelected: Boolean,
+    downloadStatus: {
+      type: Object,
+      required: false,
+      default: () => ({
+        state: 'awaiting'
+      })
+    }
   },
   data () {
     return {
@@ -123,9 +191,11 @@ export default {
               warn: true
             }
           }
-          if (itm.isCustomTrack) return {
-            msg: 'Custom',
-            color: 'var(--custom-selection-color)'
+          if (itm.isCustomTrack) {
+            return {
+              msg: 'Custom',
+              color: 'var(--custom-selection-color)'
+            }
           }
         })()
       }
@@ -158,20 +228,6 @@ export default {
     },
     openVideo () {
       this.$root.$controllers.core.openVideo(this.track.youtube_id || this.track.id)
-    }
-  },
-  props: {
-    track: Object,
-    parentRef: Object,
-    isDownload: Boolean,
-    isConversion: Boolean,
-    isSelected: Boolean,
-    downloadStatus: {
-      type: Object,
-      required: false,
-      default: () => ({
-        state: 'awaiting'
-      })
     }
   }
 }

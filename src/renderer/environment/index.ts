@@ -1,15 +1,12 @@
-import * as electron from 'electron'
-// import { VueConstructor } from 'vue'
+import type * as electron from 'electron'
+import { BrowserWindow, getGlobal } from '@electron/remote'
 import '../../main/controllers/Prototype/Array.ts'
 import '../../main/controllers/Prototype/Object.ts'
 
 import { vueProtoConfig, vueAppConfig } from './vue.renderer.config'
 import WindowRendererConfig from './window.renderer.config'
 
-const { BrowserWindow, getGlobal } = electron.remote
-
 const GLOBAL = window.CONSTANTS = getGlobal('CONSTANTS')
-console.log('gl', GLOBAL)
 
 export const setEnvironment = () => {
   // -----------------PROTOTYPES-----------------

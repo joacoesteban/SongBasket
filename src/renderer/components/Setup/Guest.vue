@@ -1,14 +1,22 @@
 <template>
-  <div :class="loadingState === 'Loading' ? 'loading' : 'doneloading'" class="df fldc global-center alt">
-    <button class="button slim" @click="$emit('backLogin')">Log in instead</button>
+  <div
+    :class="loadingState === 'Loading' ? 'loading' : 'doneloading'"
+    class="df fldc global-center alt"
+  >
+    <button
+      class="button slim"
+      @click="$emit('backLogin')"
+    >
+      Log in instead
+    </button>
     <!-- <div class="top">
               <div class="radio-label">
                 <span @click="changeMode(0)">Username</span>
               </div>
-              <div 
+              <div
               @click="changeMode(null)"
               class="radio-container">
-                <div 
+                <div
                 :class="{'left': mode === 0, 'right': mode === 1}"
                 class="radio-thumb"></div>
               </div>
@@ -18,15 +26,28 @@
             </div> -->
 
     <div class="mid">
-      <input ref="guestSearchInput" class="std-input guest-search-box" type="text" v-model.trim="userQuery"
-        @keyup.enter.prevent="guestSearch" />
+      <input
+        ref="guestSearchInput"
+        v-model.trim="userQuery"
+        class="std-input guest-search-box"
+        type="text"
+        @keyup.enter.prevent="guestSearch"
+      >
     </div>
 
     <div class="bot">
-      <div v-if="loadingState !== null" class="loading-state-indicator">
+      <div
+        v-if="loadingState !== null"
+        class="loading-state-indicator"
+      >
         {{ loadingState }}
       </div>
-      <button class="button button-wide" @click="guestSearch">Search</button>
+      <button
+        class="button button-wide"
+        @click="guestSearch"
+      >
+        Search
+      </button>
     </div>
   </div>
 </template>
@@ -43,7 +64,7 @@ export default {
   },
   computed: {
     loadingState () {
-      let x = this.$store.state.SharedStates.loadingState
+      const x = this.$store.state.SharedStates.loadingState
       switch (x) {
         case 'loading': return 'Loading'
         case 'not found': return !this.lastmode ? 'User not Found' : 'Playlist not Found'
@@ -52,6 +73,9 @@ export default {
         default: return null
       }
     }
+  },
+  mounted () {
+    // this.focusInput()
   },
   methods: {
     guestSearch () {
@@ -67,9 +91,6 @@ export default {
     focusInput () {
       this.$refs.guestSearchInput.focus()
     }
-  },
-  mounted () {
-    // this.focusInput()
   }
 }
 </script>
@@ -108,8 +129,6 @@ export default {
 .radio-label {
   min-width: 7rem;
 }
-
-
 
 .radio-container {
   $time: 5s;

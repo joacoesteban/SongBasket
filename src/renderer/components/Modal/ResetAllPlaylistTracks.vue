@@ -1,13 +1,26 @@
 <template>
   <div class="container">
-    <div class="header" v-if="playlist">
+    <div
+      v-if="playlist"
+      class="header"
+    >
       Are you sure you want to reset all track selections for playlist <span class="bold">
         {{ playlist.name }}
       </span>?
     </div>
     <div class="controls df jucc aliic">
-      <div @click="accept" class="button accept">Yes</div>
-      <div @click="$emit('close')" class="button cancel">No</div>
+      <div
+        class="button accept"
+        @click="accept"
+      >
+        Yes
+      </div>
+      <div
+        class="button cancel"
+        @click="$emit('close')"
+      >
+        No
+      </div>
     </div>
   </div>
 </template>

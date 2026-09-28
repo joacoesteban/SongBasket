@@ -7,14 +7,14 @@ let ALL_PLAYLISTS: _Playlist[] = []
 let ALL_TRACKS: SongBasketTrack[] = []
 
 export function makeConversionQueries (): SongBasketTrack[] {
-  let syncedPlaylists: _Playlist[] = customGetters.SyncedPlaylistsSp().map(pl => {
+  const syncedPlaylists: _Playlist[] = customGetters.SyncedPlaylistsSp().map(pl => {
     if (pl.isPaused) return null
     return {
       ...pl,
       synced: true
     }
   }).filter(Boolean) as _Playlist[]
-  let queuedPlaylists: _Playlist[] = customGetters.queuedPlaylistsObj().map(pl => {
+  const queuedPlaylists: _Playlist[] = customGetters.queuedPlaylistsObj().map(pl => {
     return {
       ...pl,
       synced: false
@@ -35,7 +35,7 @@ function findDuplicatedTracks () {
   console.log('DUPLICCC')
 
   // Accumulating tracks to fetch
-  let pls = []
+  const pls = []
   for (let i = 0; i < ALL_PLAYLISTS.length; i++) {
     const pl = ALL_PLAYLISTS[i]
     const tracks = (pl.tracks)[pl.synced ? 'added' : 'items']
@@ -57,7 +57,7 @@ function findDuplicatedTracks () {
       const dirtyTrack = playlist.tracks[o]
       let found: boolean | number = false
       for (let u = 0; u < ALL_TRACKS.length; u++) {
-        let cleanTrack = ALL_TRACKS[u]
+        const cleanTrack = ALL_TRACKS[u]
         if (dirtyTrack.id === cleanTrack.id) {
           // Foud duplicated
           console.log('found dou')
@@ -66,7 +66,7 @@ function findDuplicatedTracks () {
         }
       }
 
-      let plTrackModel = {
+      const plTrackModel = {
         id: playlist.id
       }
       // Pushing to playlist register if found
@@ -108,7 +108,7 @@ function makeQueries () {
     const track = ALL_TRACKS[o].data
 
     const query = `${track.name} ${track.artists[0].name}`
-    let duration: SongBasketTrackQuery['duration'] = ((dur) => {
+    const duration: SongBasketTrackQuery['duration'] = ((dur) => {
       if (dur > 20) return 'long'
       if (dur <= 20 && dur >= 4) return 'medium'
       return 'short'

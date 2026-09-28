@@ -1,7 +1,7 @@
 import customGetters from '../../Store/Helpers/customGetters'
 import * as utils from '../../../MAIN_PROCESS_UTILS'
 import * as PATH from 'path'
-import { v4 as uuid } from 'uuid'
+import { randomUUID as uuid } from 'crypto'
 import { SongbasketCustomMp3Tags, SongBasketTrack, SongBasketTrackFile } from '../../../@types/SongBasket'
 import { SpotifyPlaylistId } from '../../../@types/Spotify'
 
@@ -18,7 +18,6 @@ export type QueryTrack = SongBasketTrack & {
     }
   }
 }
-
 
 export async function downloadLinkRemove (localTracks: _track[], queryTracks: SongBasketTrack[], plFilter: SpotifyPlaylistId[] = []) {
   return VTWO(localTracks, queryTracks, plFilter || [])
@@ -39,7 +38,7 @@ async function VTWO (_localTracks: _track[], _queryTracks: SongBasketTrack[] = [
   const pausedPlaylists = customGetters.pausedPlaylists
   const dontUnlinkFrom = [...plFilter, ...pausedPlaylists]
 
-  const localTracks = (_localTracks as (_track & { dontUnlink?: boolean })[])
+  const localTracks = _localTracks as (_track & { dontUnlink?: boolean })[]
   if (plFilter.length) {
     localTracks.forEach(lTrack => lTrack.dontUnlink = !dontUnlinkFrom.includes(lTrack.playlist)) // prevents unlinking tracks when filtering playlist
   }
@@ -105,7 +104,7 @@ const linkTrackToPlaylists = async (track: QueryTrack) => {
     console.log(plPath)
     if (!plPath) return
     plPath = PATH.join(global.HOME_FOLDER, utils.encodeIntoFilename(plPath))
-    let fileName = track.downloadFlags.linkData!.file.replace('.mp3', '')
+    const fileName = track.downloadFlags.linkData!.file.replace('.mp3', '')
     let didLink = false
 
     for (let i = 0; !didLink && i < 10; i++) { // TODO Rethink this

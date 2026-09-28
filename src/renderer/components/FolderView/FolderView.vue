@@ -7,12 +7,22 @@
     </div>
     <div class="list-wrapper df fldc">
       <div class="folder-list row">
-        <Folder v-for="(path, key) in folders" :key="key" :path="path" @clicked="openFolder(path)"
-          @editFolder="editFolder(path)" @deleteFolder="deleteFolder(path)" :index="key" />
+        <Folder
+          v-for="(path, key) in folders"
+          :key="key"
+          :path="path"
+          :index="key"
+          @clicked="openFolder(path)"
+          @editFolder="editFolder(path)"
+          @deleteFolder="deleteFolder(path)"
+        />
       </div>
-      <div class="pusher w100"></div>
+      <div class="pusher w100" />
     </div>
-    <div class="w100 df global-center py-2 abs-bot no-click controls-container" @click="addFolder">
+    <div
+      class="w100 df global-center py-2 abs-bot no-click controls-container"
+      @click="addFolder"
+    >
       <button class="button all-click">
         <span>
           Add a new Folder
@@ -34,6 +44,9 @@ export default {
       folders: global.CONSTANTS.APP_STATUS.FOLDERS.paths
     }
   },
+  mounted () {
+    // this.deleteFolder(this.folders[0])
+  },
   methods: {
     openFolder (path) {
       this.$root.$controllers.core.setHomeFolder(path)
@@ -51,9 +64,6 @@ export default {
         console.error('ERROR setting folder', error)
       }
     }
-  },
-  mounted () {
-    // this.deleteFolder(this.folders[0])
   }
 }
 </script>

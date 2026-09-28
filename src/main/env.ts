@@ -1,2 +1,4 @@
-const ENV_PROD = global.ENV_PROD = process.env.NODE_ENV === 'production'
-global.IS_DEV = !ENV_PROD
+import { app } from 'electron'
+
+global.ENV_PROD = app.isPackaged
+global.IS_DEV = !global.ENV_PROD

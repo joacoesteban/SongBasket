@@ -1,5 +1,8 @@
 <template>
-  <div class="container" v-if="playlist">
+  <div
+    v-if="playlist"
+    class="container"
+  >
     <div class="header">
       Are you sure you want to unsync <span class="bold">
         {{ playlist.name }}
@@ -9,8 +12,18 @@
       {{ playlist.tracks.total }} tracks will be deleted from your Hard Drive
     </div>
     <div class="controls df jucc aliic">
-      <div @click="accept" class="button accept">Yes</div>
-      <div @click="$emit('close')" class="button cancel">No</div>
+      <div
+        class="button accept"
+        @click="accept"
+      >
+        Yes
+      </div>
+      <div
+        class="button cancel"
+        @click="$emit('close')"
+      >
+        No
+      </div>
     </div>
   </div>
 </template>

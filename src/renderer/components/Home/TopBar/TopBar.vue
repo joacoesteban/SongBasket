@@ -1,79 +1,147 @@
 <template>
-  <div class="tb-container window-drag-recursive" :class="{ 'showing-loading-bar': showingLoadingBar }">
-    <div class="drop-shadow abs-full show-on-scroll"></div>
-    <div class="drop-gradient abs-full hide-on-scroll"></div>
+  <div
+    class="tb-container window-drag-recursive"
+    :class="{ 'showing-loading-bar': showingLoadingBar }"
+  >
+    <div class="drop-shadow abs-full show-on-scroll" />
+    <div class="drop-gradient abs-full hide-on-scroll" />
 
     <div class="title-bar-container abs-full">
-      <div id="title-bar" class="mac title-section">
-        <div class="title-bar-buttons-container" v-if="isMac">
-          <button id="min-btn" class="bar-btn button-minimize">
-            <div class="mask"></div>
+      <div
+        id="title-bar"
+        class="mac title-section"
+      >
+        <div
+          v-if="isMac"
+          class="title-bar-buttons-container"
+        >
+          <button
+            id="min-btn"
+            class="bar-btn button-minimize"
+          >
+            <div class="mask" />
           </button>
-          <button id="max-btn" class="bar-btn button-maximize">
-            <div class="mask"></div>
+          <button
+            id="max-btn"
+            class="bar-btn button-maximize"
+          >
+            <div class="mask" />
           </button>
-          <button id="close-btn" class="bar-btn button-close">
-            <div class="mask"></div>
+          <button
+            id="close-btn"
+            class="bar-btn button-close"
+          >
+            <div class="mask" />
           </button>
         </div>
       </div>
 
       <div class="tb-mid-section title-section df aliic jucc">
-        <div class="navigation-btn left window-nodrag" :class="{ show: showPrevBtn }" @click="navigationBack">
-          <font-awesome-icon size="xs" icon="arrow-left" />
+        <div
+          class="navigation-btn left window-nodrag"
+          :class="{ show: showPrevBtn }"
+          @click="navigationBack"
+        >
+          <font-awesome-icon
+            size="xs"
+            icon="arrow-left"
+          />
         </div>
         <div class="status-container">
           <span>
             {{ status }}
           </span>
         </div>
-        <div class="navigation-btn right window-nodrag" :class="{ show: showForwBtn }" @click="navigationForw">
-          <font-awesome-icon size="xs" icon="arrow-right" />
+        <div
+          class="navigation-btn right window-nodrag"
+          :class="{ show: showForwBtn }"
+          @click="navigationForw"
+        >
+          <font-awesome-icon
+            size="xs"
+            icon="arrow-right"
+          />
         </div>
       </div>
 
       <div class="title-section">
-        <div id="title-bar" class="windows">
-          <div class="title-bar-buttons-container window-nodrag" v-if="!isMac">
-            <div id="min-btn" class="bar-btn button-minimize">
-              <div class="mask"></div>
+        <div
+          id="title-bar"
+          class="windows"
+        >
+          <div
+            v-if="!isMac"
+            class="title-bar-buttons-container window-nodrag"
+          >
+            <div
+              id="min-btn"
+              class="bar-btn button-minimize"
+            >
+              <div class="mask" />
             </div>
-            <div id="max-btn" class="bar-btn button-unmaximize">
-              <div class="mask"></div>
+            <div
+              id="max-btn"
+              class="bar-btn button-unmaximize"
+            >
+              <div class="mask" />
             </div>
-            <div id="close-btn" class="bar-btn button-close">
-              <div class="mask"></div>
+            <div
+              id="close-btn"
+              class="bar-btn button-close"
+            >
+              <div class="mask" />
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="bar-slider-container h-fc rel-full df"
-      :style="{ '--position-ptg': sliderPosition + '%', '--animation-duration': loadingBar.animationDuration + 'ms' }">
+    <div
+      class="bar-slider-container h-fc rel-full df"
+      :style="{ '--position-ptg': sliderPosition + '%', '--animation-duration': loadingBar.animationDuration + 'ms' }"
+    >
       <div class="df fldc aliend bar-slide h-fc show">
         <div class="section-switcher-container">
           <div class="section-switcher-list">
-            <div class="section-switch window-nodrag" v-for="(section, index) in sections" :key="index"
-              :class="{ active: activeSection === section.id }">
-              <span class="section-title semibold" @click="section.cb">
+            <div
+              v-for="(section, index) in sections"
+              :key="index"
+              class="section-switch window-nodrag"
+              :class="{ active: activeSection === section.id }"
+            >
+              <span
+                class="section-title semibold"
+                @click="section.cb"
+              >
                 {{ section.title }}
               </span>
             </div>
           </div>
         </div>
       </div>
-      <playlist-view-slide :class="{ show: currentPath === 'playlist-view' }" class="bar-slide"
-        style="--slide-height: 6em;"></playlist-view-slide>
-      <track-review-slide :class="{ show: currentPath === 'track-review' }" class="bar-slide hidden-of"
-        style="--slide-height: 10em;"></track-review-slide>
-      <downloads-view-slide :class="{ show: currentPath === 'downloads-view' }" class="bar-slide"></downloads-view-slide>
+      <playlist-view-slide
+        :class="{ show: currentPath === 'playlist-view' }"
+        class="bar-slide"
+        style="--slide-height: 6em;"
+      />
+      <track-review-slide
+        :class="{ show: currentPath === 'track-review' }"
+        class="bar-slide hidden-of"
+        style="--slide-height: 10em;"
+      />
+      <downloads-view-slide
+        :class="{ show: currentPath === 'downloads-view' }"
+        class="bar-slide"
+      />
     </div>
 
-
-    <div class="loading-bar" ref="loadingbar" :style="{ '--ptg': loadingBar.ptg }" :class="loadingBar.classList">
-      <div class="actual-loading-bar gradient-background-cycle-less">
-      </div>
+    <div
+      ref="loadingbar"
+      class="loading-bar"
+      :style="{ '--ptg': loadingBar.ptg }"
+      :class="loadingBar.classList"
+    >
+      <div class="actual-loading-bar gradient-background-cycle-less" />
     </div>
   </div>
 </template>
@@ -136,23 +204,14 @@ export default {
       ]
     }
   },
-  mounted () {
-    window.bar = this
-    // document.documentElement.style.setProperty('--loading-bar-animation-duration', (this.loadingBar.animationDuration / 100) + 's')
-    this.activeSection = this.sections.find(s => s.title === 'Playlists').id
-
-    this.$root.$sbRouter.beforeTransition(this.handleRouterNavigation)
-    this.$root.$sbRouter.afterTransition(this.checkNavBtns)
-    this.checkNavBtns()
-  },
   computed: {
     route () {
       return this.$route.name
     },
     now () {
-      let separator = ' / '
-      let thisDate = dateFormatter(this.$store.state.CurrentUser.lastSync || new Date())
-      let hours = thisDate.time.hours + ':' + thisDate.time.minutes
+      const separator = ' / '
+      const thisDate = dateFormatter(this.$store.state.CurrentUser.lastSync || new Date())
+      const hours = thisDate.time.hours + ':' + thisDate.time.minutes
       let date = ''
       if (thisDate.date.today) date = 'Today'
       else {
@@ -176,6 +235,15 @@ export default {
     loadingState (val) {
       this.handleLoadingState(val)
     }
+  },
+  mounted () {
+    window.bar = this
+    // document.documentElement.style.setProperty('--loading-bar-animation-duration', (this.loadingBar.animationDuration / 100) + 's')
+    this.activeSection = this.sections.find(s => s.title === 'Playlists').id
+
+    this.$root.$sbRouter.beforeTransition(this.handleRouterNavigation)
+    this.$root.$sbRouter.afterTransition(this.checkNavBtns)
+    this.checkNavBtns()
   },
   methods: {
     checkNavBtns () {

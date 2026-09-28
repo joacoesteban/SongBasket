@@ -1,34 +1,33 @@
-
 import { promises as fs } from 'fs'
-import * as ffmpeg from 'fluent-ffmpeg'
+import ffmpeg from 'fluent-ffmpeg'
 
 import * as NodeID3 from 'node-id3'
 import axios from 'axios'
 import { SpotifyTrack } from '../../../@types/Spotify'
 import { YouTubeResultId } from '../../../@types/YouTube'
-import { Tags } from '../../../@types/node'
+import { Tags } from '../../../@types/globals'
 
-type progressEvent = {
-  percent: number
+type ExtractionProgress = {
+  percent?: number
 }
 
-export function extractMp3 (pathmp3: string, pathmp4: string, inputFormat: string, progressCb: (progress: progressEvent) => void): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const command =
-      ffmpeg(pathmp4)
-        .inputFormat(inputFormat)
-        .on('progress', progressCb)
-        .on('end', async () => {
-          try {
-            await fs.unlink(pathmp4)
-          } catch (err) {
-            console.error(err)
-          }
-          console.log('Finished processing')
-          resolve()
-        })
-    command.save(pathmp3)
-  })
+export function extractMp3 (pathmp3: string, sourcePath: string, progressCb: (progress: ExtractionProgress) => void): Promise<void> {
+  const { promise, resolve, reject } = Promise.withResolvers<void>()
+
+  ffmpeg(sourcePath)
+    .on('progress', progressCb)
+    .on('error', reject)
+    .on('end', async () => {
+      try {
+        await fs.unlink(sourcePath)
+      } catch (err) {
+        console.error(err)
+      }
+      resolve()
+    })
+    .save(pathmp3)
+
+  return promise
 }
 
 export async function applyTags (pathmp3: string, data: SpotifyTrack, ytSelection: YouTubeResultId) {
@@ -64,35 +63,10 @@ export async function applyTags (pathmp3: string, data: SpotifyTrack, ytSelectio
 
   if (!imageBuffer) delete tags.image
 
-  console.log('writing tags')
-  await new Promise<void>((resolve, reject) => NodeID3.write(tags, pathmp3, (err) => {
-    if (err) return reject(err)
-    resolve()
-  }))
+  await NodeID3.Promise.write(tags, pathmp3)
 }
 
 export async function getPhoto (url: string): Promise<Buffer> {
-  console.log('getting picture')
-
-  const resp = await axios({
-    url,
-    method: 'GET',
-    responseType: 'stream'
-  })
-
-  let buffer = Buffer.alloc(0)
-
-  await new Promise<void>((resolve, reject) => {
-    resp.data
-      .on('data', (chunk: Uint8Array) => {
-        buffer = Buffer.concat([buffer, chunk])
-      })
-      .on('end', () => {
-        console.log('photo retrieved')
-        resolve()
-      })
-      .catch((err: unknown) => reject(err))
-  })
-
-  return buffer
+  const { data } = await axios.get<ArrayBuffer>(url, { responseType: 'arraybuffer' })
+  return Buffer.from(data)
 }

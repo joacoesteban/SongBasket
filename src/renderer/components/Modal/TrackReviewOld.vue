@@ -1,14 +1,29 @@
 <template>
   <div class="track-review-container row">
-    <Track :item="item" :isReviewing="true" />
+    <Track
+      :item="item"
+      :is-reviewing="true"
+    />
 
-    <TrackResult :is-selected="convItem === item.selectionObj" @setSelection="setSelection(convItem)"
-      v-for="(convItem, index) in conversions" :key="index" :item="convItem" :durationColor="durationColor(convItem)" />
+    <TrackResult
+      v-for="(convItem, index) in conversions"
+      :key="index"
+      :is-selected="convItem === item.selectionObj"
+      :item="convItem"
+      :duration-color="durationColor(convItem)"
+      @setSelection="setSelection(convItem)"
+    />
 
-    <div @click="selectCustomUrl" class="link-button">
+    <div
+      class="link-button"
+      @click="selectCustomUrl"
+    >
       Use Custom URL
     </div>
-    <div @click="pauseTrack" class="link-button">
+    <div
+      class="link-button"
+      @click="pauseTrack"
+    >
       {{ item.flags.paused ? 'Unpause' : 'Pause' }} Track
     </div>
   </div>
@@ -18,6 +33,10 @@
 import Track from '../Home/PlaylistView/Track.vue'
 import TrackResult from '../Home/PlaylistView/TrackResult.vue'
 export default {
+  components: {
+    Track,
+    TrackResult
+  },
   props: {
     options: Object
   },
@@ -44,6 +63,9 @@ export default {
       })
       return max
     }
+  },
+  mounted () {
+    console.log(this.options)
   },
   methods: {
     durationColor ({ durationDiff }) {
@@ -76,13 +98,6 @@ export default {
         console.error(error)
       }
     }
-  },
-  components: {
-    Track,
-    TrackResult
-  },
-  mounted () {
-    console.log(this.options)
   }
 }
 </script>

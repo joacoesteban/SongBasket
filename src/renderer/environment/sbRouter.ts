@@ -11,6 +11,7 @@ class SbRouter {
   beforeTransition (func: transitionCallback) {
     this.beforeTransitionCallbacks.push(func)
   }
+
   afterTransition (func: transitionCallback) {
     this.afterTransitionCallbacks.push(func)
   }
@@ -22,9 +23,11 @@ class SbRouter {
   giveMeCurrent () {
     return this.history[this.pointer]
   }
+
   giveMePrevious () {
     return this.history[this.pointer - 1]
   }
+
   giveMeNext () {
     return this.history[this.pointer + 1]
   }
@@ -79,6 +82,7 @@ class SbRouter {
     // (to, from)
     this.beforeTransitionCallbacks.forEach(f => f(to, this.path)) // TODO await Promise.all
   }
+
   async onAfterTransition (from: locationEntry) {
     // (on, from)
     this.afterTransitionCallbacks.forEach(f => f(this.path, from)) // TODO await Promise.all

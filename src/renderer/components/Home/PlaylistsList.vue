@@ -1,22 +1,49 @@
 <template>
-  <div ref="playlists-list" class="pll-container">
-    <div ref="actual-list" class="actual-list row hideable-container" :class="listAnimationClass" v-if="showList">
-      <div v-if="noPlaylists" class="no-playlists">
+  <div
+    ref="playlists-list"
+    class="pll-container"
+  >
+    <div
+      v-if="showList"
+      ref="actual-list"
+      class="actual-list row hideable-container"
+      :class="listAnimationClass"
+    >
+      <div
+        v-if="noPlaylists"
+        class="no-playlists"
+      >
         No Playlists found{{ allLoaded ? '' : ', try loading some more' }}
       </div>
       <div class="horizontal-scroller">
-        <playlist v-for="pl in syncedPlaylistsFiltered ? syncedPlaylistsFiltered : syncedPlaylists"
-          :playlist="pl.playlist" :status="pl.status" :key="pl.playlist.id"
-          @openPlaylist="$emit('openPlaylist', pl.playlist.id)" />
+        <playlist
+          v-for="pl in syncedPlaylistsFiltered ? syncedPlaylistsFiltered : syncedPlaylists"
+          :key="pl.playlist.id"
+          :playlist="pl.playlist"
+          :status="pl.status"
+          @openPlaylist="$emit('openPlaylist', pl.playlist.id)"
+        />
       </div>
       <div class="list">
-        <playlist v-for="pl in unSyncedPlaylistsFiltered ? unSyncedPlaylistsFiltered : unSyncedPlaylists"
-          :playlist="pl.playlist" :status="pl.status" :key="pl.playlist.id"
-          @openPlaylist="$emit('openPlaylist', pl.playlist.id)" />
+        <playlist
+          v-for="pl in unSyncedPlaylistsFiltered ? unSyncedPlaylistsFiltered : unSyncedPlaylists"
+          :key="pl.playlist.id"
+          :playlist="pl.playlist"
+          :status="pl.status"
+          @openPlaylist="$emit('openPlaylist', pl.playlist.id)"
+        />
       </div>
 
-      <div class="df aliic jucc col-xs-12 p-0" v-if="!allLoaded">
-        <button class="button" @click="loadMore">{{ loading ? 'Loading' : 'Load More' }}</button>
+      <div
+        v-if="!allLoaded"
+        class="df aliic jucc col-xs-12 p-0"
+      >
+        <button
+          class="button"
+          @click="loadMore"
+        >
+          {{ loading ? 'Loading' : 'Load More' }}
+        </button>
       </div>
     </div>
     <!-- <div class="background-container">
@@ -29,6 +56,9 @@
 import Playlist from './Playlist.vue'
 
 export default {
+  components: {
+    Playlist
+  },
   data () {
     return {
       user: this.$store.state.CurrentUser.user,
@@ -46,9 +76,6 @@ export default {
       showList: true,
       scrollOpKey: 'scroll-opacity'
     }
-  },
-  components: {
-    Playlist
   },
   computed: {
     searchInput () {
@@ -83,6 +110,21 @@ export default {
     },
     playlistStateChanged () {
       this.refreshAll()
+    }
+  },
+  mounted () {
+    console.log('from pllist rebefo', this.searchInput, this.$root.SEARCH_INPUT)
+    this.$root.$IPC.answerMain('done loading', async () => {
+      this.loading = false
+    })
+    this.refreshAll()
+    this.$refs['actual-list'].style.setProperty('--list-transition-time', this.listAnimationTime + 'ms')
+    this.$root.plListEnv = this
+    this.$root.onComponentLoaderMount = function () {
+      console.log('dousinho')
+      const env = this.$root.plListEnv
+      this.$root.$(env.getContainerElement()).on('scroll', env.calcScrollOpacity)
+      env.calcScrollOpacity()
     }
   },
   methods: {
@@ -155,21 +197,6 @@ export default {
         ) === 0
       }
       this.noPlaylists = noPlaylists
-    }
-  },
-  mounted () {
-    console.log('from pllist rebefo', this.searchInput, this.$root.SEARCH_INPUT)
-    this.$root.$IPC.answerMain('done loading', async () => {
-      this.loading = false
-    })
-    this.refreshAll()
-    this.$refs['actual-list'].style.setProperty('--list-transition-time', this.listAnimationTime + 'ms')
-    this.$root.plListEnv = this
-    this.$root.onComponentLoaderMount = function () {
-      console.log('dousinho')
-      const env = this.$root.plListEnv
-      this.$root.$(env.getContainerElement()).on('scroll', env.calcScrollOpacity)
-      env.calcScrollOpacity()
     }
   }
 }

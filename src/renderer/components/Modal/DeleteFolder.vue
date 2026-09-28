@@ -12,8 +12,18 @@
       You can delete all data or just remove it from the list
     </div>
     <div class="modal-controls df global-center">
-      <button @click="removeFromList" class="button">Remove from list</button>
-      <button @click="deleteAll" class="button cancel">Delete all data</button>
+      <button
+        class="button"
+        @click="removeFromList"
+      >
+        Remove from list
+      </button>
+      <button
+        class="button cancel"
+        @click="deleteAll"
+      >
+        Delete all data
+      </button>
     </div>
   </div>
 </template>

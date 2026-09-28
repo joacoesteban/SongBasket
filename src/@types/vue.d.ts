@@ -1,4 +1,4 @@
-import { RendererProcessIpc } from 'electron-better-ipc'
+import { RendererIpc } from '../renderer/environment/ipc'
 import Vue from 'vue'
 import SbRouter from '../renderer/environment/sbRouter'
 import coreController from '../renderer/controllers/Core.controller'
@@ -10,13 +10,13 @@ import modalController from '../renderer/controllers/Modal.controller'
 
 type shared = {
   $: JQueryStatic,
-  $uuid: uuidv4,
+  $uuid: () => string,
   $sleep: (time: number) => Promise<void>,
   $jsonClone: (obj: {}) => {},
-  $setRootVar: (key: string, val: any, valJs: any) => void,
+  $setRootVar: (key: string, val: string, valJs?: unknown) => void,
   $sbRouter: SbRouter,
   $ComponentRefs: {},
-  $IPC: RendererProcessIpc,
+  $IPC: RendererIpc,
   $controllers: {
     setup: typeof setupController,
     core: typeof coreController,

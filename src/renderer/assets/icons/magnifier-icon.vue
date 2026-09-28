@@ -1,5 +1,9 @@
 <template>
-  <svg-icon :path="path" :icon-color="iconColor" :class-name="className" />
+  <svg-icon
+    :path="path"
+    :icon-color="iconColor"
+    :class-name="className"
+  />
 </template>
 
 <script lang="ts">

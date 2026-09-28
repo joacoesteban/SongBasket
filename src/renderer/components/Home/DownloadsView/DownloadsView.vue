@@ -1,8 +1,13 @@
 <template>
   <div class="w100">
     <div class="banner-list w100">
-      <track-banner :download-status="giveMeTrackDownloadStatus(track, index)" :is-download="true"
-        v-for="(track, index) in downloads" :key="index" :track="track"></track-banner>
+      <track-banner
+        v-for="(track, index) in downloads"
+        :key="index"
+        :download-status="giveMeTrackDownloadStatus(track, index)"
+        :is-download="true"
+        :track="track"
+      />
     </div>
   </div>
 </template>

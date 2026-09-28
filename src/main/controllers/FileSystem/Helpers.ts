@@ -2,9 +2,9 @@ import { promises as fs } from 'fs'
 import * as fsCb from 'fs'
 import * as PATH from 'path'
 import axios from 'axios'
-import { v4 as uuid } from 'uuid'
-import * as toIco from 'to-ico'
-import * as Jimp from 'Jimp'
+import { randomUUID as uuid } from 'crypto'
+import toIco from 'to-ico'
+import Jimp from 'jimp'
 import { exec } from 'child_process'
 
 import * as utils from '../../../MAIN_PROCESS_UTILS'
@@ -155,8 +155,7 @@ const folderFns: {
     },
     async createIniFile (path: string): Promise<void> {
       const inipath = PATH.join(path, this.guidelines.iniName)
-      if (await utils.pathDoesExist(inipath))
-        if ((await fs.readFile(inipath, 'utf-8')).includes(this.guidelines.iconInIniTest)) return
+      if (await utils.pathDoesExist(inipath)) { if ((await fs.readFile(inipath, 'utf-8')).includes(this.guidelines.iconInIniTest)) return }
 
       await fs.writeFile(inipath, this.guidelines.iniContents, 'utf16le')
       // await utils.link('C:/Users/Temp/Music/SB/template.ini', inipath)

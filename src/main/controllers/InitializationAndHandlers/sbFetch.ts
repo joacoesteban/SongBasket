@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 import axios, { AxiosInstance } from 'axios'
 import { SongBasketTrack } from '../../../@types/SongBasket'
 import { SpotifyApiPlaylistsResponse, SpotifyPlaylist, SpotifyPlaylistId, SpotifySnapshotId, SpotifyUser, SpotifyUserId } from '../../../@types/Spotify'
@@ -17,8 +16,8 @@ function getAxiosInstance () {
     baseURL: PATHS.BASE,
     timeout: 20000,
     headers: {
-      'Authorization': 'Bearer ' + global.SONGBASKET_ID,
-      'user_id': global.USER_ID
+      Authorization: 'Bearer ' + global.SONGBASKET_ID,
+      user_id: global.USER_ID
     },
     validateStatus: st => (st >= 200 && st < 300) || st === 304
   })
@@ -29,7 +28,7 @@ export function createAxiosInstance () {
 }
 
 export async function ytDetails (id: YouTubeResultId) {
-  let reg = REGEX.videoUrl.exec(id)
+  const reg = REGEX.videoUrl.exec(id)
   if (!reg && !REGEX.videoId.test(id)) throw new Error('INVALID YOUTUBE VIDEO ID')
   if (reg) id = reg[1]
   console.log('gettin', PATHS.VIDEO(id))

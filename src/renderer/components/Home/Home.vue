@@ -1,15 +1,24 @@
 <template>
   <div class="whole-container">
     <div class="home-container">
-      <div class="rel-full" style="height: initial">
+      <div
+        class="rel-full"
+        style="height: initial"
+      >
         <top-bar />
         <search-bar />
       </div>
 
-      <component-loader class="home-router" @openPlaylist="openPlaylist($event)"
-        @openYtVideo="openYtVideo($event)"></component-loader>
+      <component-loader
+        class="home-router"
+        @openPlaylist="openPlaylist($event)"
+        @openYtVideo="openYtVideo($event)"
+      />
 
-      <floating-buttons style="z-index: 1" @youtubeConvert="youtubeConvert"></floating-buttons>
+      <floating-buttons
+        style="z-index: 1"
+        @youtubeConvert="youtubeConvert"
+      />
     </div>
   </div>
 </template>
@@ -64,6 +73,15 @@ export default {
       this.$router.push('/home/playlist-view')
     }
   },
+  mounted () {
+    // console.log('USER::::', this.user)
+
+    if (this.$store.state.CurrentUser.playlists.length === 0) { this.$router.push('/empty') }
+
+    this.$root.$IPC.answerMain('done loading', async () => {
+      this.loading = false
+    })
+  },
   methods: {
     loadMore () {
       if (!this.loading) {
@@ -89,15 +107,6 @@ export default {
       console.log('openYtVideo', id)
       this.$root.$IPC.callMain('openYtVideo', id)
     }
-  },
-  mounted () {
-    // console.log('USER::::', this.user)
-
-    if (this.$store.state.CurrentUser.playlists.length === 0) { this.$router.push('/empty') }
-
-    this.$root.$IPC.answerMain('done loading', async () => {
-      this.loading = false
-    })
   }
 }
 </script>

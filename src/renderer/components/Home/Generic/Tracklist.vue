@@ -1,6 +1,10 @@
 <template>
   <div class="tracklist-container">
-    <Track v-for="(track, index) in items" :key="index" :item="track" />
+    <Track
+      v-for="(track, index) in items"
+      :key="index"
+      :item="track"
+    />
   </div>
 </template>
 

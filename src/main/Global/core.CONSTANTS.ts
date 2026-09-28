@@ -4,7 +4,7 @@ import * as PATH from 'path'
 import { Platform } from '../../@types/App'
 import FEATURES from './core.FEATURES'
 
-const ENV_PROD = global.ENV_PROD = process.env.NODE_ENV === 'production'
+const ENV_PROD = global.ENV_PROD = app.isPackaged
 const USE_PROD_BACKEND = true
 const IS_DEV = global.IS_DEV = !ENV_PROD
 
@@ -49,8 +49,9 @@ export default global.CONSTANTS = {
   NODE_MODULES_PATH: PATH.join(ENV_PROD ? APP_CWD.replace('app.asar', 'app.asar.unpacked') : PROCESS_CWD, 'node_modules'),
   APP_SUPPORT_PATH,
   FFMPEG_BINARIES_PATH: PATH.join(APP_SUPPORT_PATH, 'bin', 'ffmpeg'),
-  YTDL_BINARIES_PATH: PATH.join(APP_SUPPORT_PATH, 'bin', 'ytdl'),
-  YTDL_VERSION_CONTROL_PATH: PATH.join(APP_SUPPORT_PATH, 'ytdl-version.json'),
+  FFMPEG_VERSION_CONTROL_PATH: PATH.join(APP_SUPPORT_PATH, 'ffmpeg-version.json'),
+  YTDL_BINARIES_PATH: PATH.join(APP_SUPPORT_PATH, 'bin', 'ytdlp'),
+  YTDL_VERSION_CONTROL_PATH: PATH.join(APP_SUPPORT_PATH, 'ytdlp-version.json'),
   APP_CWD,
   PROCESS_CWD,
   TEMP_PATH: app.getPath('temp'),
@@ -83,7 +84,8 @@ export default global.CONSTANTS = {
     useContentSize: false,
     resizable: true,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: true,
+      contextIsolation: false
     }
   },
   LOADING_WINDOW_CONFIG: {
@@ -96,13 +98,14 @@ export default global.CONSTANTS = {
     useContentSize: false,
     resizable: false,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: true,
+      contextIsolation: false
     }
   },
   POPUP_WINDOW_CONFIG: {
-    // frame: false,
     webPreferences: {
-      nodeIntegration: false
+      nodeIntegration: false,
+      contextIsolation: true
     },
     width: 550,
     height: 830,

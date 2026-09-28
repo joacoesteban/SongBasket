@@ -1,12 +1,20 @@
 <template>
-  <Card :item="itemFormatted" :row-classes="rowClasses + (isSelected ? ' border-green' : ' border-transparent')"
-    :options="cardOptions" @click="handleClick">
+  <Card
+    :item="itemFormatted"
+    :row-classes="rowClasses + (isSelected ? ' border-green' : ' border-transparent')"
+    :options="cardOptions"
+    @click="handleClick"
+  >
     <div class="w100 point75-em df alic">
       <div class="ellipsis pr-2">
-        <div class="issue color-red point75-em semibold" v-if="itemFormatted.issue">{{ itemFormatted.issue }}</div>
+        <div
+          v-if="itemFormatted.issue"
+          class="issue color-red point75-em semibold"
+        >
+          {{ itemFormatted.issue }}
+        </div>
         <div class="ellipsis name">
-          <span v-html="itemFormatted.name">
-          </span>
+          <span v-html="itemFormatted.name" />
         </div>
         <div class="ellipsis">
           <span class="regular point75-em">
@@ -15,7 +23,10 @@
         </div>
       </div>
       <div class="duration-diff">
-        <span class="bold" :style="{ color: durationColor }">
+        <span
+          class="bold"
+          :style="{ color: durationColor }"
+        >
           {{ itemFormatted.duration }}
         </span>
       </div>
@@ -27,6 +38,9 @@
 import Card from '../Generic/Card.vue'
 
 export default {
+  components: {
+    Card
+  },
   props: {
     item: {
       Object,
@@ -35,8 +49,18 @@ export default {
     durationColor: String,
     isSelected: Boolean
   },
-  components: {
-    Card
+  data () {
+    return {
+      cardOptions: {
+        height: '2.5em',
+        xRotationFactor: 0.01,
+        hovScaleFactor: false,
+        paddingY: '.5em',
+        paddingX: 'var(--card-padding-x)'
+      },
+      rowClasses: 'col-sm-12',
+      trackController: this.$root.$controllers.track
+    }
   },
   computed: {
     itemFormatted () {
@@ -66,25 +90,11 @@ export default {
     handleClick () {
       this.$emit('setSelection')
     }
-  },
-  data () {
-    return {
-      cardOptions: {
-        height: '2.5em',
-        xRotationFactor: 0.01,
-        hovScaleFactor: false,
-        paddingY: '.5em',
-        paddingX: 'var(--card-padding-x)'
-      },
-      rowClasses: 'col-sm-12',
-      trackController: this.$root.$controllers.track
-    }
   }
 }
 </script>
 
-
-<style lang="scss" >
+<style lang="scss">
 span.matching-token {
   color: var(--green-accept);
   font-weight: 500;

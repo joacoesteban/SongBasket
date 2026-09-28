@@ -3,7 +3,10 @@
     <!-- <router-link to="/" tag="button" class="button"  >Log in</router-link> -->
     <div class="half top">
       <div class="profile-container">
-        <div :style="`background-image: url(${user && user.images && user.images[0].url})`" class="user-photo">
+        <div
+          :style="`background-image: url(${user && user.images && user.images[0].url})`"
+          class="user-photo"
+        >
           <user-icon v-if="user && user.images[0] === undefined" />
           <!-- style="background-image: url(https://scontent.xx.fbcdn.net/v/t1.0-1/p200x200/60116715_10206126614682262_1328470269831938048_n.jpg?_nc_cat=105&_nc_oc=AQnX4sqJlkCfrfZvyYh3U-x53LgqLxhMQmhqewNeVh7hMFbaKGmvISb0k5DSvjicTQM&_nc_ht=scontent.xx&oh=1a52435535742e5191d0c0723b303c1b&oe=5DD8F07F)" -->
         </div>
@@ -21,10 +24,19 @@
       </div>
     </div>
 
-
     <div class="half">
-      <button class="button accept" @click="$emit('confirm-user')">Sounds Good</button>
-      <button class="button cancel" @click="$emit('not-user')">Never Seen Him</button>
+      <button
+        class="button accept"
+        @click="$emit('confirm-user')"
+      >
+        Sounds Good
+      </button>
+      <button
+        class="button cancel"
+        @click="$emit('not-user')"
+      >
+        Never Seen Him
+      </button>
     </div>
   </div>
 </template>

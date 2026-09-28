@@ -11,7 +11,7 @@ function clone (aObject: any) {
   }
 
   let v
-  let bObject: { [key: string]: any } = Array.isArray(aObject) ? [] : {}
+  const bObject: { [key: string]: any } = Array.isArray(aObject) ? [] : {}
   for (const k in aObject) {
     v = aObject[k]
     bObject[k] = (typeof v === 'object') ? clone(v) : v
@@ -37,12 +37,12 @@ export function removeDuplicationId (array: any[]) {
 }
 
 export function encodeIntoFilename (text: string) {
-  let reg = /\\|\/|\*|\?|:|\*|\||"|<|>/g
+  const reg = /\\|\/|\*|\?|:|\*|\||"|<|>/g
   return text.replace(reg, '-')
 }
 
 export async function createDirRecursive (path: string) {
-  let pathArray = path.split(/\/|\\/)
+  const pathArray = path.split(/\/|\\/)
   if (await pathDoesExist(path)) return
 
   let subPath = (global.CONSTANTS.PLATFORM === Platform.windows ? pathArray.splice(0, 1) : '') + '/'
@@ -117,7 +117,7 @@ export function isSameDisk (path1: string, path2: string) {
         if (path2.indexOf('/volumes') === 0) {
           // Not OS Disk, check disk
           const getDisk = (path: string) => {
-            let shorten = path.substring('/volumnes'.length)
+            const shorten = path.substring('/volumnes'.length)
             return shorten.slice(0, shorten.indexOf('/'))
           }
           return getDisk(path1) === getDisk(path2)

@@ -56,7 +56,6 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-
 body {
   background-color: var(--body-color);
   color: var(--text-white);
@@ -283,15 +282,15 @@ input {
   }
 
   &:-moz-placeholder { /* Firefox 18- */
-    padding-left: 0.2em;  
+    padding-left: 0.2em;
   }
 
   &::-moz-placeholder {  /* Firefox 19+ */
-    padding-left: 0.2em;  
+    padding-left: 0.2em;
   }
 
-  &:-ms-input-placeholder {  
-    padding-left: 0.2em; 
+  &:-ms-input-placeholder {
+    padding-left: 0.2em;
   }
 }
 

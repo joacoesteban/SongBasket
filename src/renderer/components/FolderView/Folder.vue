@@ -1,21 +1,39 @@
 <template>
   <!-- <div class="folder-card-wrapper"> -->
-  <Card :item="item" @click="atClick">
-    <template v-slot:outside>
+  <Card
+    :item="item"
+    @click="atClick"
+  >
+    <template #outside>
       <div class="floating-controls-container abs-right abs-top df z-1">
-        <button class="button" @click="$emit('editFolder')">edit</button>
-        <button class="button" @click="$emit('deleteFolder')">delete</button>
+        <button
+          class="button"
+          @click="$emit('editFolder')"
+        >
+          edit
+        </button>
+        <button
+          class="button"
+          @click="$emit('deleteFolder')"
+        >
+          delete
+        </button>
       </div>
     </template>
-    <template v-slot:default>
+    <template #default>
       <div class="folder-container">
         <div class="content">
           <div class="left">
-            <div class="round-img" :style="{ 'background-image': 'url(' + item.backgroundImage + ')' }"></div>
+            <div
+              class="round-img"
+              :style="{ 'background-image': 'url(' + item.backgroundImage + ')' }"
+            />
           </div>
-          <div class="right"></div>
+          <div class="right" />
           <div class="bottom w100 df global-center">
-            <div class="folder-path">{{ path }}</div>
+            <div class="folder-path">
+              {{ path }}
+            </div>
           </div>
         </div>
       </div>
@@ -30,16 +48,16 @@ export default {
   components: {
     Card
   },
+  props: {
+    path: String,
+    index: Number
+  },
   computed: {
     item () {
       return {
         backgroundImage: 'https://picsum.photos/50' + this.index
       }
     }
-  },
-  props: {
-    path: String,
-    index: Number
   },
   methods: {
     atClick () {

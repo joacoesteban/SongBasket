@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 import Vue from 'vue'
 
 const getDefaultState = () => {
@@ -20,8 +19,8 @@ const state = getDefaultState()
 
 const dispatchAppropiateEvent = {
   events: {
-    'playlistStateChanged': ['playlists', 'syncedPlaylists', 'deletedPlaylists'],
-    'reComputeConvertedTracks': ['convertedTracks']
+    playlistStateChanged: ['playlists', 'syncedPlaylists', 'deletedPlaylists'],
+    reComputeConvertedTracks: ['convertedTracks']
   },
   getEvent (actualKey) {
     return Object.keys(this.events).filter(key => this.events[key].some(state => state === actualKey))
@@ -85,7 +84,7 @@ const mutations = {
 
 const getters = {
   PlaylistById: (state) => function (id) {
-    let pl = state.playlists[findById(id, state.playlists)]
+    const pl = state.playlists[findById(id, state.playlists)]
     if (!pl || pl.tracks === null || pl.tracks === undefined) return null
     return pl
   },
@@ -94,7 +93,7 @@ const getters = {
   },
   SyncedPlaylistById: (state) => function (id) {
     for (let i = 0; i < state.syncedPlaylists.length; i++) {
-      let pl = state.syncedPlaylists[i]
+      const pl = state.syncedPlaylists[i]
 
       if (pl.id === id) {
         if (pl.tracks === null || pl.tracks === undefined) return null
@@ -121,8 +120,8 @@ const getters = {
     return all
   },
   UnCachedPlaylists: (state) => {
-    let q = [...state.queuedPlaylists]
-    let c = [...state.cachedPlaylists]
+    const q = [...state.queuedPlaylists]
+    const c = [...state.cachedPlaylists]
     let ret = []
 
     if (c.length === 0) return q
@@ -143,10 +142,10 @@ const getters = {
   },
   // Number of Queued playlists and tracks to show in View
   SelectedPlaylistsCompute: (state) => {
-    let q = state.queuedPlaylists
-    let p = [...state.playlists]
+    const q = state.queuedPlaylists
+    const p = [...state.playlists]
 
-    let selectedPlaylists = {
+    const selectedPlaylists = {
       playlists: q.length,
       tracks: 0
     }
@@ -168,7 +167,7 @@ const getters = {
     // Tracks will be compared between both arrays and if it's a match, then both will be spliced from both arrays
     // If there are no changes, then both arrays will be empty
 
-    let added = [...getters.PlaylistById(id).tracks.items]
+    const added = [...getters.PlaylistById(id).tracks.items]
     let removed = getters.SyncedPlaylistById(id)
 
     if (removed !== null && removed.tracks.length > 0) { // This checks if the synced playlist has not been added to DB yet, if so, then every song will be 'new'
@@ -176,11 +175,11 @@ const getters = {
 
       let i = 0
       while (i < added.length) {
-        let a = added[i]
+        const a = added[i]
         let found = false
 
         for (let o = 0; o < removed.length; o++) {
-          let r = removed[o]
+          const r = removed[o]
 
           if (a.id === r.id) {
             // No changes to track

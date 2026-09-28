@@ -1,4 +1,3 @@
-/* eslint-disable new-cap */
 import customGetters from '../../Store/Helpers/customGetters'
 import * as utils from '../../../MAIN_PROCESS_UTILS'
 import Helpers from './Helpers'
@@ -6,7 +5,6 @@ import REGEX from '../../Global/REGEX'
 import { promises as fs } from 'fs'
 import * as fsCb from 'fs'
 import * as PATH from 'path'
-import * as rimraf from 'rimraf'
 // import NodeID3 from 'node-id3'
 import * as iconv from 'iconv-lite'
 import { SongbasketCustomMp3Tag, SongbasketCustomMp3Tags, SongbasketFoldersFile, SongBasketSaveFile, SongBasketTrackFile } from '../../../@types/SongBasket'
@@ -50,7 +48,7 @@ console.log('Folder Path: ', PATHS.foldersJsonPath)
 const homeFolderPath = () => global.HOME_FOLDER
 
 class UserMethods {
-  constructor() {}
+  constructor () { }
 
   async getFolders (): Promise<SongbasketFoldersFile | null> {
     if (await utils.pathDoesExist(PATHS.foldersJsonPath)) {
@@ -60,16 +58,19 @@ class UserMethods {
     }
     return null // TODO return safe
   }
+
   isValidFolderStructure (paths: SongbasketFoldersFile): boolean {
     const them = Object.keys(paths)
     const def = Object.keys(getEmptyFolders())
     return them.length === def.length && them.every(key => def.includes(key))
   }
+
   async setCurrentFolder (path: string | null): Promise<void> {
     if (!path) path = null
     global.SESSION_FOLDER_PATHS.selected = path
     await this.writeHomeFolders()
   }
+
   async addFolder (path: string, params = { set: true }): Promise<void> {
     console.log('path', path)
     const folders = await this.getFolders()
@@ -80,6 +81,7 @@ class UserMethods {
     if (params.set) await this.setCurrentFolder(path)
     else this.writeHomeFolders()
   }
+
   async removeFolder (path: string): Promise<void> {
     const folders = await this.getFolders()
     if (!folders) return
@@ -88,6 +90,7 @@ class UserMethods {
     global.SESSION_FOLDER_PATHS = folders
     this.writeHomeFolders()
   }
+
   async unsetCurrentFolder (): Promise<void> {
     const folders = await this.getFolders()
     if (!folders) return
@@ -95,6 +98,7 @@ class UserMethods {
     global.SESSION_FOLDER_PATHS = folders
     await this.writeHomeFolders()
   }
+
   async retrieveFolders (): Promise<SongbasketFoldersFile> {
     try {
       let folders = await this.getFolders()
@@ -108,6 +112,7 @@ class UserMethods {
       throw error
     }
   }
+
   async resetFolderPaths (): Promise<SongbasketFoldersFile> {
     try {
       const emptyFolders = getEmptyFolders()
@@ -117,10 +122,12 @@ class UserMethods {
       throw error
     }
   }
+
   async writeHomeFolders (folders = global.SESSION_FOLDER_PATHS): Promise<void> {
     await fs.writeFile(PATHS.foldersJsonPath, JSON.stringify(folders), 'utf8')
     global.SESSION_FOLDER_PATHS = folders
   }
+
   async saveState (params: { state: SongBasketSaveFile, path: string }): Promise<void> {
     const { state, path } = params
     // console.log('Saving state to', path)
@@ -131,8 +138,9 @@ class UserMethods {
       await fs.writeFile(PATH.join(path, PATHS.stateFileName), jsonState, 'utf8')
     }
   }
+
   async retrieveState (path: string): Promise<SongBasketSaveFile> {
-    let filePath = path + PATHS.stateFileName
+    const filePath = path + PATHS.stateFileName
     console.log('retrieving from ', path)
     await fs.access(filePath)
     const data = await fs.readFile(filePath, 'utf-8')
@@ -143,19 +151,20 @@ class UserMethods {
       throw err
     }
   }
+
   retrieveLocalTracks (plFilter: SpotifyPlaylistId[] = []): Promise<_track[]> {
     return new Promise(async (resolve, reject) => {
-      let syncedPlaylists: { id: string, path: string }[] = customGetters.SyncedPlaylistsSp().filter(pl => !plFilter || plFilter.some(toExclude => toExclude === pl.id)).map(pl => ({
+      const syncedPlaylists: { id: string, path: string }[] = customGetters.SyncedPlaylistsSp().filter(pl => !plFilter || plFilter.some(toExclude => toExclude === pl.id)).map(pl => ({
         id: pl.id,
         path: PATH.join(homeFolderPath(), utils.encodeIntoFilename(pl.folderName || pl.name))
       }))
       let processedPls = 0
-      let allTracks: _track[] = []
+      const allTracks: _track[] = []
 
       const checkNResolve = () => (++processedPls === syncedPlaylists.length) && resolve(allTracks)
       if (!syncedPlaylists.length) --processedPls && checkNResolve()
 
-      for (let pl of syncedPlaylists) {
+      for (const pl of syncedPlaylists) {
         if (!await this.checkPathThenCreate(pl.path)) checkNResolve()
         else {
           // Get all files from playlist dir
@@ -169,18 +178,20 @@ class UserMethods {
                 const filePath = PATH.join(pl.path, file)
                 this.retrieveMP3FileTags(filePath)
                   .then(tags => {
-                    if (tags.length) allTracks.push((() => {
-                      const track: _track = {
-                        playlist: pl.id,
-                        path: filePath,
-                        file: file
-                      }
-                      tags.forEach(tag => {
-                        track[tag.name] = tag.value
-                      })
+                    if (tags.length) {
+                      allTracks.push((() => {
+                        const track: _track = {
+                          playlist: pl.id,
+                          path: filePath,
+                          file
+                        }
+                        tags.forEach(tag => {
+                          track[tag.name] = tag.value
+                        })
 
-                      return track
-                    })())
+                        return track
+                      })())
+                    }
                     if (++processedTracks === filenames.length) checkNResolve()
                   })
                   .catch(err => reject(err)) // TODO Handle error
@@ -191,16 +202,13 @@ class UserMethods {
       }
     })
   }
-  deletePlaylist (playlistName: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      playlistName = utils.encodeIntoFilename(playlistName)
-      rimraf(homeFolderPath() + '/' + playlistName, function (err) {
-        if (err) return reject(err)
-        console.log('Playlist ' + playlistName + ' Deleted')
-        resolve()
-      })
-    })
+
+  async deletePlaylist (playlistName: string): Promise<void> {
+    const folderName = utils.encodeIntoFilename(playlistName)
+    await fs.rm(PATH.join(homeFolderPath(), folderName), { recursive: true, force: true })
+    console.log('Playlist ' + folderName + ' Deleted')
   }
+
   async renameFolder (params: { oldName: string, newName: string }) {
     let { oldName, newName } = params
     newName = utils.encodeIntoFilename(newName)
@@ -214,8 +222,8 @@ class UserMethods {
     console.log('RENAMING FOLDER: ' + oldName + ' => ' + newName)
     await fs.rename(oldPath, newPath)
   }
-  retrieveMP3FileTags (path: string): Promise<_tag[]> {
 
+  retrieveMP3FileTags (path: string): Promise<_tag[]> {
     return new Promise((resolve, reject) => { // TODO
       fsCb.open(path, 'r', function (err, fd) {
         if (err) return reject(err)
@@ -224,27 +232,27 @@ class UserMethods {
           if (err) return closeFile(fd, err, [])
 
           const max = 1024
-          let bufferSize = stats.size < max ? stats.size : max
-          let buffer = Buffer.alloc(bufferSize)
+          const bufferSize = stats.size < max ? stats.size : max
+          const buffer = Buffer.alloc(bufferSize)
 
           fsCb.read(fd, buffer, 0, bufferSize, 0, () => {
-            let headerPointer = buffer.indexOf('TXXX')
+            const headerPointer = buffer.indexOf('TXXX')
             // Track doesn't contain SB tags
             if (headerPointer === -1) return closeFile(fd, null, [])
 
             // let tagSize = 57*3 + 13
-            let tagsBuffer = Buffer.alloc(bufferSize - headerPointer)
+            const tagsBuffer = Buffer.alloc(bufferSize - headerPointer)
 
             buffer.copy(tagsBuffer, 0, headerPointer)
 
             let fileContents = (iconv.decode(tagsBuffer, 'ISO-8859-1').replace(/\0/g, ''))
             fileContents = fileContents.substring(fileContents.indexOf('songbasket'))
             let tagPosition = fileContents.indexOf('songbasket')
-            let tags: _tag[] = []
+            const tags: _tag[] = []
 
             if (tagPosition !== -1) {
               for (null; tagPosition !== -1; tagPosition = fileContents.indexOf('songbasket')) {
-                let tagEnd = fileContents.substring(tagPosition).indexOf('ÿþ')
+                const tagEnd = fileContents.substring(tagPosition).indexOf('ÿþ')
 
                 const tagName = ((name) => {
                   if (Object.keys(SongbasketCustomMp3Tag).includes(name)) return Object.keys(SongbasketCustomMp3Tag).find(k => k === name) as SongbasketCustomMp3Tag
@@ -253,7 +261,7 @@ class UserMethods {
 
                 fileContents = fileContents.substring(tagEnd + 2)
 
-                let tagLength = tagName && giveMeTagLength(tagName) || 0
+                const tagLength = tagName && giveMeTagLength(tagName) || 0
                 const tagValue = fileContents.substring(0, tagLength)
                 fileContents = fileContents.substring(fileContents.indexOf('songbasket'))
 
@@ -284,6 +292,7 @@ class UserMethods {
       }
     })
   }
+
   async setFolderIcons (plFilter?: SpotifyPlaylistId | SpotifyPlaylistId[], params = { force: false }) {
     if (!plFilter) plFilter = []
     if (typeof plFilter === 'string') plFilter = [plFilter]
@@ -293,14 +302,18 @@ class UserMethods {
     if (!iconSetter) return console.error('NO ICONSETTER FOR THIS PLATFORM')
     const pls = customGetters.SyncedPlaylistsSp_SAFE().filter(p => !plFilter?.length || plFilter.includes(p.id)).map(({ folderName, name, images }) => ({ path: PATH.join((homeFolderPath()), utils.encodeIntoFilename(folderName || name)).replace(/ /g, '\\ '), imageUrl: images && images[0] && images[0].url })).filter(pl => pl.path && pl.imageUrl)
 
-    pls.forEach(async pl => {
+    await pls.asyncForEachParallel(async pl => {
       if (!params.force && await iconSetter.test(pl.path)) return
-      const downloader = new (Helpers.plIconDownloader as any)(pl, iconSetter)
-      downloader.exec()
+      try {
+        await Helpers.plIconDownloader(pl, iconSetter)?.exec()
+      } catch (error) {
+        console.error('Unable to set the folder icon for', pl.path, error)
+      }
     })
   }
+
   async checkPathThenCreate (path: string) {
-    let pathExists = await utils.pathDoesExist(path)
+    const pathExists = await utils.pathDoesExist(path)
     if (!pathExists) await fs.mkdir(path)
     return pathExists
   }

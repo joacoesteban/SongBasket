@@ -1,5 +1,4 @@
-
-import * as $ from 'jquery'
+import $ from 'jquery'
 import vue from '../controllers/VueInstance'
 import * as changeCase from 'change-case'
 
@@ -63,7 +62,6 @@ function isCommandKey (meta: boolean, control: boolean) {
   return control
 }
 
-// eslint-disable-next-line no-undef
 function handleWindowKey (e: Event) {
   const { keyCode, metaKey, ctrlKey } = e
   if (window.SHOW_KEYCODES) console.log(keyCode)
@@ -74,7 +72,6 @@ function focusSearchbar () {
   vue.root.searchInputElement && vue.root.searchInputElement.focus()
 }
 
-// eslint-disable-next-line no-undef
 function handleMouseKey (e: MouseEvent) {
   const { button } = e
   switch (button) {

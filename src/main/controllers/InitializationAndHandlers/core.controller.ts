@@ -1,4 +1,4 @@
-import * as keytar from 'keytar'
+import { deleteCredential, getCredential, setCredential } from '../../utils/credentials'
 
 import * as API from './sbFetch'
 
@@ -79,7 +79,7 @@ const core = {
 
     const loginWindow = global.CONSTANTS.LOGIN_WINDOW = new BrowserWindow(global.CONSTANTS.POPUP_WINDOW_CONFIG) // TODO initialize in window.controller
 
-    loginWindow.loadURL(`${global.CONSTANTS.BACKEND}/init`, { 'extraHeaders': 'pragma: no-cache\n' })
+    loginWindow.loadURL(`${global.CONSTANTS.BACKEND}/init`, { extraHeaders: 'pragma: no-cache\n' })
     ProtocolController.on('auth', core.onLogin)
 
     await new Promise<void>((resolve, reject) => {
@@ -120,15 +120,15 @@ const core = {
     console.log('Login successfull')
   },
   setCredentials: async (id: SpotifyUserId, songbasket_id: SongBasketId) => {
-    await keytar.setPassword('songbasket', id, songbasket_id)
+    await setCredential(id, songbasket_id)
   },
   removeCredentials: async (id = global.USER_ID) => {
     if (!id) throw new Error('CURRENT USER ID MISSING')
-    await keytar.deletePassword('songbasket', id)
+    await deleteCredential(id)
   },
   getCredentials: async (id = global.USER_ID) => {
     if (!id) throw new Error('CURRENT USER ID MISSING')
-    return await keytar.getPassword('songbasket', id)
+    return getCredential(id)
   },
   setSongbasketIdGlobally: async (id = GETTERS.currentUserId()) => {
     if (!id) throw new Error('USER ID DOESN\'T EXIST')
@@ -161,7 +161,7 @@ const core = {
 
     // for (const pl of playlists) {
     playlists.asyncForEachParallel(async pl => {
-      let err = null
+      const err = null
       try {
         console.log('playlist', pl)
         const playlist = await API.getPlaylist(pl)

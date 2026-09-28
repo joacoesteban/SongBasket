@@ -1,8 +1,17 @@
 <template>
   <div class="home-folder-container">
-    <div class="login-sb-welcome">welcome to</div>
-    <div class="login-sb-title">SongBasket</div>
-    <button class="button" @click="$emit('handleClick')">Set a Home Folder</button>
+    <div class="login-sb-welcome">
+      welcome to
+    </div>
+    <div class="login-sb-title">
+      SongBasket
+    </div>
+    <button
+      class="button"
+      @click="$emit('handleClick')"
+    >
+      Set a Home Folder
+    </button>
   </div>
 </template>
 

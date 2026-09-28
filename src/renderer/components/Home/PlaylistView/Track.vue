@@ -1,5 +1,10 @@
 <template>
-  <Card :item="itemFormatted" :row-classes="rowClasses" :options="cardOptions" @click="handleClick">
+  <Card
+    :item="itemFormatted"
+    :row-classes="rowClasses"
+    :options="cardOptions"
+    @click="handleClick"
+  >
     <div class="w100 point75-em">
       <div class="ellipsis">
         <span class="bold">
@@ -12,15 +17,24 @@
         </span>
       </div>
       <div class="ellipsis track-status">
-        <span class="bold uppercase point75-em color-green" v-if="isNew">
+        <span
+          v-if="isNew"
+          class="bold uppercase point75-em color-green"
+        >
           new
         </span>
-        <span class="bold uppercase point75-em color-red" v-if="isRemoved">
+        <span
+          v-if="isRemoved"
+          class="bold uppercase point75-em color-red"
+        >
           removed
         </span>
 
-        <span class="bold uppercase point75-em" v-if="itemFormatted.status"
-          :style="{ color: itemFormatted.status.color }">
+        <span
+          v-if="itemFormatted.status"
+          class="bold uppercase point75-em"
+          :style="{ color: itemFormatted.status.color }"
+        >
           {{ itemFormatted.status.str }}
         </span>
       </div>
@@ -32,6 +46,9 @@
 import Card from '../Generic/Card.vue'
 
 export default {
+  components: {
+    Card
+  },
   props: {
     item: {
       type: Object,
@@ -41,8 +58,20 @@ export default {
     isRemoved: Boolean,
     isReviewing: Boolean
   },
-  components: {
-    Card
+  data () {
+    return {
+      cardOptions: {
+        height: '2.5em',
+        xRotationFactor: 0.01,
+        hovScaleFactor: false,
+        paddingY: '.5em',
+        paddingX: 'var(--card-padding-x)',
+        size: this.isNew || this.isRemoved ? '.8em' : ''
+      },
+      rowClasses: this.isReviewing ? 'col-sm-12' : 'col-lg-3 col-md-4 col-s-6 col-xs-12',
+      trackController: this.$root.$controllers.track,
+      clickCB: undefined
+    }
   },
   computed: {
     itemFormatted () {
@@ -77,24 +106,8 @@ export default {
     reviewTrack () {
       this.$root.$controllers.core.reviewTrack(this.item)
     }
-  },
-  data () {
-    return {
-      cardOptions: {
-        height: '2.5em',
-        xRotationFactor: 0.01,
-        hovScaleFactor: false,
-        paddingY: '.5em',
-        paddingX: 'var(--card-padding-x)',
-        size: this.isNew || this.isRemoved ? '.8em' : ''
-      },
-      rowClasses: this.isReviewing ? 'col-sm-12' : 'col-lg-3 col-md-4 col-s-6 col-xs-12',
-      trackController: this.$root.$controllers.track,
-      clickCB: undefined
-    }
   }
 }
 </script>
-
 
 <style lang="scss" scoped></style>

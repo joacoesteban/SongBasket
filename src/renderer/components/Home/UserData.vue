@@ -1,24 +1,22 @@
 <template>
-    <div class="ud-container dev-border">
-        <div class="ud-name-container dev-border">
-
-            <div class="ud-user-img"
-                :style="user.images[0] !== undefined ? { 'background-image': `url(${user.images[0].url})` } : null">
-                <user-icon v-if="user.images[0] === undefined" />
-            </div>
-            <span class="ud-text dev-border">{{ user.display_name !== null ? user.display_name : user.id }}</span>
-        </div>
-        <div class="ud-playlist-total dev-border">
-            {{ this.$store.state.CurrentUser.control.offset.toString() }} of
-            {{ this.$store.state.CurrentUser.control.total.toString() }} Playlists
-
-        </div>
-        <div class="ud-settings dev-border">
-            <span @click="$emit('logOut')"><settings-icon /></span>
-
-        </div>
-
+  <div class="ud-container dev-border">
+    <div class="ud-name-container dev-border">
+      <div
+        class="ud-user-img"
+        :style="user.images[0] !== undefined ? { 'background-image': `url(${user.images[0].url})` } : null"
+      >
+        <user-icon v-if="user.images[0] === undefined" />
+      </div>
+      <span class="ud-text dev-border">{{ user.display_name !== null ? user.display_name : user.id }}</span>
     </div>
+    <div class="ud-playlist-total dev-border">
+      {{ $store.state.CurrentUser.control.offset.toString() }} of
+      {{ $store.state.CurrentUser.control.total.toString() }} Playlists
+    </div>
+    <div class="ud-settings dev-border">
+      <span @click="$emit('logOut')"><settings-icon /></span>
+    </div>
+  </div>
 </template>
 
 <script lang="ts">
@@ -26,17 +24,17 @@ import settingsIcon from '../../assets/icons/settings-icon.vue'
 import userIcon from '../../assets/icons/user-icon.vue'
 
 export default {
-    data () {
-        return {
-            user: this.$store.state.CurrentUser.user
-        }
-    },
-    components: {
-        settingsIcon,
-        userIcon
-    },
-    methods: {
+  components: {
+    settingsIcon,
+    userIcon
+  },
+  data () {
+    return {
+      user: this.$store.state.CurrentUser.user
     }
+  },
+  methods: {
+  }
 
 }
 </script>
@@ -56,7 +54,6 @@ export default {
     align-items: center;
     align-content: center;
 }
-
 
 /* Name Container */
 .ud-name-container {
@@ -97,15 +94,10 @@ export default {
     font-weight: 800;
 }
 
-
 .ud-playlist-total {
     font-size: 0.69rem;
     font-weight: bold;
 }
-
-
-
-
 
 .ud-settings {
     width: 10rem;

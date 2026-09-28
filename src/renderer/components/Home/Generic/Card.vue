@@ -1,23 +1,40 @@
 <template>
-  <div class="card-container window-nodrag" :class="classObject" :style="styleObject">
-    <slot name="outside">
-    </slot>
-    <div class="transformation-parent rel-full" @mousemove="onMouseMove" @mouseenter="onMouseEnter"
-      @mouseleave="onMouseLeave" @mousedown="setMouseListener" @click="handleClick">
-      <div class="card-content" ref="content-container">
+  <div
+    class="card-container window-nodrag"
+    :class="classObject"
+    :style="styleObject"
+  >
+    <slot name="outside" />
+    <div
+      class="transformation-parent rel-full"
+      @mousemove="onMouseMove"
+      @mouseenter="onMouseEnter"
+      @mouseleave="onMouseLeave"
+      @mousedown="setMouseListener"
+      @click="handleClick"
+    >
+      <div
+        ref="content-container"
+        class="card-content"
+      >
         <div class="card-background abs-full">
           <div class="rel-full ovfh">
-            <div class="card-img" :style="{ backgroundImage: `url(${bgImage})` }">
-            </div>
-            <div class="gradient">
-            </div>
-            <div class="light-shine" ref="light-shine"></div>
+            <div
+              class="card-img"
+              :style="{ backgroundImage: `url(${bgImage})` }"
+            />
+            <div class="gradient" />
+            <div
+              ref="light-shine"
+              class="light-shine"
+            />
           </div>
         </div>
-        <div class="card-default-slot"
-          :style="{ height: this.options.height || '4em', 'font-size': this.options.size || '' }">
-          <slot>
-          </slot>
+        <div
+          class="card-default-slot"
+          :style="{ height: options.height || '4em', 'font-size': options.size || '' }"
+        >
+          <slot />
         </div>
       </div>
     </div>
@@ -53,7 +70,7 @@ export default {
         y: this.$props.options.yRotationFactor !== undefined ? this.$props.options.yRotationFactor : 0.1,
         scaleFactor: (() => {
           if (this.$props.options.hovScaleFactor === false) return ''
-          let num = this.$props.options.hovScaleFactor !== undefined ? this.$props.options.hovScaleFactor : 1.05
+          const num = this.$props.options.hovScaleFactor !== undefined ? this.$props.options.hovScaleFactor : 1.05
           return `scale3d(${num}, ${num}, 1)`
         })()
       }
@@ -124,14 +141,16 @@ export default {
       return new Promise((resolve, reject) => this.$nextTick(resolve))
     },
     getBounds () {
-      return this.$root.cardTransformInvalidation < this.bounds.timeStamp ? this.bounds.bounds : (this.bounds = {
-        timeStamp: Date.now(),
-        bounds: (() => {
-          let bounds = this.getRotationElement()[0].getBoundingClientRect();
-          ['x', 'y', 'width', 'height'].forEach(k => bounds[k] = bounds[k].toFixed(2))
-          return bounds
-        })()
-      }).bounds
+      return this.$root.cardTransformInvalidation < this.bounds.timeStamp
+        ? this.bounds.bounds
+        : (this.bounds = {
+            timeStamp: Date.now(),
+            bounds: (() => {
+              const bounds = this.getRotationElement()[0].getBoundingClientRect();
+              ['x', 'y', 'width', 'height'].forEach(k => bounds[k] = bounds[k].toFixed(2))
+              return bounds
+            })()
+          }).bounds
     },
     transformContainer (e) {
       if (this.hoverTransitionsTimeout && Date.now() - index < 50) return
@@ -157,12 +176,12 @@ export default {
       if (tY < -4) tY = -4
       if (tY > 4) tY = 4
       return [`perspective(1000px) rotateX(${tY}deg) rotateY(${tX}deg) ${this.pressed ? '' : this.tOptions.scaleFactor}`,
-      { transform: `rotate(${-tY / 2}deg) translateX(${valX * 5}%)` }]
+        { transform: `rotate(${-tY / 2}deg) translateX(${valX * 5}%)` }]
     },
     restoreTransformation (force) {
       if (!force && (window.MOUSE_BEING_CLICKED || this.hovering)) return
       this.$root.$(window).off('mouseup', this.restoreTransformation)
-      this.getRotationElement().css('transform', `perspective(1000px) rotateX(0deg) rotateY(0deg)`)
+      this.getRotationElement().css('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg)')
       this.getLightShineElement().css({ 'background-position': '', transform: '' })
     },
     getRotationElement () {
@@ -272,8 +291,8 @@ $transition-hard: var(--ts-g-hard);
       $offset: -30;
       top: $offset*1px;
       bottom: $offset*1px;
-      right: $offset/2*1em;
-      left: $offset/2*1em;
+      right: $offset * 0.5 * 1em;
+      left: $offset * 0.5 * 1em;
       transition: opacity var(--card-hover-transition-fast);
       // transition: opacity $transition-soft;
       opacity: .5;

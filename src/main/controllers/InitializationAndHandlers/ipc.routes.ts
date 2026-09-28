@@ -3,13 +3,14 @@ import * as sbFetch from './sbFetch'
 import WindowController from './window.controller'
 // import store from '../../../renderer/store/index.js'
 import FileWatchers, { SBWatcherEvent } from '../FileSystem/FileWatchers'
-import { ipcMain } from 'electron-better-ipc'
-import { SpotifyPlaylistId } from '../../../@types/Spotify'
+import IpcController from './ipc.controller'
+import { SpotifyPlaylistId, SpotifyTrackId } from '../../../@types/Spotify'
+import { YouTubeResultId } from '../../../@types/YouTube'
 
 // :::::::::::::::::::::::::::::::::IPC:::::::::::::::::::::::::::::::::
 export default function () {
   const ipcSend = global.ipcSend
-  const on = ipcMain.answerRenderer
+  const on = IpcController.answerRenderer
 
   on('GET_STATUS', handlers.sendStatus)
 
@@ -52,15 +53,15 @@ export default function () {
     await handlers.unsyncPlaylist(id)
   })
 
-  on('PLAYLISTS:PAUSE', async function ({ id }) {
+  on('PLAYLISTS:PAUSE', async function ({ id }: { id: SpotifyPlaylistId }) {
     await handlers.pausePlaylist(id)
   })
 
-  on('TRACK:PAUSE', async function ({ id }) {
+  on('TRACK:PAUSE', async function ({ id }: { id: SpotifyTrackId }) {
     await handlers.pauseTrack(id)
   })
 
-  on('TRACK:CHANGE_SELECTION', async function ({ trackId, newId }) {
+  on('TRACK:CHANGE_SELECTION', async function ({ trackId, newId }: { trackId: SpotifyTrackId, newId: YouTubeResultId }) {
     await handlers.changeYtTrackSelection({ trackId, newId })
   })
   // FileWatchers

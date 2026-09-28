@@ -1,7 +1,7 @@
 <template>
   <!-- <div class="background-container" :style="{top: offsetTop + 'px'}"> -->
   <div class="background-container">
-    <canvas id="background-canvas"></canvas>
+    <canvas id="background-canvas" />
   </div>
 </template>
 
@@ -26,17 +26,17 @@ export default {
       this.offsetTop += Math.round(e.deltaY * -0.25)
     },
     handleResize (e) {
-      let el = document.querySelector('#background-canvas')
+      const el = document.querySelector('#background-canvas')
       el.width = window.innerWidth * this.pixelRatio
       el.height = window.innerHeight * this.pixelRatio
       el.style.width = window.innerWidth + 'px'
       el.style.height = window.innerHeight + 'px'
     },
     initializeCanvas () {
-      let ratio = (function () {
-        let ctx = document.createElement('canvas').getContext('2d')
-        let dpr = window.devicePixelRatio || 1
-        let bsr = ctx.webkitBackingStorePixelRatio ||
+      const ratio = (function () {
+        const ctx = document.createElement('canvas').getContext('2d')
+        const dpr = window.devicePixelRatio || 1
+        const bsr = ctx.webkitBackingStorePixelRatio ||
           ctx.mozBackingStorePixelRatio ||
           ctx.msBackingStorePixelRatio ||
           ctx.oBackingStorePixelRatio ||
@@ -45,14 +45,14 @@ export default {
         return dpr / bsr
       })()
 
-      let el = document.querySelector('#background-canvas')
-      let w = window.innerWidth
-      let h = window.innerHeight
+      const el = document.querySelector('#background-canvas')
+      const w = window.innerWidth
+      const h = window.innerHeight
       el.width = w * ratio
       el.height = h * ratio
       el.style.width = w + 'px'
       el.style.height = h + 'px'
-      let ctx = el.getContext('2d')
+      const ctx = el.getContext('2d')
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
       this.canvasContext = ctx
       this.pixelRatio = ratio
@@ -61,7 +61,7 @@ export default {
     },
     drawCanvas () {
       const offsetTop = () => this.offsetTop
-      var ctx = this.canvasContext || document.querySelector('#background-canvas').getContext('2d')
+      const ctx = this.canvasContext || document.querySelector('#background-canvas').getContext('2d')
       // let circle = {
 
       // }
@@ -69,7 +69,7 @@ export default {
         return 'hsl(' + Math.round(Math.random() * 360) + ', 100%, 50%)'
       }
       function createCircle () {
-        let circle = {}
+        const circle = {}
         circle.radius = 75 * Math.random()
         circle.diameter = circle.radius * 2
         circle.x = window.innerWidth * Math.random()
@@ -80,7 +80,7 @@ export default {
 
         return circle
       }
-      let circles = []
+      const circles = []
       for (let i = 0; i < 50; i++) {
         circles.push(createCircle())
       }
@@ -105,7 +105,7 @@ export default {
             circle.x = window.innerWidth + circle.radius
           }
         }
-        let oTop = offsetTop()
+        const oTop = offsetTop()
         if (circle.dirY > 0) {
           if (circle.y - circle.radius > window.innerHeight - oTop) {
             circle.y = circle.radius * -1 - oTop

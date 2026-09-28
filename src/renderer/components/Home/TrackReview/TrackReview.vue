@@ -1,13 +1,29 @@
 <template>
   <div class="track-review-container">
-    <div class="container-fluid text-left pt-2" style="--px: 2em">
-      <div class="default-title text-secondary" style="--fz: 1.2em">
+    <div
+      class="container-fluid text-left pt-2"
+      style="--px: 2em"
+    >
+      <div
+        class="default-title text-secondary"
+        style="--fz: 1.2em"
+      >
         {{ conversions.length ? 'Conversions' : 'No conversions found, try adding a custom url' }}
       </div>
     </div>
-    <div class="conversions-list" v-if="track">
-      <track-banner v-for="(item, index) in conversions" :track="item" :parent-ref="track" :key="index"
-        :is-conversion="true" :is-selected="isSelected(item.youtube_id)" @select="selectVideo(item)"></track-banner>
+    <div
+      v-if="track"
+      class="conversions-list"
+    >
+      <track-banner
+        v-for="(item, index) in conversions"
+        :key="index"
+        :track="item"
+        :parent-ref="track"
+        :is-conversion="true"
+        :is-selected="isSelected(item.youtube_id)"
+        @select="selectVideo(item)"
+      />
     </div>
   </div>
 </template>
@@ -18,13 +34,13 @@ export default {
   components: {
     TrackBanner
   },
+  props: {
+    refresh: Boolean
+  },
   data () {
     return {
       track: null
     }
-  },
-  props: {
-    refresh: Boolean
   },
   computed: {
     conversions () {
@@ -34,6 +50,12 @@ export default {
     },
     selection () {
       return this.track.selectionObj && (this.track.selectionObj.youtube_id || this.track.selectionObj.id)
+    }
+  },
+  watch: {
+    refresh (val) {
+      if (!val) return
+      this.refreshTrack()
     }
   },
   created () {
@@ -59,12 +81,6 @@ export default {
       } catch (error) {
         throw error
       }
-    }
-  },
-  watch: {
-    refresh (val) {
-      if (!val) return
-      this.refreshTrack()
     }
   }
 }

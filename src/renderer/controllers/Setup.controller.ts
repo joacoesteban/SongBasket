@@ -1,4 +1,3 @@
-
 import env from './VueInstance'
 
 const SetupController = {

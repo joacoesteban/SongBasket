@@ -3,7 +3,6 @@ import VueInstance from '../../main'
 import { ActionContext } from 'vuex'
 import { DownloadStartedEventPayload } from '../../../main/controllers/DownloadPhase/youtube-dl'
 
-
 type TriggerableProp =
   'CURRENT_PLAYLIST_SET' |
   'FFMPEG_BINS_DOWNLOADED' |
@@ -30,7 +29,7 @@ interface EventsState {
   RESET_SELECTION: boolean
   PLAYLIST_TRACKS_RE_COMPUTED: boolean
   PLAYLIST_STATE_CHANGED: boolean
-  // 
+  //
   ROUTER_ANIMATION: string
   LOADING_STATE: LoadingEvent,
   DOWNLOADED_TRACKS: number
@@ -60,7 +59,6 @@ const getDefaultState: () => EventsState = () => ({
   CURRENT_DOWNLOAD: null, // id from current download
   GLOBAL_ERROR: null
 })
-
 
 const actions: {
   [key: string]: (context: ActionContext<EventsState, any>, payload?: any) => Promise<void> | void
@@ -244,8 +242,8 @@ const loadingEventTypes: {
 } = {
   messages: {
     'PLAYLISTS:REFRESH': 'Updating Playlists',
-    'YOUTUBIZE': 'Converting Tracks',
-    'DOWNLOAD': 'Downloading Tracks',
+    YOUTUBIZE: 'Converting Tracks',
+    DOWNLOAD: 'Downloading Tracks',
     'PLAYLIST:UNSYNC': 'Unsyncing Playlist',
     default: 'Loading'
   },

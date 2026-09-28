@@ -1,18 +1,28 @@
-import * as windowStateKeeper from 'electron-window-state'
-import * as Positioner from 'electron-positioner'
+import * as PATH from 'path'
+import windowStateKeeper from 'electron-window-state'
+import Positioner from 'electron-positioner'
 import { BrowserWindow } from 'electron'
+import { enable as enableRemote } from '@electron/remote/main'
+
+const RENDERER_ENTRY = PATH.join(__dirname, '../renderer/index.html')
+
+const loadRenderer = (window: BrowserWindow) => {
+  const devServer = process.env.ELECTRON_RENDERER_URL
+  if (devServer) return window.loadURL(devServer)
+  return window.loadFile(RENDERER_ENTRY)
+}
 
 const windowController = {
   windowState: null as windowStateKeeper.State | null,
   positioner: null as Positioner | null,
-  lockWindow ({ setSize = true }) {
+  lockWindow ({ setSize = true }: { setSize?: boolean } = {}) {
     const window = global.CONSTANTS.MAIN_WINDOW
     if (!window) return
     setSize && window.setSize(global.CONSTANTS.MAIN_WINDOW_CONFIG.width, global.CONSTANTS.MAIN_WINDOW_CONFIG.height)
     window.resizable = false
     windowController.positioner?.move('center')
   },
-  unlockWindow ({ setSize = true, setPosition = true }) {
+  unlockWindow ({ setSize = true, setPosition = true }: { setSize?: boolean, setPosition?: boolean } = {}) {
     const window = global.CONSTANTS.MAIN_WINDOW
     if (!window) return
 
@@ -45,7 +55,8 @@ const windowController = {
 
     windowController.positioner = new Positioner(window)
 
-    window.loadURL(process.env.NODE_ENV === 'development' ? `http://localhost:9080` : `file://${__dirname}/index.html`)
+    enableRemote(window.webContents)
+    loadRenderer(window)
     window.on('closed', () => {
       global.CONSTANTS.MAIN_WINDOW = null
       windowController.windowState = null
@@ -55,7 +66,8 @@ const windowController = {
   createLoadingWindow () {
     const window = global.CONSTANTS.LOADING_WINDOW = new BrowserWindow(global.CONSTANTS.LOADING_WINDOW_CONFIG)
 
-    window.loadURL(process.env.NODE_ENV === 'development' ? `http://localhost:9080` : `file://${__dirname}/index.html`)
+    enableRemote(window.webContents)
+    loadRenderer(window)
     window.on('closed', () => {
       global.CONSTANTS.LOADING_WINDOW = null
       // windowController.windowState = null

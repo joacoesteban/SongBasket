@@ -6,14 +6,39 @@
       </b>
     </div>
     <div class="info light">
-      <input @keyup.enter="accept" ref="input" v-model="url" class="std-input" type="text">
-      <div :class="{ 'valid': valid === true, 'invalid': valid === false, 'hide': hide }" class="valid-container" />
+      <input
+        ref="input"
+        v-model="url"
+        class="std-input"
+        type="text"
+        @keyup.enter="accept"
+      >
+      <div
+        :class="{ 'valid': valid === true, 'invalid': valid === false, 'hide': hide }"
+        class="valid-container"
+      />
     </div>
-    <div :class="{ 'hide': hideControls }" class="controls df jucc aliic">
-      <div @click="accept" class="button accept">Accept</div>
-      <div @click="cancel" class="button cancel">Cancel</div>
+    <div
+      :class="{ 'hide': hideControls }"
+      class="controls df jucc aliic"
+    >
+      <div
+        class="button accept"
+        @click="accept"
+      >
+        Accept
+      </div>
+      <div
+        class="button cancel"
+        @click="cancel"
+      >
+        Cancel
+      </div>
     </div>
-    <div :class="{ 'hide': !hideControls }" class="controls loading">
+    <div
+      :class="{ 'hide': !hideControls }"
+      class="controls loading"
+    >
       {{ loadingText }}
     </div>
   </div>

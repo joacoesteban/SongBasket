@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 type IterationCallback<T> = (item: T, index: number, array: any[]) => any
 type AsyncIterationCallback<T> = (item: T, index: number, array: T[]) => Promise<any>
 

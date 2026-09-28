@@ -74,7 +74,7 @@ function off (path: string, cb: Function) {
   if (!path) throw new Error('PATH NOT SPECIFIED')
   if (typeof cb !== 'function') throw new Error('INVALID CALLBACK')
 
-  let stack = CBS[path]
+  const stack = CBS[path]
   if (!stack || !stack.length) return console.error('CALLBACK STACK IS EMPTY')
   CBS[path] = stack.filter(fn => fn !== cb)
 
