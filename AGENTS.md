@@ -131,8 +131,8 @@ These commands describe the current setup. They do not indicate that the migrati
 
 | Command | Current behavior |
 | --- | --- |
-| `mise install` | Installs Node 24 and Yarn 1 from `mise.toml` |
-| `mise run install` | Installs root dependencies through Yarn and runs Electron setup |
+| `mise install` | Installs Node 24 and Bun from `mise.toml` |
+| `mise run install` | Installs root dependencies through Bun |
 | `mise run dev` | Runs Electron with the Vite development server |
 | `mise run build` | Bundles the main process and renderer into `out/` |
 | `mise run typecheck` | Checks main-process types only |

@@ -15,7 +15,7 @@ git submodule update --init --recursive
 
 ## Requirements
 
-[mise](https://mise.jdx.dev) provides Node and Yarn. Everything else installs
+[mise](https://mise.jdx.dev) provides Node and Bun. Everything else installs
 into the project.
 
 ```bash

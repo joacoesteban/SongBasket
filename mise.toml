@@ -1,13 +1,13 @@
 [tools]
 node = "24"
-yarn = "1"
+bun = "1"
 
 [env]
 _.path = ["./node_modules/.bin"]
 
 [tasks.install]
 description = "Install dependencies and the Electron binary"
-run = "yarn install"
+run = "bun install"
 
 [tasks.dev]
 description = "Run the app with hot reload"
