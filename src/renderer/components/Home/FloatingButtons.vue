@@ -2,31 +2,53 @@
   <div v-if="isHome" class="floating-buttons-container show">
     <div class="gradient" />
     <div class="df jucb">
-      <div class="df floater-container">
-        <div class="floater rel">
-          <button class="sb-fab show" type="button" @click="logout">⌃</button>
+      <div v-if="buttonsMounted" class="df floater-container">
+        <div v-if="isDev" class="floater rel">
+          <button
+            class="sb-fab"
+            :class="{ show: buttonVisibility.dropdown }"
+            type="button"
+            @click="logout"
+          >
+            ⌃
+          </button>
         </div>
       </div>
-      <div class="df floater-container">
-        <div v-if="showRefresh" class="floater">
-          <button class="sb-fab show" type="button" @click="refresh">
+      <div v-if="buttonsMounted" class="df floater-container">
+        <div class="floater">
+          <button
+            class="sb-fab"
+            :class="{ show: buttonVisibility.refresh }"
+            type="button"
+            @click="refresh"
+          >
             <sync-icon />
           </button>
         </div>
-        <div v-if="showSync" class="floater">
-          <button class="sb-fab show" type="button" @click="convert">
+        <div class="floater">
+          <button
+            class="sb-fab"
+            :class="{ show: buttonVisibility.sync }"
+            type="button"
+            @click="convert"
+          >
             <cloud-search-icon />
           </button>
         </div>
-        <div v-if="showDownload" class="floater">
-          <button class="sb-fab show" type="button" @click="download">
+        <div class="floater">
+          <button
+            class="sb-fab"
+            :class="{ show: buttonVisibility.download }"
+            type="button"
+            @click="download"
+          >
             <download-icon />
           </button>
         </div>
-        <div v-if="error" class="floater error-floater">
-          <div class="sb-fab error-pill-container show">
-            <span>{{ error.message }}</span>
-          </div>
+      </div>
+      <div v-if="pillMounted" class="floater error-floater">
+        <div class="sb-fab error-pill-container" :class="{ show: pillShown }">
+          <span>{{ errorPillMessage }}</span>
         </div>
       </div>
     </div>
@@ -34,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import CloudSearchIcon from '../../assets/icons/cloud-search-icon.vue'
@@ -42,10 +64,23 @@ import DownloadIcon from '../../assets/icons/download-icon.vue'
 import SyncIcon from '../../assets/icons/sync-icon.vue'
 import { routeNames } from '../../router'
 import { useSongBasketActions, useSongBasketState } from '../../state'
+import {
+  type ErrorPill,
+  appErrorPill,
+  connectionErrorPill,
+  floatingButtons
+} from './floating-buttons'
 
 const route = useRoute()
-const { isConnected, ffmpegBinariesDownloaded, loading, error, state } =
-  useSongBasketState()
+const isDev = import.meta.env.DEV
+const {
+  connectedToInternet,
+  connectedToApi,
+  ffmpegBinariesDownloaded,
+  loading,
+  error,
+  state
+} = useSongBasketState()
 const {
   refresh: refreshAction,
   convertYoutube,
@@ -64,19 +99,105 @@ const isHome = computed(() => {
     name === routeNames.downloadsView
   )
 })
-const loadingTarget = computed(() => loading.value.target)
-const showRefresh = computed(() => !loading.value.value && isConnected.value)
-const showSync = computed(
-  () =>
-    !loading.value.value &&
-    isConnected.value &&
-    (state.value?.queuedPlaylists.length ?? 0) > 0
+
+const fullConnection = computed(
+  () => connectedToInternet.value && connectedToApi.value
 )
-const showDownload = computed(
-  () =>
-    (!loading.value.value || loadingTarget.value === 'DOWNLOAD') &&
-    ffmpegBinariesDownloaded.value
+const activeErrorPill = ref<ErrorPill | null>(null)
+const buttonsHidden = ref(false)
+const buttonsMounted = ref(true)
+const pillMounted = ref(false)
+const pillShown = ref(false)
+const timers = new Set<ReturnType<typeof setTimeout>>()
+
+const buttonVisibility = computed(() =>
+  floatingButtons({
+    loading: loading.value.value,
+    loadingTarget: loading.value.target,
+    internet: connectedToInternet.value,
+    api: connectedToApi.value,
+    ffmpeg: ffmpegBinariesDownloaded.value,
+    queuedPlaylists: state.value?.queuedPlaylists.length ?? 0,
+    syncedPlaylists: state.value?.syncedPlaylists.length ?? 0,
+    dev: isDev,
+    errorPill: buttonsHidden.value
+  })
 )
+const errorPillMessage = computed(() => {
+  const pill = activeErrorPill.value
+  if (pill === null) return ''
+  return pill.message
+})
+
+const clearTimers = (): void => {
+  timers.forEach((timer) => clearTimeout(timer))
+  timers.clear()
+}
+
+const schedule = (callback: () => void, delay: number): void => {
+  const timer = setTimeout(() => {
+    timers.delete(timer)
+    callback()
+  }, delay)
+  timers.add(timer)
+}
+
+const hideErrorPill = (): void => {
+  if (
+    activeErrorPill.value === null &&
+    !pillMounted.value &&
+    !buttonsHidden.value
+  ) {
+    return
+  }
+  clearTimers()
+  pillShown.value = false
+  schedule(() => {
+    pillMounted.value = false
+    activeErrorPill.value = null
+    buttonsMounted.value = true
+    schedule(() => {
+      buttonsHidden.value = false
+    }, 100)
+  }, 400)
+}
+
+const showErrorPill = (pill: ErrorPill): void => {
+  clearTimers()
+  activeErrorPill.value = pill
+  buttonsHidden.value = true
+  if (pillMounted.value) {
+    pillShown.value = true
+    schedule(hideErrorPill, pill.hideAfterMs)
+    return
+  }
+  pillShown.value = false
+  schedule(() => {
+    buttonsMounted.value = false
+    pillMounted.value = true
+    schedule(() => {
+      pillShown.value = true
+      schedule(hideErrorPill, pill.hideAfterMs)
+    }, 100)
+  }, 400)
+}
+
+watch(error, (nextError) => {
+  if (nextError === null) return
+  showErrorPill(appErrorPill(nextError))
+})
+watch(fullConnection, (connected) => {
+  if (connected) {
+    hideErrorPill()
+    return
+  }
+  const pill = connectionErrorPill({
+    internet: connectedToInternet.value,
+    api: connectedToApi.value
+  })
+  if (pill !== null) showErrorPill(pill)
+})
+onBeforeUnmount(clearTimers)
 
 const refresh = (): void => {
   void refreshAction()
