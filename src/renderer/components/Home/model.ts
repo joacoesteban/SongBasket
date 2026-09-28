@@ -1,24 +1,13 @@
 import type { DeepReadonly } from 'vue'
 
 import type { SpotifyPlaylist, SpotifyTrack } from '../../../@types/Spotify'
-import type {
-  SongBasketStateDto,
-  SongBasketTrackDto,
-  YouTubeResultDto
-} from '../../../shared/ipc'
+import type { SongBasketTrackDto, YouTubeResultDto } from '../../../shared/ipc'
 
 export type Playlist = DeepReadonly<SpotifyPlaylist>
 export type Track = DeepReadonly<SongBasketTrackDto>
 export type SpotifyTrackModel = DeepReadonly<SpotifyTrack>
 export type TrackItem = Track | SpotifyTrackModel
 export type YoutubeResult = DeepReadonly<YouTubeResultDto>
-
-export type PlaylistStatus = {
-  baseState: 'synced' | 'queued' | 'idle' | 'paused'
-  color: string
-  msg: string
-  slug: string
-}
 
 export const playlistImage = (playlist: Playlist): string | undefined => {
   const image = playlist.images[0]
@@ -45,60 +34,38 @@ export const artistsString = (track: TrackItem): string =>
 export const trackName = (track: TrackItem): string => spotifyTrack(track).name
 
 export const formatMinutes = (seconds: number): string => {
-  const minutes = Math.floor(seconds / 60)
-  const remaining = Math.round(seconds % 60)
+  const totalSeconds = Math.floor(seconds)
+  const minutes = Math.floor(totalSeconds / 60)
+  const remaining = totalSeconds % 60
+  const minuteText = String(minutes).padStart(2, '0')
   const secondText = String(remaining).padStart(2, '0')
-  return `${minutes}:${secondText}`
-}
-
-export const playlistStatus = (
-  playlist: Playlist,
-  state: DeepReadonly<SongBasketStateDto>
-): PlaylistStatus => {
-  const isSynced = state.syncedPlaylists.includes(playlist.id)
-  if (isSynced) {
-    if (playlist.isPaused === true) {
-      return {
-        baseState: 'paused',
-        color: 'var(--global-grey)',
-        msg: 'Paused',
-        slug: 'paused'
-      }
-    }
-    return {
-      baseState: 'synced',
-      color: 'var(--green-accept)',
-      msg: 'Synced',
-      slug: 'synced'
-    }
-  }
-  if (state.queuedPlaylists.includes(playlist.id)) {
-    return {
-      baseState: 'queued',
-      color: 'var(--orange-warning)',
-      msg: 'Queued',
-      slug: 'awaiting-sync'
-    }
-  }
-  return {
-    baseState: 'idle',
-    color: 'var(--button-purple)',
-    msg: 'Not synced',
-    slug: 'not-synced'
-  }
+  return `${minuteText}:${secondText}`
 }
 
 export const playlistTracks = (
   playlist: Playlist
 ): readonly DeepReadonly<SpotifyTrack>[] => playlist.tracks.items
 
-export const trackMatches = (track: Track, query: string): boolean => {
+export const trackMatches = (track: TrackItem, query: string): boolean => {
   const lowered = query.toLowerCase()
-  if (track.data.name.toLowerCase().includes(lowered)) return true
-  return track.data.artists.some((artist) =>
+  const item = spotifyTrack(track)
+  if (item.name.toLowerCase().includes(lowered)) return true
+  return item.artists.some((artist) =>
     artist.name.toLowerCase().includes(lowered)
   )
 }
+
+export const playlistMatches = (playlist: Playlist, query: string): boolean =>
+  playlist.name.toLowerCase().includes(query.toLowerCase())
+
+export const trackPlaylistNames = (
+  track: Track,
+  playlists: readonly Playlist[]
+): string =>
+  track.playlists
+    .map(({ id }) => playlists.find((playlist) => playlist.id === id)?.name)
+    .filter((name): name is string => name !== undefined)
+    .join(', ')
 
 export const youtubeTitle = (item: YoutubeResult): string => {
   if (item.isCustomTrack === true) return item.snippet.title
@@ -116,9 +83,3 @@ export const youtubeCreator = (item: YoutubeResult): string =>
 
 export const youtubeSelectionId = (item: YoutubeResult): string =>
   item.youtube_id
-
-export const trackSelectionId = (track: Track | null): string | null => {
-  if (track === null) return null
-  if (track.selection === null || track.selection === false) return null
-  return track.selection
-}

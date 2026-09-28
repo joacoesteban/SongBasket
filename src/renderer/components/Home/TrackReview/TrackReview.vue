@@ -26,7 +26,7 @@ import { useRoute } from 'vue-router'
 import { useSongBasketActions, useSongBasketState } from '../../../state'
 import TrackBanner from '../DownloadsView/TrackBanner.vue'
 import type { Track, YoutubeResult } from '../model'
-import { trackSelectionId } from '../model'
+import { selectedResult } from '../track-status'
 
 const route = useRoute()
 const { state } = useSongBasketState()
@@ -53,7 +53,11 @@ const heading = computed(() => {
   if (conversions.value.length > 0) return 'Conversions'
   return 'No conversions found, try adding a custom url'
 })
-const isSelected = (id: string): boolean => trackSelectionId(track.value) === id
+const isSelected = (id: string): boolean => {
+  const value = track.value
+  if (value === null) return false
+  return selectedResult(value)?.youtube_id === id
+}
 
 const selectVideo = (item: YoutubeResult): void => {
   const value = track.value

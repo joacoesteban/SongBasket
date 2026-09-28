@@ -38,9 +38,19 @@
               v-if="isConversion && trackFormatted.issue"
               class="df alic text-secondary"
             >
+              <span
+                v-if="trackFormatted.issue.warn"
+                class="svg-icon"
+                style="--size: 0.75em; margin-right: 0.3em"
+              >
+                <WarningIcon />
+              </span>
               <span class="conversion-status df alic">
-                <span class="bold point75-em color-transition">
-                  {{ trackFormatted.issue }}
+                <span
+                  class="bold point75-em color-transition"
+                  :style="{ color: trackFormatted.issue.color || '' }"
+                >
+                  {{ trackFormatted.issue.label }}
                 </span>
               </span>
             </div>
@@ -62,16 +72,35 @@
             <span class="artists">{{ trackFormatted.creator }}</span>
           </div>
           <div v-if="isConversion" class="track-controls df mt-1">
-            <button class="link-button m-0" type="button" @click="select">
+            <button
+              v-if="selectLabel !== null"
+              class="link-button m-0"
+              type="button"
+              @click="select"
+            >
               {{ selectLabel }}
             </button>
             <button class="link-button m-0" type="button" @click="openVideo">
               Open
             </button>
           </div>
-          <div v-if="!isConversion && !isDownload" class="ellipsis">
+          <div
+            v-if="!isConversion && trackFormatted.playlists.length > 0"
+            class="ellipsis"
+          >
             <span class="playlists">
-              Inside <b>{{ trackFormatted.creator }}</b>
+              Inside <b>{{ trackFormatted.playlists }}</b>
+            </span>
+          </div>
+          <div
+            v-if="!isConversion && !isDownload && trackFormatted.status"
+            class="df"
+          >
+            <span
+              class="bold uppercase point5-em color-transition"
+              :style="{ color: trackFormatted.status.color }"
+            >
+              {{ trackFormatted.status.label }}
             </span>
           </div>
         </div>
@@ -90,23 +119,29 @@
 </template>
 
 <script setup lang="ts">
+import { P, match } from 'ts-pattern'
 import { computed } from 'vue'
 
 import {
   type FormattedTextSegment,
   formattedTextSegments
 } from '../../../../shared/formatted-text'
-import { useSongBasketActions } from '../../../state'
+import WarningIcon from '../../../assets/icons/warning-icon.vue'
+import { useSongBasketActions, useSongBasketState } from '../../../state'
 import Banner from '../Generic/Banner.vue'
 import Card from '../Generic/Card.vue'
+import { resultIssue, selectAction } from '../conversion-result'
 import type { Track, TrackItem, YoutubeResult } from '../model'
 import {
+  artistsString,
   formatMinutes,
   trackImage,
   trackName,
+  trackPlaylistNames,
   youtubeCreator,
   youtubeImage
 } from '../model'
+import { trackStatus } from '../track-status'
 
 type BannerTrack = TrackItem | YoutubeResult
 type DownloadStatus = {
@@ -133,9 +168,8 @@ const props = withDefaults(
 )
 const emit = defineEmits<{ select: [] }>()
 const { openVideo: openVideoAction } = useSongBasketActions()
+const { state, downloadedTracks } = useSongBasketState()
 const cardOptions = {}
-const isYoutubeResult = (track: BannerTrack): track is YoutubeResult =>
-  'snippet' in track
 
 const titleSegments = (
   item: YoutubeResult
@@ -146,35 +180,33 @@ const titleSegments = (
   return formattedTextSegments(item.nameFormatted)
 }
 
-const trackFormatted = computed(() => {
-  if (props.isConversion && isYoutubeResult(props.track)) {
-    const item = props.track
-    let issue: string | null = null
-    if (!item.isCustomTrack && item.isDoubtlyConversion)
-      issue = 'Does not match'
-    return {
+const trackFormatted = computed(() =>
+  match(props.track)
+    .with({ snippet: P._ }, (item) => ({
       nameSegments: titleSegments(item),
       image: youtubeImage(item),
       creator: youtubeCreator(item),
-      issue
-    }
-  }
-  if (isYoutubeResult(props.track)) {
-    return {
-      nameSegments: titleSegments(props.track),
-      image: youtubeImage(props.track),
-      creator: youtubeCreator(props.track),
-      issue: null
-    }
-  }
-  const name = trackName(props.track)
-  return {
-    nameSegments: [{ text: name, matched: false }],
-    image: trackImage(props.track),
-    creator: name,
-    issue: null
-  }
-})
+      issue: resultIssue(item),
+      playlists: '',
+      status: null
+    }))
+    .with({ data: P._ }, (item) => ({
+      nameSegments: [{ text: trackName(item), matched: false }],
+      image: trackImage(item),
+      creator: artistsString(item),
+      issue: null,
+      playlists: trackPlaylistNames(item, state.value?.playlists ?? []),
+      status: trackStatus(item, downloadedTracks.value)
+    }))
+    .otherwise((item) => ({
+      nameSegments: [{ text: trackName(item), matched: false }],
+      image: trackImage(item),
+      creator: artistsString(item),
+      issue: null,
+      playlists: '',
+      status: null
+    }))
+)
 const containerClass = computed(() => {
   if (props.isDownload) return `download ${props.downloadStatus.state}`
   if (props.isConversion) return 'conversion'
@@ -184,22 +216,35 @@ const cardItem = computed(() => ({
   backgroundImage: trackFormatted.value.image
 }))
 const selectLabel = computed(() => {
-  if (props.isSelected) return 'Selected'
-  return 'Select'
+  if (!props.isConversion) return null
+  const parent = props.parentRef
+  if (parent === null) return null
+  return match(props.track)
+    .with({ snippet: P._ }, (item) => selectAction(item, parent))
+    .otherwise(() => null)
 })
 const duration = computed(() => {
   if (props.isDownload) return { str: '', color: '' }
-  let seconds = 0
-  if (isYoutubeResult(props.track)) {
-    seconds = props.track.duration
-  } else if ('data' in props.track) {
-    seconds = props.track.duration ?? props.track.data.duration_ms / 1000
-  } else {
-    seconds = props.track.duration_ms / 1000
-  }
+  const seconds = match(props.track)
+    .with({ snippet: P._ }, (item) => item.duration)
+    .with(
+      { data: P._ },
+      (item) => item.duration ?? item.data.duration_ms / 1000
+    )
+    .otherwise((item) => item.duration_ms / 1000)
+  const durationDiff = match({
+    isConversion: props.isConversion,
+    parentRef: props.parentRef
+  })
+    .with({ isConversion: true, parentRef: P.not(null) }, ({ parentRef }) => {
+      const parentDuration =
+        parentRef.duration ?? parentRef.data.duration_ms / 1000
+      return parentDuration - seconds
+    })
+    .otherwise(() => 0)
   return {
     str: formatMinutes(Math.round(seconds)),
-    color: durationColor(seconds)
+    color: durationColor(durationDiff)
   }
 })
 
@@ -214,8 +259,9 @@ const durationColor = (durationDiff: number): string => {
 
 const select = (): void => emit('select')
 const openVideo = (): void => {
-  let id = props.track.id
-  if ('youtube_id' in props.track) id = props.track.youtube_id
+  const id = match(props.track)
+    .with({ youtube_id: P.string }, ({ youtube_id }) => youtube_id)
+    .otherwise(({ id }) => id)
   void openVideoAction(id)
 }
 </script>
