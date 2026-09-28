@@ -10,7 +10,12 @@ html {
   }
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   margin-block-start: 0;
 }
 
@@ -43,15 +48,19 @@ h1, h2, h3, h4, h5, h6 {
   -webkit-app-region: drag;
 }
 .window-drag-recursive {
-  &, * {
+  &,
+  * {
     @extend .window-drag;
   }
-  button, a, input {
+  button,
+  a,
+  input {
     @extend .window-nodrag;
   }
 }
 .window-nodrag {
-  &, * {
+  &,
+  * {
     -webkit-app-region: no-drag !important;
   }
 }
@@ -60,20 +69,22 @@ body {
   background-color: var(--body-color);
   color: var(--text-white);
   --icon-color: var(--text-white);
-  font-family: "made_tommy", sans-serif;
+  font-family: 'made_tommy', sans-serif;
   font-size: 1em;
   margin: 0;
   user-select: none;
   overflow: hidden;
   height: 100%;
   $t: var(--body-colors-transition);
-  transition: background-color $t, color $t;
+  transition:
+    background-color $t,
+    color $t;
 }
 body:hover {
   cursor: default;
 }
 .text {
-  font-family: "DM Sans";
+  font-family: 'DM Sans';
   font-weight: normal;
 }
 .default-title {
@@ -92,7 +103,7 @@ body:hover {
   $transition: var(--button-transition);
   @extend .window-nodrag;
   outline: none;
-  font-family: "made_tommy";
+  font-family: 'made_tommy';
   font-weight: bold;
   font-size: 0.7em;
   padding: 1em 1.5em;
@@ -103,12 +114,18 @@ body:hover {
   align-items: center;
   justify-content: center;
   border: none;
-  box-shadow: 0.1em 0.1em 0.3em 0 rgba(0, 0, 0, 0.4), var(--outline-shadow);
+  box-shadow:
+    0.1em 0.1em 0.3em 0 rgba(0, 0, 0, 0.4),
+    var(--outline-shadow);
   border-radius: 2em;
   color: var(--text-black);
   background: var(--text-white);
   --local-shadow-transition: var(--button-transition-time) var(--bezier-out);
-  transition: transform $transition, background $transition, opacity $transition, box-shadow var(--local-shadow-transition);
+  transition:
+    transform $transition,
+    background $transition,
+    opacity $transition,
+    box-shadow var(--local-shadow-transition);
   cursor: pointer;
   transform: scale(1);
 
@@ -164,16 +181,18 @@ body:hover {
   display: flex;
   align-items: center;
   background: none;
-  font-size: .75em;
+  font-size: 0.75em;
   text-decoration: none;
   font-weight: 500;
   padding: 0;
   outline: none;
   border: none;
   --border-color: transparent;
-  border-bottom: .1em solid var(--border-color);
+  border-bottom: 0.1em solid var(--border-color);
   opacity: 0.7;
-  transition: var(--hover-n-active-transitions), border var(--ts-g);
+  transition:
+    var(--hover-n-active-transitions),
+    border var(--ts-g);
   &:hover {
     --border-color: var(--local-text-color);
     opacity: 1;
@@ -183,11 +202,11 @@ body:hover {
   }
 }
 .sb-tag {
-  --fz: .9em;
+  --fz: 0.9em;
   font-size: var(--fz);
   --bg-color: var(--green-accept);
   --text-color: var(--text-white);
-  padding: .1em .5em;
+  padding: 0.1em 0.5em;
   background-color: var(--bg-color);
   color: var(--text-color);
   --icon-color: var(--text-color);
@@ -195,7 +214,7 @@ body:hover {
   width: fit-content;
   box-sizing: border-box;
   > * {
-    font-size: .8em;
+    font-size: 0.8em;
     text-transform: lowercase;
   }
 }
@@ -209,16 +228,21 @@ body:hover {
   align-items: center;
   font-size: 7vw;
   font-weight: bold;
-  background: var(--global-grey)
+  background: var(--global-grey);
 }
 
 .hidable-item {
   $t: var(--ts-g);
-  transition: var(--hover-n-active-transitions), padding $t, margin $t, height $t, width $t;
+  transition:
+    var(--hover-n-active-transitions),
+    padding $t,
+    margin $t,
+    height $t,
+    width $t;
   box-sizing: border-box;
   overflow: visible;
   &.hidden {
-    transform: scale(.7);
+    transform: scale(0.7);
     opacity: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -232,7 +256,9 @@ body:hover {
   --icon-color: var(--text-secondary);
 }
 .color-transition {
-  transition: color var(--ts-g), background-color var(--ts-g);
+  transition:
+    color var(--ts-g),
+    background-color var(--ts-g);
 }
 .sb-title {
   font-weight: 500;
@@ -262,7 +288,9 @@ input {
   border: none;
   color: white;
   background: none;
-  transition: transform 0.15s ease, background 0.2s ease;
+  transition:
+    transform 0.15s ease,
+    background 0.2s ease;
 }
 .input-light {
   display: block;
@@ -274,18 +302,22 @@ input {
   border: none;
   color: white;
   background: none;
-  transition: transform 0.15s ease, background 0.2s ease;
+  transition:
+    transform 0.15s ease,
+    background 0.2s ease;
   padding: 0.25em;
 
   &::-webkit-input-placeholder {
     padding-left: 0.2em;
   }
 
-  &:-moz-placeholder { /* Firefox 18- */
+  &:-moz-placeholder {
+    /* Firefox 18- */
     padding-left: 0.2em;
   }
 
-  &::-moz-placeholder {  /* Firefox 19+ */
+  &::-moz-placeholder {
+    /* Firefox 19+ */
     padding-left: 0.2em;
   }
 
@@ -295,7 +327,7 @@ input {
 }
 
 .global-scroll-shadow {
-  box-shadow: 0 3px 8px rgba(0, 0, 0, calc(var(--scroll-opacity) * 0.3))
+  box-shadow: 0 3px 8px rgba(0, 0, 0, calc(var(--scroll-opacity) * 0.3));
 }
 
 .show-on-scroll {
@@ -318,7 +350,7 @@ input {
 
 .hideable-container {
   // TODO Adapt transition to global trasition scale factor
-  --list-transition-time: .3s;
+  --list-transition-time: 0.3s;
   transition: var(--hover-n-active-transitions);
   transition-duration: var(--list-transition-time);
   &.hide {

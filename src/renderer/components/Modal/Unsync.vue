@@ -1,29 +1,15 @@
 <template>
-  <div
-    v-if="playlist"
-    class="container"
-  >
+  <div v-if="playlist" class="container">
     <div class="header">
-      Are you sure you want to unsync <span class="bold">
-        {{ playlist.name }}
-      </span>?
+      Are you sure you want to unsync
+      <span class="bold"> {{ playlist.name }} </span>?
     </div>
     <div class="info light">
       {{ playlist.tracks.total }} tracks will be deleted from your Hard Drive
     </div>
     <div class="controls df jucc aliic">
-      <div
-        class="button accept"
-        @click="accept"
-      >
-        Yes
-      </div>
-      <div
-        class="button cancel"
-        @click="$emit('close')"
-      >
-        No
-      </div>
+      <div class="button accept" @click="accept">Yes</div>
+      <div class="button cancel" @click="$emit('close')">No</div>
     </div>
   </div>
 </template>
@@ -31,18 +17,18 @@
 <script lang="ts">
 export default {
   computed: {
-    payload () {
+    payload() {
       return this.$store.state.SharedStates.modal.options.payload
     },
-    id () {
+    id() {
       return this.payload.id
     },
-    playlist () {
+    playlist() {
       return this.$store.getters.PlaylistById(this.id)
     }
   },
   methods: {
-    async accept () {
+    async accept() {
       await this.$root.$controllers.core.unsyncPlaylist(this.id)
       this.$emit('close')
     }
@@ -59,14 +45,15 @@ export default {
 }
 
 .info {
-  font-size: .7em;
+  font-size: 0.7em;
 }
 
 .controls {
   margin-top: 1em;
 
   .button {
-    margin: 0 .3em;
+    margin: 0 0.3em;
     width: 5em;
   }
-}</style>
+}
+</style>

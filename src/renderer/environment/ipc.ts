@@ -1,7 +1,7 @@
 import { ipcRenderer } from 'electron'
 
 export type RendererIpc = {
-  callMain: <T = unknown>(channel: string, data?: unknown) => Promise<T>,
+  callMain: <T = unknown>(channel: string, data?: unknown) => Promise<T>
   answerMain: <T>(channel: string, handler: (data: T) => unknown) => void
 }
 

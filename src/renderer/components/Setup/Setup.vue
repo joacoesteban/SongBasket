@@ -9,19 +9,9 @@
         {{ header.text }}
       </div>
       <div class="slider-container">
-        <div
-          class="slider"
-          :style="{ '--offset-x': offsetXPtg }"
-        >
-          <Login
-            v-if="showLogin"
-            @login="login"
-            @guestLogin="nextSub"
-          />
-          <Guest
-            v-if="showLogin"
-            @backLogin="backLogin"
-          />
+        <div class="slider" :style="{ '--offset-x': offsetXPtg }">
+          <Login v-if="showLogin" @login="login" @guestLogin="nextSub" />
+          <Guest v-if="showLogin" @backLogin="backLogin" />
           <guest-verify v-if="showLogin" />
         </div>
       </div>
@@ -41,11 +31,11 @@ export default {
     Guest,
     GuestVerify
   },
-  data () {
+  data() {
     return {
       header: {
         show: true,
-        text: 'Let\'s find your music',
+        text: "Let's find your music",
         userOnHold: null,
         showHeader: false
       },
@@ -55,19 +45,19 @@ export default {
     }
   },
   computed: {
-    action () {
+    action() {
       return this.$route.params.action
     },
-    loadingState () {
+    loadingState() {
       return this.$store.state.loadingState
     },
-    offsetPtg () {
+    offsetPtg() {
       return (this.currentSlide || 0) * 100
     },
-    offsetXPtg () {
+    offsetXPtg() {
       return -((this.currentSubSlide || 0) * 100) + '%'
     },
-    showLogin () {
+    showLogin() {
       return this.currentSlide === 1
     }
     // showLogin () {
@@ -80,7 +70,7 @@ export default {
     //   return this.currentSlide === 1 && this.currentSubSlide === 2
     // }
   },
-  mounted () {
+  mounted() {
     this.$root.$IPC.answerMain('continueToLogin', async () => {
       this.redirect('login')
     })
@@ -104,7 +94,7 @@ export default {
     })
   },
   methods: {
-    async setHomeFolder () {
+    async setHomeFolder() {
       try {
         console.log('try')
         const canAdvance = await this.controller.setHomeFolder()
@@ -114,29 +104,29 @@ export default {
         console.error('ERROR setting folder', error)
       }
     },
-    async transition () {
+    async transition() {
       await this.$root.$sleep(300)
     },
-    async next () {
+    async next() {
       // if ()
       this.currentSlide++
       await this.transition()
     },
-    async prev () {
+    async prev() {
       if (this.currentSlide === 0) return
       this.currentSlide++
       await this.transition()
     },
-    async nextSub () {
+    async nextSub() {
       this.currentSubSlide++
       await this.transition()
     },
-    async prevSub () {
+    async prevSub() {
       if (this.currentSubSlide === 0) return
       this.currentSubSlide--
       await this.transition()
     },
-    async backLogin () {
+    async backLogin() {
       this.prevSub()
       await this.transition()
       await this.$root.$sleep(300)
@@ -144,19 +134,24 @@ export default {
       await this.$root.$sleep(500)
       this.login()
     },
-    login () {
+    login() {
       this.controller.login()
     },
-    guestSearch (request) {
-      if (this.loadingState !== 'Loading' && request.query !== '' && request.query !== undefined && request.query !== null) {
+    guestSearch(request) {
+      if (
+        this.loadingState !== 'Loading' &&
+        request.query !== '' &&
+        request.query !== undefined &&
+        request.query !== null
+      ) {
         this.$store.dispatch('SETUP_LOADING_STATE', 'loading')
         this.$root.$IPC.callMain('guestSignIn', request)
       }
     },
-    redirect (path, payload) {
+    redirect(path, payload) {
       switch (path) {
         case 'login': {
-          this.header.text = 'Let\'s find your music'
+          this.header.text = "Let's find your music"
           this.$router.push('/setup/login')
           break
         }
@@ -170,16 +165,15 @@ export default {
           break
         }
         case 'guest': {
-          this.header.text = 'Let\'s find your music'
+          this.header.text = "Let's find your music"
           this.$router.push('/setup/guest')
           break
         }
       }
     },
-    confirmUser () {
+    confirmUser() {
       this.$root.$IPC.callMain('guestConfirm', this.userOnHold.id)
     }
-
   }
 }
 </script>
@@ -196,7 +190,7 @@ export default {
   transition-duration: 1.2s;
   bottom: calc(var(--offset) * -1);
 
-  >div {
+  > div {
     min-height: 100%;
     min-width: 100vw;
   }
@@ -221,11 +215,10 @@ export default {
     width: auto;
     height: 100%;
 
-    >div {
+    > div {
       min-width: 100%;
       height: 100%;
     }
-
   }
 }
 </style>

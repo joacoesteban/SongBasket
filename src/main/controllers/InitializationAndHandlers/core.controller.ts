@@ -1,18 +1,38 @@
-import { deleteCredential, getCredential, setCredential } from '../../utils/credentials'
-
-import * as API from './sbFetch'
-
-import GETTERS from '../../Store/Helpers/customGetters'
-import * as QUERY_MAKER from '../../queryMaker'
-import VUEX_MAIN from '../../Store/mainProcessStore'
-import FSController from '../FileSystem'
-import ProtocolController from './protocol.controller'
-import { SpotifyPlaylist, SpotifyPlaylistId, SpotifySnapshotId, SpotifyUser, SpotifyUserId } from '../../../@types/Spotify'
-import { SongBasketId, SongBasketLoggedUser, SongBasketTrack } from '../../../@types/SongBasket'
 import { BrowserWindow } from 'electron'
 
-type PlaylistVersionMap = { id: SpotifyPlaylistId, snapshot_id?: SpotifySnapshotId }
-type CompletionCb = (err: Error | null, pl: PlaylistVersionMap, playlists: PlaylistVersionMap[]) => void
+import {
+  SongBasketId,
+  SongBasketLoggedUser,
+  SongBasketTrack
+} from '../../../@types/SongBasket'
+import {
+  SpotifyPlaylist,
+  SpotifyPlaylistId,
+  SpotifySnapshotId,
+  SpotifyUser,
+  SpotifyUserId
+} from '../../../@types/Spotify'
+import GETTERS from '../../Store/Helpers/customGetters'
+import VUEX_MAIN from '../../Store/mainProcessStore'
+import * as QUERY_MAKER from '../../queryMaker'
+import {
+  deleteCredential,
+  getCredential,
+  setCredential
+} from '../../utils/credentials'
+import FSController from '../FileSystem'
+import ProtocolController from './protocol.controller'
+import * as API from './sbFetch'
+
+type PlaylistVersionMap = {
+  id: SpotifyPlaylistId
+  snapshot_id?: SpotifySnapshotId
+}
+type CompletionCb = (
+  err: Error | null,
+  pl: PlaylistVersionMap,
+  playlists: PlaylistVersionMap[]
+) => void
 
 const core = {
   // ---------------- FILESYSTEM ----------------
@@ -22,7 +42,8 @@ const core = {
       const status = global.CONSTANTS.APP_STATUS
       // Check Homefolders
       folders = await FSController.UserMethods.retrieveFolders()
-      if (!folders.paths.length || !folders.selected) return status.IS_LOGGED = false
+      if (!folders.paths.length || !folders.selected)
+        return (status.IS_LOGGED = false)
 
       await core.setHomeFolder(folders.selected)
       try {
@@ -31,10 +52,11 @@ const core = {
         // TODO ReAuthenticate
         throw error
       }
-      return status.IS_LOGGED = true
+      return (status.IS_LOGGED = true)
     } catch (error) {
       if (!folders) throw error
-      folders.selected && await FSController.UserMethods.removeFolder(folders.selected)
+      folders.selected &&
+        (await FSController.UserMethods.removeFolder(folders.selected))
       await core.setAppStatus()
     }
     return false
@@ -77,9 +99,13 @@ const core = {
   initializeLogin: async () => {
     if (global.CONSTANTS.LOGIN_WINDOW) throw new Error('LOGIN WINDOW EXISTS')
 
-    const loginWindow = global.CONSTANTS.LOGIN_WINDOW = new BrowserWindow(global.CONSTANTS.POPUP_WINDOW_CONFIG) // TODO initialize in window.controller
+    const loginWindow = (global.CONSTANTS.LOGIN_WINDOW = new BrowserWindow(
+      global.CONSTANTS.POPUP_WINDOW_CONFIG
+    )) // TODO initialize in window.controller
 
-    loginWindow.loadURL(`${global.CONSTANTS.BACKEND}/init`, { extraHeaders: 'pragma: no-cache\n' })
+    loginWindow.loadURL(`${global.CONSTANTS.BACKEND}/init`, {
+      extraHeaders: 'pragma: no-cache\n'
+    })
     ProtocolController.on('auth', core.onLogin)
 
     await new Promise<void>((resolve, reject) => {
@@ -93,13 +119,14 @@ const core = {
   },
   onLogin: async (params: {
     payload: {
-      spotify_authorization_success: boolean,
+      spotify_authorization_success: boolean
       user_data: SongBasketLoggedUser
     }
   }) => {
     const { payload } = params
 
-    if (!(payload && payload.spotify_authorization_success)) throw new Error('AUTHORIZATION FAILED')
+    if (!(payload && payload.spotify_authorization_success))
+      throw new Error('AUTHORIZATION FAILED')
     const { user_data } = payload
 
     if (!user_data.songbasket_id) throw new Error('NO SONGBASKET_ID')
@@ -115,7 +142,8 @@ const core = {
     // await global.CONSTANTS.LOGIN_WINDOW.loadURL(`file://${process.cwd()}/src/renderer/landings/after-login-loading.html`)
     await core.updateAll()
     global.CONSTANTS.APP_STATUS.IS_LOGGED = true
-    global.CONSTANTS.LOGIN_WINDOW && await global.CONSTANTS.LOGIN_WINDOW.close()
+    global.CONSTANTS.LOGIN_WINDOW &&
+      (await global.CONSTANTS.LOGIN_WINDOW.close())
 
     console.log('Login successfull')
   },
@@ -131,7 +159,7 @@ const core = {
     return getCredential(id)
   },
   setSongbasketIdGlobally: async (id = GETTERS.currentUserId()) => {
-    if (!id) throw new Error('USER ID DOESN\'T EXIST')
+    if (!id) throw new Error("USER ID DOESN'T EXIST")
     global.USER_ID = id
     global.SONGBASKET_ID = await core.getCredentials()
     API.createAxiosInstance()
@@ -139,7 +167,11 @@ const core = {
   setUser: (userData: SpotifyUser) => {
     VUEX_MAIN.COMMIT.SET_USER(userData)
   },
-  updateAll: async (params: { playlistCompletionCallback: CompletionCb | null } = { playlistCompletionCallback: null }) => {
+  updateAll: async (
+    params: { playlistCompletionCallback: CompletionCb | null } = {
+      playlistCompletionCallback: null
+    }
+  ) => {
     await core.updateSelf()
     await core.updatePlaylists(params.playlistCompletionCallback || null)
   },
@@ -147,20 +179,27 @@ const core = {
     VUEX_MAIN.COMMIT.SET_USER(await API.getMe())
   },
   loadMorePlaylists: async () => {
-    const res = global.USER_ID && await API.getUserPlaylists(global.USER_ID, { offset: GETTERS.playlistsOffset })
+    const res =
+      global.USER_ID &&
+      (await API.getUserPlaylists(global.USER_ID, {
+        offset: GETTERS.playlistsOffset
+      }))
     res && VUEX_MAIN.COMMIT.UPDATE_USER_ENTITIES(res, { isLoadMore: true })
   },
   updatePlaylists: async (completionCb?: CompletionCb | null) => {
     const playlists = GETTERS.syncedPlaylistsSnapshots()
     await core.getAndStorePlaylists(playlists, completionCb || null)
-    const res = global.USER_ID && await API.getUserPlaylists(global.USER_ID)
+    const res = global.USER_ID && (await API.getUserPlaylists(global.USER_ID))
     res && VUEX_MAIN.COMMIT.UPDATE_USER_ENTITIES(res)
   },
-  getAndStorePlaylists: async (playlists: PlaylistVersionMap[], completionCb?: CompletionCb | null): Promise<void> => {
+  getAndStorePlaylists: async (
+    playlists: PlaylistVersionMap[],
+    completionCb?: CompletionCb | null
+  ): Promise<void> => {
     if (!playlists.length) return
 
     // for (const pl of playlists) {
-    playlists.asyncForEachParallel(async pl => {
+    playlists.asyncForEachParallel(async (pl) => {
       const err = null
       try {
         console.log('playlist', pl)
@@ -177,10 +216,15 @@ const core = {
   populateQueuedPlaylists: async () => {
     const ids = GETTERS.uncachedPlaylists()
     console.log('aber', ids)
-    if (ids.length) await core.getAndStorePlaylists(ids.map(pl => ({ id: pl })))
+    if (ids.length)
+      await core.getAndStorePlaylists(ids.map((pl) => ({ id: pl })))
     else return true
   },
-  youtubize: async (params: { trackCompletionCallback: ((total: number) => void) | null } = { trackCompletionCallback: null }) => {
+  youtubize: async (
+    params: { trackCompletionCallback: ((total: number) => void) | null } = {
+      trackCompletionCallback: null
+    }
+  ) => {
     // TODO Rethink this routine
     try {
       await core.populateQueuedPlaylists()
@@ -188,14 +232,24 @@ const core = {
       try {
         queries.push(...QUERY_MAKER.makeConversionQueries())
       } catch (error) {
-        if (error instanceof Error && error.message === 'NOTHING') console.log('no queries')
+        if (error instanceof Error && error.message === 'NOTHING')
+          console.log('no queries')
         else throw error
       }
 
       if (queries.length) {
         const pausedPlaylists = GETTERS.pausedPlaylists
-        const trackShouldConvert = (track: SongBasketTrack) => !((track.flags.converted && !track.flags.conversionError) || track.flags.paused || track.playlists.every(({ id }) => pausedPlaylists.includes(id)))
-        const { tracks, failed } = await API.youtubizeAll(queries, trackShouldConvert, params.trackCompletionCallback)
+        const trackShouldConvert = (track: SongBasketTrack) =>
+          !(
+            (track.flags.converted && !track.flags.conversionError) ||
+            track.flags.paused ||
+            track.playlists.every(({ id }) => pausedPlaylists.includes(id))
+          )
+        const { tracks, failed } = await API.youtubizeAll(
+          queries,
+          trackShouldConvert,
+          params.trackCompletionCallback
+        )
         VUEX_MAIN.COMMIT.YOUTUBIZE_RESULT(tracks)
         if (failed) throw new Error()
       } else console.log('nothing to do, just committing')

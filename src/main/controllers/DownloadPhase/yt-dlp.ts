@@ -1,15 +1,16 @@
 import { spawn } from 'child_process'
 import { createWriteStream } from 'fs'
 import { pipeline } from 'stream/promises'
+
 import { ytDlp } from '../../utils/binaries'
 
 export type DownloadProgress = {
-  downloadedBytes: number,
+  downloadedBytes: number
   totalBytes: number | null
 }
 
 type DownloadHandlers = {
-  onStart: (progress: DownloadProgress) => void,
+  onStart: (progress: DownloadProgress) => void
   onProgress: (progress: DownloadProgress) => void
 }
 
@@ -29,17 +30,28 @@ const parseProgress = (line: string): DownloadProgress | null => {
   return { downloadedBytes, totalBytes }
 }
 
-export async function downloadAudio (videoId: string, destination: string, { onStart, onProgress }: DownloadHandlers): Promise<void> {
-  const child = spawn(ytDlp.path, [
-    '--no-playlist',
-    '--no-warnings',
-    '--newline',
-    '--progress',
-    '--progress-template', `download:${PROGRESS_PREFIX} %(progress.downloaded_bytes)s %(progress.total_bytes,progress.total_bytes_estimate)s`,
-    '--format', AUDIO_FORMAT,
-    '--output', '-',
-    `https://www.youtube.com/watch?v=${videoId}`
-  ], { stdio: ['ignore', 'pipe', 'pipe'] })
+export async function downloadAudio(
+  videoId: string,
+  destination: string,
+  { onStart, onProgress }: DownloadHandlers
+): Promise<void> {
+  const child = spawn(
+    ytDlp.path,
+    [
+      '--no-playlist',
+      '--no-warnings',
+      '--newline',
+      '--progress',
+      '--progress-template',
+      `download:${PROGRESS_PREFIX} %(progress.downloaded_bytes)s %(progress.total_bytes,progress.total_bytes_estimate)s`,
+      '--format',
+      AUDIO_FORMAT,
+      '--output',
+      '-',
+      `https://www.youtube.com/watch?v=${videoId}`
+    ],
+    { stdio: ['ignore', 'pipe', 'pipe'] }
+  )
 
   const { promise: exited, resolve, reject } = Promise.withResolvers<void>()
   const diagnostics: string[] = []
@@ -67,9 +79,14 @@ export async function downloadAudio (videoId: string, destination: string, { onS
   })
 
   child.on('error', reject)
-  child.on('close', code => {
+  child.on('close', (code) => {
     if (code === 0) resolve()
-    else reject(new Error(`yt-dlp exited with ${code}\n${diagnostics.slice(-10).join('\n')}`))
+    else
+      reject(
+        new Error(
+          `yt-dlp exited with ${code}\n${diagnostics.slice(-10).join('\n')}`
+        )
+      )
   })
 
   try {

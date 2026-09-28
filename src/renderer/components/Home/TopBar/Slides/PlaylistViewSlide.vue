@@ -1,12 +1,6 @@
 <template>
-  <div
-    v-if="playlist"
-    class="pl-view-slide-container"
-  >
-    <div
-      class="image"
-      :style="{ 'background-image': `url(${image})` }"
-    >
+  <div v-if="playlist" class="pl-view-slide-container">
+    <div class="image" :style="{ 'background-image': `url(${image})` }">
       <div class="rel-full">
         <div class="gradient abs-full" />
         <!-- <div class="gradient-y abs-full"></div> -->
@@ -19,47 +13,23 @@
           {{ playlist.name }}
         </span>
         <div class="controls-container">
-          <div
-            class="icon-wrapper"
-            :class="{ show: showDownload }"
-          >
-            <button
-              class="icon window-nodrag"
-              @click="downloadPlaylist"
-            >
+          <div class="icon-wrapper" :class="{ show: showDownload }">
+            <button class="icon window-nodrag" @click="downloadPlaylist">
               <download-icon />
             </button>
           </div>
-          <div
-            class="icon-wrapper"
-            :class="{ show: showUnsync }"
-          >
-            <button
-              class="icon window-nodrag"
-              @click="unsyncPlaylist"
-            >
+          <div class="icon-wrapper" :class="{ show: showUnsync }">
+            <button class="icon window-nodrag" @click="unsyncPlaylist">
               <close-icon />
             </button>
           </div>
-          <div
-            class="icon-wrapper"
-            :class="{ show: showPause }"
-          >
-            <button
-              class="icon window-nodrag"
-              @click="pausePlaylist"
-            >
+          <div class="icon-wrapper" :class="{ show: showPause }">
+            <button class="icon window-nodrag" @click="pausePlaylist">
               <pause-icon />
             </button>
           </div>
-          <div
-            class="icon-wrapper"
-            :class="{ show: showUnPause }"
-          >
-            <button
-              class="icon window-nodrag"
-              @click="pausePlaylist"
-            >
+          <div class="icon-wrapper" :class="{ show: showUnPause }">
+            <button class="icon window-nodrag" @click="pausePlaylist">
               <play-icon />
             </button>
           </div>
@@ -94,73 +64,81 @@ export default {
     PauseIcon,
     PlayIcon
   },
-  data () {
+  data() {
     return {
       playlist: null,
       statusObj: {}
     }
   },
   computed: {
-    trackAmmount () {
+    trackAmmount() {
       return this.playlist && this.playlist.tracks && this.playlist.tracks.total
     },
-    trackAmmountStr () {
+    trackAmmountStr() {
       return this.trackAmmount + ' Track' + (this.trackAmmount === 1 ? '' : 's')
     },
-    image () {
-      return this.playlist && this.playlist.images && this.playlist.images[0] && this.playlist.images[0].url
+    image() {
+      return (
+        this.playlist &&
+        this.playlist.images &&
+        this.playlist.images[0] &&
+        this.playlist.images[0].url
+      )
     },
-    playlistTracksReComputed () {
+    playlistTracksReComputed() {
       return this.$store.state.Events.PLAYLIST_TRACKS_RE_COMPUTED
     },
-    playlistStateChanged () {
+    playlistStateChanged() {
       return this.$store.state.Events.PLAYLIST_STATE_CHANGED
     },
     // -----------------
-    showDownload () {
+    showDownload() {
       return this.showPause
     },
-    showUnsync () {
+    showUnsync() {
       return true
     },
-    showPause () {
+    showPause() {
       return this.statusObj && !this.statusObj.slug.includes('pause')
     },
-    showUnPause () {
+    showUnPause() {
       return !this.showPause
     }
   },
   watch: {
-    playlistTracksReComputed () {
+    playlistTracksReComputed() {
       this.setStatus()
     },
-    playlistStateChanged () {
+    playlistStateChanged() {
       this.getPlaylist()
     }
   },
-  created () {
+  created() {
     this.$root.$sbRouter.beforeTransition(this.getPlaylist)
   },
   methods: {
-    getPlaylist (path = this.$root.$sbRouter.giveMeCurrent()) {
+    getPlaylist(path = this.$root.$sbRouter.giveMeCurrent()) {
       if (path && path.name === 'home') return
       const { params } = path
       this.playlist = params && this.$store.getters.PlaylistById(params.id)
       this.setStatus()
     },
-    setStatus () {
+    setStatus() {
       if (!this.playlist) return
       this.statusObj = this.$root.$controllers.playlist.getStatus(this.playlist)
     },
-    downloadPlaylist () {
+    downloadPlaylist() {
       if (!(this.playlist && this.playlist.id)) return
       this.$root.$controllers.core.download(this.playlist.id)
       this.$root.$sbRouter.push({ name: 'downloads-view' })
     },
-    unsyncPlaylist () {
-      this.$store.dispatch('openModal', { wich: 'unsync', payload: { id: this.playlist.id } })
+    unsyncPlaylist() {
+      this.$store.dispatch('openModal', {
+        wich: 'unsync',
+        payload: { id: this.playlist.id }
+      })
     },
-    pausePlaylist () {
+    pausePlaylist() {
       this.$root.$controllers.core.pausePlaylist(this.playlist.id)
     }
   }
@@ -188,11 +166,19 @@ $tit-fz: 1.2em;
   background-size: cover;
 
   .gradient {
-    background: linear-gradient(to right, var(--global-grey-secondary), transparent 150%);
+    background: linear-gradient(
+      to right,
+      var(--global-grey-secondary),
+      transparent 150%
+    );
   }
 
   .gradient-y {
-    background: linear-gradient(to top, var(--global-grey-secondary), transparent 150%);
+    background: linear-gradient(
+      to top,
+      var(--global-grey-secondary),
+      transparent 150%
+    );
   }
 }
 
@@ -201,7 +187,7 @@ $tit-fz: 1.2em;
   margin-bottom: 1em;
   z-index: 1;
 
-  >div {
+  > div {
     line-height: 1;
     display: flex;
   }
@@ -214,19 +200,19 @@ $tit-fz: 1.2em;
 
   .track-count {
     span {
-      font-size: $tit-fz * .5;
+      font-size: $tit-fz * 0.5;
     }
   }
 
   .playlist-status-indicator {
-    margin-top: .5em;
+    margin-top: 0.5em;
   }
 }
 
 .controls-container {
   display: flex;
   align-items: center;
-  padding-left: .25em;
+  padding-left: 0.25em;
   $icon-size: 1.5em;
 
   .icon-wrapper {
@@ -234,12 +220,12 @@ $tit-fz: 1.2em;
     width: 0;
     padding: 0;
     transition: var(--hover-n-active-transitions);
-    transform: scale(.7);
+    transform: scale(0.7);
     opacity: 0;
     pointer-events: none;
 
     &.show {
-      $p: .2em;
+      $p: 0.2em;
       pointer-events: all;
       transform: initial;
       padding: 0 $p;
@@ -250,21 +236,22 @@ $tit-fz: 1.2em;
 
   button.icon {
     &:hover {
-      background-color: var(--button-purple)
+      background-color: var(--button-purple);
     }
 
     box-shadow: none;
-    transition: box-shadow var(--ts-g),
-    var(--hover-n-active-transitions);
+    transition:
+      box-shadow var(--ts-g),
+      var(--hover-n-active-transitions);
 
     &:active {
       opacity: 0.7;
-      transform: scale(.95);
+      transform: scale(0.95);
     }
 
     background-color: transparent;
     border-radius: 50%;
-    padding: .3em;
+    padding: 0.3em;
     width: $icon-size;
     height: $icon-size;
     outline: 0;
@@ -274,4 +261,5 @@ $tit-fz: 1.2em;
       padding: 0;
     }
   }
-}</style>
+}
+</style>

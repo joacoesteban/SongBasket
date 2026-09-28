@@ -2,43 +2,52 @@ import { SongBasketTrack, SongBasketTrackQuery } from '../@types/SongBasket'
 import { SpotifyPlaylist } from '../@types/Spotify'
 import customGetters from './Store/Helpers/customGetters'
 
-type _Playlist = (SpotifyPlaylist & { synced: boolean })
+type _Playlist = SpotifyPlaylist & { synced: boolean }
 let ALL_PLAYLISTS: _Playlist[] = []
 let ALL_TRACKS: SongBasketTrack[] = []
 
-export function makeConversionQueries (): SongBasketTrack[] {
-  const syncedPlaylists: _Playlist[] = customGetters.SyncedPlaylistsSp().map(pl => {
-    if (pl.isPaused) return null
-    return {
-      ...pl,
-      synced: true
-    }
-  }).filter(Boolean) as _Playlist[]
-  const queuedPlaylists: _Playlist[] = customGetters.queuedPlaylistsObj().map(pl => {
-    return {
-      ...pl,
-      synced: false
-    }
-  })
+export function makeConversionQueries(): SongBasketTrack[] {
+  const syncedPlaylists: _Playlist[] = customGetters
+    .SyncedPlaylistsSp()
+    .map((pl) => {
+      if (pl.isPaused) return null
+      return {
+        ...pl,
+        synced: true
+      }
+    })
+    .filter(Boolean) as _Playlist[]
+  const queuedPlaylists: _Playlist[] = customGetters
+    .queuedPlaylistsObj()
+    .map((pl) => {
+      return {
+        ...pl,
+        synced: false
+      }
+    })
   if (!(queuedPlaylists.length + syncedPlaylists.length)) return []
 
   ALL_PLAYLISTS = [...syncedPlaylists, ...queuedPlaylists]
   ALL_TRACKS = customGetters.convertedTracks()
-  if (!findDuplicatedTracks() && !ALL_TRACKS.some(track => track.flags.conversionError)) throw new Error('NOTHING') // TODO replace error throw with something else
+  if (
+    !findDuplicatedTracks() &&
+    !ALL_TRACKS.some((track) => track.flags.conversionError)
+  )
+    throw new Error('NOTHING') // TODO replace error throw with something else
 
   makeQueries()
 
   return ALL_TRACKS
 }
 
-function findDuplicatedTracks () {
+function findDuplicatedTracks() {
   console.log('DUPLICCC')
 
   // Accumulating tracks to fetch
   const pls = []
   for (let i = 0; i < ALL_PLAYLISTS.length; i++) {
     const pl = ALL_PLAYLISTS[i]
-    const tracks = (pl.tracks)[pl.synced ? 'added' : 'items']
+    const tracks = pl.tracks[pl.synced ? 'added' : 'items']
     if (tracks.length === 0) {
       ALL_PLAYLISTS.splice(i--, 1)
       continue
@@ -71,7 +80,10 @@ function findDuplicatedTracks () {
       }
       // Pushing to playlist register if found
       if (found !== false) {
-        if (!ALL_TRACKS[found].playlists.some(pl => pl.id === plTrackModel.id)) ALL_TRACKS[found].playlists.push(plTrackModel) // Adding new added playlists to local conversion of track
+        if (
+          !ALL_TRACKS[found].playlists.some((pl) => pl.id === plTrackModel.id)
+        )
+          ALL_TRACKS[found].playlists.push(plTrackModel) // Adding new added playlists to local conversion of track
       } else {
         console.log('new track', dirtyTrack.name, dirtyTrack.id)
         // Create new track entry if not found
@@ -88,7 +100,7 @@ function findDuplicatedTracks () {
             conversionError: false,
             processed: false,
             paused: false,
-            selectionIsApplied: false,
+            selectionIsApplied: false
           },
           duration: null
         })
@@ -98,7 +110,7 @@ function findDuplicatedTracks () {
   return true
 }
 
-function makeQueries () {
+function makeQueries() {
   console.log('queries', ALL_TRACKS.length)
   for (let o = 0; o < ALL_TRACKS.length; o++) {
     if (ALL_TRACKS[o].query) {
@@ -114,6 +126,11 @@ function makeQueries () {
       return 'short'
     })(track.duration_ms / 1000 / 60)
 
-    ALL_TRACKS[o].query = { query, duration, duration_s: track.duration_ms / 1000, id: track.id }
+    ALL_TRACKS[o].query = {
+      query,
+      duration,
+      duration_s: track.duration_ms / 1000,
+      id: track.id
+    }
   }
 }

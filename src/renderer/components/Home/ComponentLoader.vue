@@ -1,8 +1,5 @@
 <template>
-  <div
-    ref="home-router"
-    :class="'router-view ' + routerAnimation"
-  >
+  <div ref="home-router" :class="'router-view ' + routerAnimation">
     <playlists-list
       v-show="showPlList"
       @openPlaylist="$emit('openPlaylist', $event)"
@@ -39,7 +36,7 @@ export default {
     TrackReview,
     DownloadsView
   },
-  data () {
+  data() {
     return {
       currentPath: this.$root.$sbRouter.path,
       componentBeingShown: this.$root.$sbRouter.path.name,
@@ -48,23 +45,29 @@ export default {
     }
   },
   computed: {
-    showPlList () {
-      return this.currentPath.name === 'home' && this.currentPath.params.which === 'playlists-list'
+    showPlList() {
+      return (
+        this.currentPath.name === 'home' &&
+        this.currentPath.params.which === 'playlists-list'
+      )
     },
-    showTracksList () {
-      return this.currentPath.name === 'home' && this.currentPath.params.which === 'tracks-list'
+    showTracksList() {
+      return (
+        this.currentPath.name === 'home' &&
+        this.currentPath.params.which === 'tracks-list'
+      )
     }
   },
-  created () {
+  created() {
     sleep = this.$root.$sleep
     this.$root.$sbRouter.beforeTransition(this.handleRouteChange)
   },
-  mounted () {
+  mounted() {
     this.$root.$refs['home-router'] = this.$refs['home-router']
     this.$root.onComponentLoaderMount && this.$root.onComponentLoaderMount()
   },
   methods: {
-    async handleAnimation (to, from) {
+    async handleAnimation(to, from) {
       if (this.transitioning) return
       this.$refs['home-router'] && (this.$refs['home-router'].scrollTop = 0)
       this.transitioning = this.$root.$sbRouter.setTransitioningState(true)
@@ -78,7 +81,7 @@ export default {
       if (to.name === 'home') {
         if (from.name === 'home') {
           anim1 = to.params.which === 'tracks-list' ? left : right
-          anim2 += (anim1 === right ? left : right)
+          anim2 += anim1 === right ? left : right
         } else {
           anim1 = pull
           anim2 += push
@@ -107,11 +110,11 @@ export default {
       await sleep(100)
       this.transitioning = this.$root.$sbRouter.setTransitioningState(false)
     },
-    makeTransition (to) {
+    makeTransition(to) {
       this.currentPath = to
       this.componentBeingShown = to.name
     },
-    async handleRouteChange (to, from) {
+    async handleRouteChange(to, from) {
       await this.handleAnimation(to, from)
     }
   }
@@ -121,13 +124,15 @@ export default {
 <style lang="scss" scoped>
 .router-view {
   $transition: var(--home-transition);
-  transition: transform $transition, opacity $transition;
+  transition:
+    transform $transition,
+    opacity $transition;
   opacity: 1;
   transform: scale(1);
   transform-origin: bottom;
 
   &.fast {
-    transition: transform 0s
+    transition: transform 0s;
   }
 
   &.push,
@@ -138,7 +143,7 @@ export default {
   }
 
   &.push {
-    transform: scale(.75);
+    transform: scale(0.75);
     opacity: 0;
   }
 
@@ -159,7 +164,7 @@ export default {
 
   &.release {
     opacity: 1;
-    transform: scale(1) translateX(0)
+    transform: scale(1) translateX(0);
   }
 }
 </style>

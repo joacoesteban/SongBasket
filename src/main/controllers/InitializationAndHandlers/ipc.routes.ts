@@ -1,11 +1,11 @@
-import * as handlers from './handlers'
-import * as sbFetch from './sbFetch'
-import WindowController from './window.controller'
-// import store from '../../../renderer/store/index.js'
-import FileWatchers, { SBWatcherEvent } from '../FileSystem/FileWatchers'
-import IpcController from './ipc.controller'
 import { SpotifyPlaylistId, SpotifyTrackId } from '../../../@types/Spotify'
 import { YouTubeResultId } from '../../../@types/YouTube'
+// import store from '../../../renderer/store/index.js'
+import FileWatchers, { SBWatcherEvent } from '../FileSystem/FileWatchers'
+import * as handlers from './handlers'
+import IpcController from './ipc.controller'
+import * as sbFetch from './sbFetch'
+import WindowController from './window.controller'
 
 // :::::::::::::::::::::::::::::::::IPC:::::::::::::::::::::::::::::::::
 export default function () {
@@ -40,7 +40,8 @@ export default function () {
     await handlers.loadMorePlaylists()
   })
 
-  on('get tracks from', function (id) { // TODO deprecate
+  on('get tracks from', function (id) {
+    // TODO deprecate
     console.log('wtf')
   })
 
@@ -61,9 +62,18 @@ export default function () {
     await handlers.pauseTrack(id)
   })
 
-  on('TRACK:CHANGE_SELECTION', async function ({ trackId, newId }: { trackId: SpotifyTrackId, newId: YouTubeResultId }) {
-    await handlers.changeYtTrackSelection({ trackId, newId })
-  })
+  on(
+    'TRACK:CHANGE_SELECTION',
+    async function ({
+      trackId,
+      newId
+    }: {
+      trackId: SpotifyTrackId
+      newId: YouTubeResultId
+    }) {
+      await handlers.changeYtTrackSelection({ trackId, newId })
+    }
+  )
   // FileWatchers
   // TODO turn into ipc promise
 
@@ -71,10 +81,10 @@ export default function () {
     ipcSend('FileWatchers:RETRIEVED_TRACKS', FileWatchers.retrieveTracks())
   })
 
-  FileWatchers.on(SBWatcherEvent.ADDED, track => {
+  FileWatchers.on(SBWatcherEvent.ADDED, (track) => {
     ipcSend('FileWatchers:ADDED', track)
   })
-  FileWatchers.on(SBWatcherEvent.REMOVED, track => {
+  FileWatchers.on(SBWatcherEvent.REMOVED, (track) => {
     ipcSend('FileWatchers:REMOVED', track)
   })
 }

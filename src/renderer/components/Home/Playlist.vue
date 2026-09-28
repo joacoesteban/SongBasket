@@ -7,10 +7,7 @@
     @click="handleClick"
   >
     <div class="playlist-data">
-      <div
-        v-if="showChanges"
-        class="track-changes-container"
-      >
+      <div v-if="showChanges" class="track-changes-container">
         <div
           v-if="playlist.tracks.added && playlist.tracks.added.length"
           class="track-change added"
@@ -61,45 +58,58 @@ export default {
     playlist: Object,
     status: Object
   },
-  data () {
+  data() {
     return {
       controller: this.$root.$controllers.playlist,
       statusObj: {}
     }
   },
   computed: {
-    isQueued () {
+    isQueued() {
       return this.$store.getters.PlaylistIsQueued(this.playlist.id) >= 0
     },
-    isSynced () {
+    isSynced() {
       return this.status.baseState === 'synced'
     },
-    isPaused () {
-      return this.status && this.status.slug && this.status.slug.includes('pause')
+    isPaused() {
+      return (
+        this.status && this.status.slug && this.status.slug.includes('pause')
+      )
     },
-    showChanges () {
+    showChanges() {
       return this.isSynced && !this.isPaused
     },
-    playlistName () {
+    playlistName() {
       return this.playlist.name
     },
-    playlistImage () {
-      return this.playlist && this.playlist.images && this.playlist.images[0] && this.playlist.images[0].url
+    playlistImage() {
+      return (
+        this.playlist &&
+        this.playlist.images &&
+        this.playlist.images[0] &&
+        this.playlist.images[0].url
+      )
     },
-    playlistFormatted () {
-      return (this.playlist && {
-        ...this.playlist,
-        backgroundImage: this.playlistImage
-      }) || {}
+    playlistFormatted() {
+      return (
+        (this.playlist && {
+          ...this.playlist,
+          backgroundImage: this.playlistImage
+        }) ||
+        {}
+      )
     },
-    trackAmmount () {
-      return (this.playlist && this.playlist.tracks && this.playlist.tracks.total) || 0
+    trackAmmount() {
+      return (
+        (this.playlist && this.playlist.tracks && this.playlist.tracks.total) ||
+        0
+      )
     },
-    trackAmmountStr () {
+    trackAmmountStr() {
       return this.trackAmmount + ' Track' + (this.trackAmmount === 1 ? '' : 's')
     },
     // -------------
-    cardOptions () {
+    cardOptions() {
       return this.isSynced
         ? {
             size: '.8em',
@@ -107,23 +117,23 @@ export default {
           }
         : {}
     },
-    rowClasses () {
+    rowClasses() {
       return this.isPaused ? 'col-lg-3 col-md-5 col-xs-12' : null
     }
   },
   methods: {
-    handleClick () {
+    handleClick() {
       if (this.isSynced) {
         this.$emit('openPlaylist')
       } else {
         this.addPlaylistToSyncQueue()
       }
     },
-    async addPlaylistToSyncQueue () {
+    async addPlaylistToSyncQueue() {
       // if (!this.isQueued) this.restoreTransformation(true)
       await this.$root.$controllers.core.queuePlaylist(this.playlist.id)
     },
-    unsync () {
+    unsync() {
       this.$root.OPEN_MODAL({
         wich: 'unsync',
         payload: { id: this.playlist.id }
@@ -139,7 +149,7 @@ $q-true-color: rgb(103, 214, 0);
 $bezier-tranka: cubic-bezier(0.12, 0.82, 0, 1);
 
 $playlist-height: 4em;
-$title-size: .8em;
+$title-size: 0.8em;
 
 .playlist-data {
   text-align-last: left;
@@ -156,14 +166,14 @@ $title-size: .8em;
     text-overflow: ellipsis;
     white-space: nowrap;
 
-    >span {
+    > span {
       font-size: $title-size;
     }
   }
 
   .track-ammount {
-    >span {
-      font-size: $title-size * .75;
+    > span {
+      font-size: $title-size * 0.75;
     }
   }
 }
@@ -185,10 +195,10 @@ $title-size: .8em;
     border-radius: 50%;
 
     &:nth-last-child(1) {
-      margin-left: .3em;
+      margin-left: 0.3em;
     }
 
-    >span {
+    > span {
       line-height: 1;
       font-size: 1.25em;
     }
@@ -205,13 +215,13 @@ $title-size: .8em;
 </style>
 
 <style lang="scss">
-$title-size: .8em;
+$title-size: 0.8em;
 
 .playlist-status-indicator {
   color: var(--status-color);
 
-  >span {
-    font-size: $title-size * .75;
+  > span {
+    font-size: $title-size * 0.75;
   }
 }
 </style>

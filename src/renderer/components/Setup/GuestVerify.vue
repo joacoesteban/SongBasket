@@ -25,16 +25,10 @@
     </div>
 
     <div class="half">
-      <button
-        class="button accept"
-        @click="$emit('confirm-user')"
-      >
+      <button class="button accept" @click="$emit('confirm-user')">
         Sounds Good
       </button>
-      <button
-        class="button cancel"
-        @click="$emit('not-user')"
-      >
+      <button class="button cancel" @click="$emit('not-user')">
         Never Seen Him
       </button>
     </div>
@@ -49,11 +43,11 @@ export default {
     userIcon
   },
   computed: {
-    user () {
+    user() {
       return this.$route.params.user
     }
   },
-  mounted () {
+  mounted() {
     if (this.user === undefined) this.$emit('not-user')
   }
 }
@@ -79,7 +73,6 @@ $viewmin: 10vmin;
   &.top {
     min-height: 65%;
   }
-
 }
 
 .profile-container {
@@ -115,23 +108,22 @@ $viewmin: 10vmin;
 
   .name {
     text-align: left;
-    font-size: $viewmin * .7;
+    font-size: $viewmin * 0.7;
     font-weight: 500;
   }
 
   .followers {
-    font-size: $viewh * .5;
+    font-size: $viewh * 0.5;
   }
 }
 
 .button {
   width: 10rem;
-  margin: 0 .7rem;
-
+  margin: 0 0.7rem;
 }
 
 .user-icon {
-  width: .52rem;
-  height: .52rem;
+  width: 0.52rem;
+  height: 0.52rem;
 }
 </style>

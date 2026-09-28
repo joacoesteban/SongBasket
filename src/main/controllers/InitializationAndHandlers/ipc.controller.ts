@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 
 const IpcController = {
-  async send (channel: string, data?: unknown): Promise<void> {
+  async send(channel: string, data?: unknown): Promise<void> {
     global.CONSTANTS.MAIN_WINDOW?.webContents.send(channel, data)
   },
   answerRenderer<T>(channel: string, handler: (data: T) => unknown) {

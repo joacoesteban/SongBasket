@@ -27,18 +27,16 @@ export default {
       require: true
     }
   },
-  data () {
+  data() {
     return {
       customClasses: this.className,
       style: {
         background: 'none',
         fill: this.iconColor
       }
-
     }
   },
-  computed: {
-  }
+  computed: {}
 }
 </script>
 

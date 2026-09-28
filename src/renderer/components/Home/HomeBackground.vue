@@ -7,13 +7,13 @@
 
 <script lang="ts">
 export default {
-  data () {
+  data() {
     return {
       offsetTop: 0,
       canvasContext: null
     }
   },
-  mounted () {
+  mounted() {
     window.addEventListener('mousewheel', this.handleScroll)
     // window.addEventListener('resize', this.handleResize)
     this.initializeCanvas()
@@ -22,25 +22,27 @@ export default {
     // }, 1000)
   },
   methods: {
-    handleScroll (e) {
+    handleScroll(e) {
       this.offsetTop += Math.round(e.deltaY * -0.25)
     },
-    handleResize (e) {
+    handleResize(e) {
       const el = document.querySelector('#background-canvas')
       el.width = window.innerWidth * this.pixelRatio
       el.height = window.innerHeight * this.pixelRatio
       el.style.width = window.innerWidth + 'px'
       el.style.height = window.innerHeight + 'px'
     },
-    initializeCanvas () {
+    initializeCanvas() {
       const ratio = (function () {
         const ctx = document.createElement('canvas').getContext('2d')
         const dpr = window.devicePixelRatio || 1
-        const bsr = ctx.webkitBackingStorePixelRatio ||
+        const bsr =
+          ctx.webkitBackingStorePixelRatio ||
           ctx.mozBackingStorePixelRatio ||
           ctx.msBackingStorePixelRatio ||
           ctx.oBackingStorePixelRatio ||
-          ctx.backingStorePixelRatio || 1
+          ctx.backingStorePixelRatio ||
+          1
 
         return dpr / bsr
       })()
@@ -59,16 +61,18 @@ export default {
 
       this.drawCanvas()
     },
-    drawCanvas () {
+    drawCanvas() {
       const offsetTop = () => this.offsetTop
-      const ctx = this.canvasContext || document.querySelector('#background-canvas').getContext('2d')
+      const ctx =
+        this.canvasContext ||
+        document.querySelector('#background-canvas').getContext('2d')
       // let circle = {
 
       // }
-      function randomColor () {
+      function randomColor() {
         return 'hsl(' + Math.round(Math.random() * 360) + ', 100%, 50%)'
       }
-      function createCircle () {
+      function createCircle() {
         const circle = {}
         circle.radius = 75 * Math.random()
         circle.diameter = circle.radius * 2
@@ -84,16 +88,16 @@ export default {
       for (let i = 0; i < 50; i++) {
         circles.push(createCircle())
       }
-      function drawCircle (circle) {
+      function drawCircle(circle) {
         ctx.fillStyle = circle.fill
         ctx.beginPath()
         ctx.arc(circle.x, circle.y + offsetTop(), circle.radius, 0, 2 * Math.PI)
         ctx.fill()
       }
-      function drawCircles () {
-        circles.forEach(circle => drawCircle(circle))
+      function drawCircles() {
+        circles.forEach((circle) => drawCircle(circle))
       }
-      function updateCircle (circle) {
+      function updateCircle(circle) {
         circle.x += circle.dirX
         circle.y += circle.dirY
         if (circle.dirX > 0) {
@@ -116,13 +120,13 @@ export default {
           }
         }
       }
-      function updateCircles () {
-        circles.forEach(circle => updateCircle(circle))
+      function updateCircles() {
+        circles.forEach((circle) => updateCircle(circle))
       }
-      function clearCanvas () {
+      function clearCanvas() {
         ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
       }
-      function loop () {
+      function loop() {
         clearCanvas()
         drawCircles()
         updateCircles()
@@ -143,10 +147,12 @@ export default {
   right: 0;
   bottom: 0;
   z-index: -1;
-  transition: transform var(--home-transition), filter var(--home-transition);
+  transition:
+    transform var(--home-transition),
+    filter var(--home-transition);
 
   &.transitioning {
-    transform: scale(.85);
+    transform: scale(0.85);
     filter: blur(20px);
   }
 

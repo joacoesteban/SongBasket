@@ -1,7 +1,13 @@
 <template>
   <div
     class="track-banner-container w100"
-    :class="isDownload ? 'download ' + downloadStatus.state : isConversion ? 'conversion' : ''"
+    :class="
+      isDownload
+        ? 'download ' + downloadStatus.state
+        : isConversion
+          ? 'conversion'
+          : ''
+    "
   >
     <banner>
       <div
@@ -18,13 +24,8 @@
       </div>
       <div class="track-data w100">
         <div class="track-image">
-          <div
-            v-if="isDownload"
-            class="see-track-link"
-          >
-            <span class="sb-link uppercase semibold">
-              see track
-            </span>
+          <div v-if="isDownload" class="see-track-link">
+            <span class="sb-link uppercase semibold"> see track </span>
           </div>
           <Card
             row-classes="w100 h100 p-0imp track-banner-card"
@@ -38,11 +39,9 @@
               v-if="isConversion"
               class="sb-tag mr-1 hidable-item gradient-background-cycle-less"
               :class="{ hidden: !isSelected }"
-              style="--fz: .7em"
+              style="--fz: 0.7em"
             >
-              <b>
-                Selected
-              </b>
+              <b> Selected </b>
             </div>
             <div
               v-if="isConversion && trackFormatted.issue"
@@ -51,7 +50,7 @@
               <div
                 v-if="trackFormatted.issue.warn"
                 class="svg-icon"
-                style="--size: .75em; margin-right: .3em"
+                style="--size: 0.75em; margin-right: 0.3em"
               >
                 <warning-icon />
               </div>
@@ -66,47 +65,31 @@
             </div>
           </div>
           <div class="ellipsis lh1point5">
-            <span
-              class="name"
-              v-html="trackFormatted.name"
-            />
+            <span class="name" v-html="trackFormatted.name" />
           </div>
           <div class="ellipsis">
             <span class="artists">
               {{ trackFormatted.creator }}
             </span>
           </div>
-          <div
-            v-if="isConversion"
-            class="track-controls df mt-1"
-          >
+          <div v-if="isConversion" class="track-controls df mt-1">
             <button
               :class="{ hidden: !canSelect }"
               class="hidable-item link-button m-0"
-              style="margin-right: .5em"
+              style="margin-right: 0.5em"
               @click="select"
             >
               {{ isSelected && isDoubtly ? 'Apply Selection' : 'Select' }}
             </button>
-            <button
-              class="link-button m-0"
-              @click="openVideo"
-            >
-              Open
-            </button>
+            <button class="link-button m-0" @click="openVideo">Open</button>
           </div>
-          <div
-            v-if="!isConversion"
-            class="ellipsis"
-          >
+          <div v-if="!isConversion" class="ellipsis">
             <span class="playlists">
-              Inside <b>{{ $root.$controllers.track.getPlaylistsString(track) }}</b>
+              Inside
+              <b>{{ $root.$controllers.track.getPlaylistsString(track) }}</b>
             </span>
           </div>
-          <div
-            v-if="!isConversion && !isDownload"
-            class="df"
-          >
+          <div v-if="!isConversion && !isDownload" class="df">
             <span
               v-if="trackFormatted.status"
               class="bold uppercase point5-em color-transition"
@@ -116,10 +99,7 @@
             </span>
           </div>
         </div>
-        <div
-          v-if="!isDownload"
-          class="duration"
-        >
+        <div v-if="!isDownload" class="duration">
           <div
             class="default-title bold"
             :style="{ color: duration.color }"
@@ -157,20 +137,22 @@ export default {
       })
     }
   },
-  data () {
+  data() {
     return {
-      cardOptions: {
-      }
+      cardOptions: {}
     }
   },
   computed: {
-    canSelect () {
+    canSelect() {
       return this.isConversion && (!this.isSelected || this.isDoubtly)
     },
-    isDoubtly () {
-      return this.track.isDoubtlyConversion && !this.parentRef.flags.selectionIsApplied
+    isDoubtly() {
+      return (
+        this.track.isDoubtlyConversion &&
+        !this.parentRef.flags.selectionIsApplied
+      )
     },
-    trackFormatted () {
+    trackFormatted() {
       const itm = this.track
       const snippet = itm.snippet || {}
       let image
@@ -178,56 +160,75 @@ export default {
         const album = itm.album || itm.data.album
         image = album && album.images && album.images[0] && album.images[0].url
       } else image = snippet.thumbnails.high.url
-      return itm && {
-        name: this.isConversion ? itm.isCustomTrack ? snippet.title : itm.nameFormatted : itm.data.name,
-        image,
-        creator: this.isConversion ? snippet.channelTitle : this.$root.$controllers.track.getArtistsString(itm),
-        status: itm.status,
-        issue: (() => {
-          if (!this.isConversion) return null
-          if (!itm.isCustomTrack && (itm.isDoubtlyConversion)) {
-            return {
-              msg: ((itm.wordScore === 0 || !itm.nameTokensMap[0]) ? 'Name' : 'Duration') + ' doesn\'t match',
-              warn: true
+      return (
+        itm && {
+          name: this.isConversion
+            ? itm.isCustomTrack
+              ? snippet.title
+              : itm.nameFormatted
+            : itm.data.name,
+          image,
+          creator: this.isConversion
+            ? snippet.channelTitle
+            : this.$root.$controllers.track.getArtistsString(itm),
+          status: itm.status,
+          issue: (() => {
+            if (!this.isConversion) return null
+            if (!itm.isCustomTrack && itm.isDoubtlyConversion) {
+              return {
+                msg:
+                  (itm.wordScore === 0 || !itm.nameTokensMap[0]
+                    ? 'Name'
+                    : 'Duration') + " doesn't match",
+                warn: true
+              }
             }
-          }
-          if (itm.isCustomTrack) {
-            return {
-              msg: 'Custom',
-              color: 'var(--custom-selection-color)'
+            if (itm.isCustomTrack) {
+              return {
+                msg: 'Custom',
+                color: 'var(--custom-selection-color)'
+              }
             }
-          }
-        })()
-      }
+          })()
+        }
+      )
     },
-    duration () {
+    duration() {
       if (this.isDownload) return
       // if (!this.isConversion) return {str: Math.round(this.track.duration || this.track.data.duration_ms / 1000) + "''", color: this.durationColor()}
       // return {str: Math.round(this.track.duration || this.track.data.duration_ms / 1000) + "''", color: this.durationColor()}
-      const durationDiff = this.isConversion && (this.parentRef.duration || this.parentRef.data.duration_ms / 1000) - this.track.duration
+      const durationDiff =
+        this.isConversion &&
+        (this.parentRef.duration || this.parentRef.data.duration_ms / 1000) -
+          this.track.duration
       const obj = {
-        str: this.$root.$controllers.utils.minsFromSecs(Math.round(this.track.duration || this.track.data.duration_ms / 1000)),
+        str: this.$root.$controllers.utils.minsFromSecs(
+          Math.round(this.track.duration || this.track.data.duration_ms / 1000)
+        ),
         color: this.durationColor(durationDiff)
       }
       return obj
     },
-    cardItem () {
+    cardItem() {
       return {
         backgroundImage: this.trackFormatted.image
       }
     }
   },
   methods: {
-    durationColor (durationDiff = 0) {
+    durationColor(durationDiff = 0) {
       const factor = 150
-      const deg = factor - factor * Math.pow(Math.abs(durationDiff / factor), 0.5)
+      const deg =
+        factor - factor * Math.pow(Math.abs(durationDiff / factor), 0.5)
       return `hsl(${deg < 0 ? 0 : deg}, 100%, 50%)`
     },
-    select () {
+    select() {
       this.$emit('select')
     },
-    openVideo () {
-      this.$root.$controllers.core.openVideo(this.track.youtube_id || this.track.id)
+    openVideo() {
+      this.$root.$controllers.core.openVideo(
+        this.track.youtube_id || this.track.id
+      )
     }
   }
 }
@@ -248,15 +249,16 @@ $extraction-bg: linear-gradient(258.84deg, $ex1, $ex2);
 
 .track-banner-container {
   height: 7em;
-  transition: opacity var(--ts-g), background-color var(--ts-g);
+  transition:
+    opacity var(--ts-g),
+    background-color var(--ts-g);
   z-index: 0;
   position: relative;
 
   &.download {
-
     &.awaiting,
     &.finished {
-      opacity: .5;
+      opacity: 0.5;
     }
 
     &.downloading,
@@ -331,15 +333,15 @@ $extraction-bg: linear-gradient(258.84deg, $ex1, $ex2);
   }
 
   .progress-label {
-    padding: .2em .3em;
+    padding: 0.2em 0.3em;
     white-space: nowrap;
   }
 }
 
 .track-info {
-  padding-left: .7em;
+  padding-left: 0.7em;
 
-  >div>span {
+  > div > span {
     line-height: 1;
   }
 
@@ -354,12 +356,12 @@ $extraction-bg: linear-gradient(258.84deg, $ex1, $ex2);
   .artists {
     font-weight: bold;
     display: flex;
-    margin-top: .2em;
-    font-size: $name-size * .4;
+    margin-top: 0.2em;
+    font-size: $name-size * 0.4;
   }
 
   .playlists {
-    font-size: $name-size * .3;
+    font-size: $name-size * 0.3;
   }
 }
 
@@ -373,9 +375,9 @@ $extraction-bg: linear-gradient(258.84deg, $ex1, $ex2);
   bottom: 0;
   writing-mode: tb-rl;
   transform: rotate(180deg);
-  opacity: .7;
+  opacity: 0.7;
 
-  >span {
+  > span {
     display: inline-block;
     // padding-bottom: .5em;
     font-size: 0.4em;
@@ -393,6 +395,5 @@ $extraction-bg: linear-gradient(258.84deg, $ex1, $ex2);
       --card-img-width: 100%;
     }
   }
-
 }
 </style>

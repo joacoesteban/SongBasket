@@ -22,96 +22,106 @@ const dispatchAppropiateEvent = {
     playlistStateChanged: ['playlists', 'syncedPlaylists', 'deletedPlaylists'],
     reComputeConvertedTracks: ['convertedTracks']
   },
-  getEvent (actualKey) {
-    return Object.keys(this.events).filter(key => this.events[key].some(state => state === actualKey))
+  getEvent(actualKey) {
+    return Object.keys(this.events).filter((key) =>
+      this.events[key].some((state) => state === actualKey)
+    )
   },
-  async send (env, key) {
+  async send(env, key) {
     const events = this.getEvent(key)
-    if (events.length) events.asyncForEach(async event => env.dispatch(event, {}, { root: true }))
+    if (events.length)
+      events.asyncForEach(async (event) =>
+        env.dispatch(event, {}, { root: true })
+      )
   }
 }
 
 const actions = {
-  set ({ commit }, { key, value }) {
+  set({ commit }, { key, value }) {
     return new Promise((resolve, reject) => {
       commit('SET', { key, value })
       dispatchAppropiateEvent.send(this, key)
       resolve()
     })
   },
-  setState ({ commit }, newState) {
+  setState({ commit }, newState) {
     return new Promise((resolve, reject) => {
       commit('SET_STATE', newState)
       resolve()
     })
   },
-  setUser ({ commit }, userData) {
+  setUser({ commit }, userData) {
     return new Promise((resolve, reject) => {
       commit('SET_USER', userData)
       resolve()
     })
   },
-  logout ({ commit }) {
+  logout({ commit }) {
     commit('LOGOUT')
   },
-  setCurrentPlaylist ({ commit }, id) {
+  setCurrentPlaylist({ commit }, id) {
     commit('SET_CURRENT_PLAYLIST', id)
     this.dispatch('currentPlaylistSet', {}, { root: true })
   }
 }
 
 const mutations = {
-  SET (state, { key, value }) {
+  SET(state, { key, value }) {
     Vue.set(state, key, value)
   },
-  SET_STATE (state, newState) {
+  SET_STATE(state, newState) {
     for (const key in newState) {
       Vue.set(state, key, newState[key])
     }
   },
-  SET_USER (state, userData) {
+  SET_USER(state, userData) {
     state.user = userData
   },
-  LOGOUT (state) {
+  LOGOUT(state) {
     console.log('CLEARING::::::::')
     Object.assign(state, getDefaultState())
     console.log(state)
   },
-  SET_CURRENT_PLAYLIST (state, id) {
+  SET_CURRENT_PLAYLIST(state, id) {
     state.currentPlaylist = id
   }
 }
 
 const getters = {
-  PlaylistById: (state) => function (id) {
-    const pl = state.playlists[findById(id, state.playlists)]
-    if (!pl || pl.tracks === null || pl.tracks === undefined) return null
-    return pl
-  },
+  PlaylistById: (state) =>
+    function (id) {
+      const pl = state.playlists[findById(id, state.playlists)]
+      if (!pl || pl.tracks === null || pl.tracks === undefined) return null
+      return pl
+    },
   CurrentPlaylist: (state, getters) => {
     return getters.PlaylistById(state.currentPlaylist)
   },
-  SyncedPlaylistById: (state) => function (id) {
-    for (let i = 0; i < state.syncedPlaylists.length; i++) {
-      const pl = state.syncedPlaylists[i]
+  SyncedPlaylistById: (state) =>
+    function (id) {
+      for (let i = 0; i < state.syncedPlaylists.length; i++) {
+        const pl = state.syncedPlaylists[i]
 
-      if (pl.id === id) {
-        if (pl.tracks === null || pl.tracks === undefined) return null
+        if (pl.id === id) {
+          if (pl.tracks === null || pl.tracks === undefined) return null
 
-        return pl
+          return pl
+        }
       }
-    }
-    return null
-  },
-  PlaylistIsCached: (state, getters) => function (id) {
-    return findById(id, state.cachedPlaylists) >= 0
-  },
-  PlaylistIsQueued: (state, getters) => function (id) {
-    return findById(id, getters.QueuedPlaylists)
-  },
-  PlaylistIsSynced: (state, getters) => function (id) {
-    return findById(id, state.syncedPlaylists) >= 0
-  },
+      return null
+    },
+  PlaylistIsCached: (state, getters) =>
+    function (id) {
+      return findById(id, state.cachedPlaylists) >= 0
+    },
+  PlaylistIsQueued: (state, getters) =>
+    function (id) {
+      return findById(id, getters.QueuedPlaylists)
+    },
+  PlaylistIsSynced: (state, getters) =>
+    function (id) {
+      return findById(id, state.syncedPlaylists) >= 0
+    },
   QueuedPlaylists: (state, getters) => {
     let all = []
     for (let i = 0; i < state.queuedPlaylists.length; i++) {
@@ -162,39 +172,41 @@ const getters = {
     return selectedPlaylists
   },
   // Returns differences between youtubeized results and local copy of spotify items
-  PlaylistTrackChanges: (state, getters) => function (id) {
-    // Starting with both local spotify copy and local youtube copy
-    // Tracks will be compared between both arrays and if it's a match, then both will be spliced from both arrays
-    // If there are no changes, then both arrays will be empty
+  PlaylistTrackChanges: (state, getters) =>
+    function (id) {
+      // Starting with both local spotify copy and local youtube copy
+      // Tracks will be compared between both arrays and if it's a match, then both will be spliced from both arrays
+      // If there are no changes, then both arrays will be empty
 
-    const added = [...getters.PlaylistById(id).tracks.items]
-    let removed = getters.SyncedPlaylistById(id)
+      const added = [...getters.PlaylistById(id).tracks.items]
+      let removed = getters.SyncedPlaylistById(id)
 
-    if (removed !== null && removed.tracks.length > 0) { // This checks if the synced playlist has not been added to DB yet, if so, then every song will be 'new'
-      removed = [...removed.tracks]
+      if (removed !== null && removed.tracks.length > 0) {
+        // This checks if the synced playlist has not been added to DB yet, if so, then every song will be 'new'
+        removed = [...removed.tracks]
 
-      let i = 0
-      while (i < added.length) {
-        const a = added[i]
-        let found = false
+        let i = 0
+        while (i < added.length) {
+          const a = added[i]
+          let found = false
 
-        for (let o = 0; o < removed.length; o++) {
-          const r = removed[o]
+          for (let o = 0; o < removed.length; o++) {
+            const r = removed[o]
 
-          if (a.id === r.id) {
-            // No changes to track
-            found = true
-            added.splice(i, 1)
-            removed.splice(o, 1)
-            break
+            if (a.id === r.id) {
+              // No changes to track
+              found = true
+              added.splice(i, 1)
+              removed.splice(o, 1)
+              break
+            }
           }
+          if (!found) i++
         }
-        if (!found) i++
-      }
-    } else removed = []
+      } else removed = []
 
-    return { added, removed }
-  }
+      return { added, removed }
+    }
 }
 
 export default {
@@ -204,7 +216,7 @@ export default {
   getters
 }
 
-function findById (id, obj) {
+function findById(id, obj) {
   for (let i = 0; i < obj.length; i++) {
     let pl = obj[i].id
     if (pl === undefined) pl = obj[i]

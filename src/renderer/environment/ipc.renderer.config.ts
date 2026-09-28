@@ -1,9 +1,10 @@
-import ipc from './ipc'
 import $ from 'jquery'
-import { sleep } from '../utils'
+
 import vue from '../controllers/VueInstance'
 // import Vue, { VueConstructor } from 'vue'
 import VueApp from '../main'
+import { sleep } from '../utils'
+import ipc from './ipc'
 
 const env = {
   propagationTimeout: null,
@@ -15,7 +16,8 @@ export default function () {
   ipc.answerMain('STATUS:SET', onDocumentReady)
   ipc.answerMain('FFMPEG_BINS_DOWNLOADED', onFfmpegBinaries)
   ipc.answerMain('LOADING_EVENT', onLoadingEvent)
-  ipc.answerMain('ERROR:CATCH', async (data: any) => { // TODO
+  ipc.answerMain('ERROR:CATCH', async (data: any) => {
+    // TODO
     const { type, error } = data
     await vue.store.dispatch('catchGlobalError', { type, error })
   })
@@ -29,30 +31,36 @@ export default function () {
     const { key, value } = data
     await vue.store.dispatch('set', { key, value })
   })
-  ipc.answerMain('DOWNLOAD:START', (payload) => vue.store.dispatch('downloadStarted', payload))
-  ipc.answerMain('DOWNLOAD:EVENT', (payload) => vue.store.dispatch('downloadEvent', payload))
-  ipc.answerMain('DOWNLOAD:END', async (payload) => vue.store.dispatch('downloadFinished', payload))
+  ipc.answerMain('DOWNLOAD:START', (payload) =>
+    vue.store.dispatch('downloadStarted', payload)
+  )
+  ipc.answerMain('DOWNLOAD:EVENT', (payload) =>
+    vue.store.dispatch('downloadEvent', payload)
+  )
+  ipc.answerMain('DOWNLOAD:END', async (payload) =>
+    vue.store.dispatch('downloadFinished', payload)
+  )
 
   // ipc.on('READY_TO_UPDATE', readyToUpdate)
 
   $(document).ready(onDocumentReady)
 }
 
-async function storeState ({ state, dontFormat }) {
+async function storeState({ state, dontFormat }) {
   await vue.store.dispatch('setState', state)
   !dontFormat && vue.controllers.core.formatConvertedTracks()
   await vue.store.dispatch('stateReplaced')
 }
-async function onFfmpegBinaries ({ value }) {
+async function onFfmpegBinaries({ value }) {
   vue.store.dispatch('ffmpegBinsDownloaded', value)
 }
-async function onConnectionChange (val) {
+async function onConnectionChange(val) {
   vue.store.dispatch('connectionChange', val)
 }
-async function onApiConnectionChange (val) {
+async function onApiConnectionChange(val) {
   vue.store.dispatch('apiConnectionChange', val)
 }
-async function onLoadingEvent (payload) {
+async function onLoadingEvent(payload) {
   vue.store.dispatch('loadingEvent', payload)
 }
 
@@ -75,38 +83,46 @@ export const retrieveStatus = async () => {
 
   let path = 'setup'
 
-  if (status.APP_STATUS.FOLDERS.paths.length && window.CONSTANTS.FEATURES.FOLDER_VIEW) {
+  if (
+    status.APP_STATUS.FOLDERS.paths.length &&
+    window.CONSTANTS.FEATURES.FOLDER_VIEW
+  ) {
     path = 'folder-view'
     vue.ipc.callMain('WINDOW:UNLOCK')
   }
   redirect(path)
 }
 
-function onDocumentReady () {
+function onDocumentReady() {
   if (!window.VUE_HAS_MOUNTED) return setTimeout(onDocumentReady, 100)
   retrieveStatus()
 }
-async function onRetrievedTracks (tracks = {}) {
+async function onRetrievedTracks(tracks = {}) {
   console.log('RETRIEVED', Object.keys(tracks).length)
   for (const primKey in tracks) {
     for (const secKey in tracks[primKey]) {
-      tracks[primKey][secKey].playlists = tracks[primKey][secKey].playlists.map(p => getPlaylistIdFromFoldername(p))
+      tracks[primKey][secKey].playlists = tracks[primKey][secKey].playlists.map(
+        (p) => getPlaylistIdFromFoldername(p)
+      )
     }
   }
   vue.root.DOWNLOADED_TRACKS = tracks
   vue.controllers.core.formatConvertedTracks()
 }
-function getPlaylistIdFromFoldername (name) {
-  const pl = vue.store.state.CurrentUser.playlists.find(p => p.folderName === name || p.name === name)
+function getPlaylistIdFromFoldername(name) {
+  const pl = vue.store.state.CurrentUser.playlists.find(
+    (p) => p.folderName === name || p.name === name
+  )
   return pl && pl.id
 }
 
-function onAddedTrack (track) {
+function onAddedTrack(track) {
   console.log('track added')
   const tracks = vue.root.DOWNLOADED_TRACKS
 
   if (!tracks[track.spotify_id]) tracks[track.spotify_id] = {}
-  if (!tracks[track.spotify_id][track.youtube_id]) tracks[track.spotify_id][track.youtube_id] = { playlists: [] }
+  if (!tracks[track.spotify_id][track.youtube_id])
+    tracks[track.spotify_id][track.youtube_id] = { playlists: [] }
 
   const id = getPlaylistIdFromFoldername(track.playlist)
   if (!id) return
@@ -114,27 +130,31 @@ function onAddedTrack (track) {
 
   propagateFileChange({ ...track, playlistId: id })
 }
-function onRemovedTrack (track) {
+function onRemovedTrack(track) {
   const tracks = vue.root.DOWNLOADED_TRACKS
 
-  if (!tracks[track.spotify_id] || !tracks[track.spotify_id][track.youtube_id]) return
+  if (!tracks[track.spotify_id] || !tracks[track.spotify_id][track.youtube_id])
+    return
   const trackRef = tracks[track.spotify_id][track.youtube_id]
   const id = getPlaylistIdFromFoldername(track.playlist)
   if (!id) return
 
-  trackRef.playlists = trackRef.playlists.filter(p => p !== id)
+  trackRef.playlists = trackRef.playlists.filter((p) => p !== id)
   if (!trackRef.playlists.length) {
     tracks[track.spotify_id][track.youtube_id] = undefined
   }
   propagateFileChange({ ...track, playlistId: id })
 }
-function propagateFileChange (track) {
+function propagateFileChange(track) {
   const path = vue.sbRouter.giveMeCurrent() || {}
   env.propagationTrackQueue.push(track.spotify_id)
 
   if (env.propagationTimeout) clearTimeout(env.propagationTimeout)
   env.propagationTimeout = setTimeout(() => {
-    vue.controllers.core.formatConvertedTracks({ trackFilter: (env.propagationTrackQueue.length && env.propagationTrackQueue) || null })
+    vue.controllers.core.formatConvertedTracks({
+      trackFilter:
+        (env.propagationTrackQueue.length && env.propagationTrackQueue) || null
+    })
     env.propagationTrackQueue = []
     env.propagationTimeout = null
 
@@ -148,9 +168,10 @@ function propagateFileChange (track) {
   }, 200)
 }
 
-async function redirect (path, payload) {
+async function redirect(path, payload) {
   await sleep(1000)
   path = (path[0] === '/' ? '' : '/') + path
-  if (path === vue.instance.$route.fullPath) return console.error('ERROR Trying to navigate to same path')
+  if (path === vue.instance.$route.fullPath)
+    return console.error('ERROR Trying to navigate to same path')
   vue.router.push(path)
 }

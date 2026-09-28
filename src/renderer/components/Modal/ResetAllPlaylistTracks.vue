@@ -1,26 +1,12 @@
 <template>
   <div class="container">
-    <div
-      v-if="playlist"
-      class="header"
-    >
-      Are you sure you want to reset all track selections for playlist <span class="bold">
-        {{ playlist.name }}
-      </span>?
+    <div v-if="playlist" class="header">
+      Are you sure you want to reset all track selections for playlist
+      <span class="bold"> {{ playlist.name }} </span>?
     </div>
     <div class="controls df jucc aliic">
-      <div
-        class="button accept"
-        @click="accept"
-      >
-        Yes
-      </div>
-      <div
-        class="button cancel"
-        @click="$emit('close')"
-      >
-        No
-      </div>
+      <div class="button accept" @click="accept">Yes</div>
+      <div class="button cancel" @click="$emit('close')">No</div>
     </div>
   </div>
 </template>
@@ -28,17 +14,16 @@
 <script lang="ts">
 export default {
   computed: {
-    payload () {
+    payload() {
       return this.$store.state.SharedStates.modal.options.payload
     },
-    playlist () {
+    playlist() {
       return this.$store.getters.PlaylistById(this.payload.playlistId)
     }
   },
-  mounted () {
-  },
+  mounted() {},
   methods: {
-    accept () {
+    accept() {
       this.$store.dispatch('resetSelection', this.playlist.id)
       this.$emit('close')
     }
@@ -55,14 +40,15 @@ export default {
 }
 
 .info {
-  font-size: .7em;
+  font-size: 0.7em;
 }
 
 .controls {
   margin-top: 1em;
 
   .button {
-    margin: 0 .3em;
+    margin: 0 0.3em;
     width: 5em;
   }
-}</style>
+}
+</style>

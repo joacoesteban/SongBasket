@@ -1,5 +1,6 @@
-import { resolve } from 'path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
+import { resolve } from 'path'
+
 import vue from '@vitejs/plugin-vue2'
 
 export default defineConfig({
@@ -17,7 +18,10 @@ export default defineConfig({
       alias: {
         '@': resolve(__dirname, 'src/renderer'),
         electron: resolve(__dirname, 'src/renderer/shims/electron.ts'),
-        '@electron/remote': resolve(__dirname, 'src/renderer/shims/electron-remote.ts')
+        '@electron/remote': resolve(
+          __dirname,
+          'src/renderer/shims/electron-remote.ts'
+        )
       },
       extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue']
     },

@@ -1,7 +1,7 @@
 import env from './VueInstance'
 
 const SetupController = {
-  async setHomeFolder () {
+  async setHomeFolder() {
     console.log('sendin')
     let canAdvance = true
     const { isLogged, error } = await env.ipc.callMain('HOME_FOLDERS:ASK')
@@ -13,7 +13,7 @@ const SetupController = {
 
     return canAdvance
   },
-  async login () {
+  async login() {
     await env.ipc.callMain('LOGIN')
     env.router.push('home')
     env.ipc.callMain('WINDOW:UNLOCK')

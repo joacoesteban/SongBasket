@@ -1,9 +1,5 @@
 <template>
-  <svg-icon
-    :path="path"
-    :icon-color="iconColor"
-    :class-name="className"
-  />
+  <svg-icon :path="path" :icon-color="iconColor" :class-name="className" />
 </template>
 
 <script lang="ts">
@@ -13,7 +9,7 @@ export default {
   components: {
     SvgIcon
   },
-  data () {
+  data() {
     return {
       path: 'M14,19H18V5H14M6,19H10V5H6V19Z',
       iconColor: 'var(--icon-color)',

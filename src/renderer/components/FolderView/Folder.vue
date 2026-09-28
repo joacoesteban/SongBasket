@@ -1,23 +1,10 @@
 <template>
   <!-- <div class="folder-card-wrapper"> -->
-  <Card
-    :item="item"
-    @click="atClick"
-  >
+  <Card :item="item" @click="atClick">
     <template #outside>
       <div class="floating-controls-container abs-right abs-top df z-1">
-        <button
-          class="button"
-          @click="$emit('editFolder')"
-        >
-          edit
-        </button>
-        <button
-          class="button"
-          @click="$emit('deleteFolder')"
-        >
-          delete
-        </button>
+        <button class="button" @click="$emit('editFolder')">edit</button>
+        <button class="button" @click="$emit('deleteFolder')">delete</button>
       </div>
     </template>
     <template #default>
@@ -26,7 +13,9 @@
           <div class="left">
             <div
               class="round-img"
-              :style="{ 'background-image': 'url(' + item.backgroundImage + ')' }"
+              :style="{
+                'background-image': 'url(' + item.backgroundImage + ')'
+              }"
             />
           </div>
           <div class="right" />
@@ -53,14 +42,14 @@ export default {
     index: Number
   },
   computed: {
-    item () {
+    item() {
       return {
         backgroundImage: 'https://picsum.photos/50' + this.index
       }
     }
   },
   methods: {
-    atClick () {
+    atClick() {
       this.$emit('clicked')
     }
   }
@@ -86,7 +75,7 @@ export default {
   // flex-shrink: 0;
   // flex-grow: 0;
   // min-width: 20em;
-  padding: .5em;
+  padding: 0.5em;
   display: flex;
 
   &:not(:last-child) {
@@ -96,6 +85,6 @@ export default {
 
 .card-container {
   min-width: fit-content;
-  --borr: .5em;
+  --borr: 0.5em;
 }
 </style>

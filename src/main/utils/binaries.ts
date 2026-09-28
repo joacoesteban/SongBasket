@@ -1,6 +1,7 @@
 import { execFile } from 'child_process'
-import { promisify } from 'util'
 import ffmpeg from 'fluent-ffmpeg'
+import { promisify } from 'util'
+
 import { ensureReleaseBinaries } from './github-release-binaries'
 
 const YT_DLP_REPO = 'yt-dlp/yt-dlp'
@@ -8,7 +9,8 @@ const FFMPEG_REPO = 'eugeneware/ffmpeg-static'
 
 // ffmpeg-static names its release assets after node's own platform/arch pairs.
 const target = `${process.platform}-${process.arch}`
-const executableSuffix = ({ win32: '.exe' } as Record<string, string>)[process.platform] ?? ''
+const executableSuffix =
+  ({ win32: '.exe' } as Record<string, string>)[process.platform] ?? ''
 
 const YT_DLP_ASSETS: Record<string, string> = {
   'darwin-arm64': 'yt-dlp_macos',
@@ -24,15 +26,16 @@ const run = promisify(execFile)
 
 export const ytDlp = {
   path: '',
-  async flushCache (): Promise<string> {
+  async flushCache(): Promise<string> {
     const { stdout } = await run(ytDlp.path, ['--rm-cache-dir'])
     return stdout
   }
 }
 
-export async function setupYtDlp () {
+export async function setupYtDlp() {
   const assetName = YT_DLP_ASSETS[target]
-  if (!assetName) throw new Error(`yt-dlp does not publish a binary for ${target}`)
+  if (!assetName)
+    throw new Error(`yt-dlp does not publish a binary for ${target}`)
 
   const binaryName = `yt-dlp${executableSuffix}`
   const paths = await ensureReleaseBinaries({
@@ -46,8 +49,8 @@ export async function setupYtDlp () {
   console.log('yt-dlp binary is', ytDlp.path)
 }
 
-export async function setupFfmpeg () {
-  const binaries = ['ffmpeg', 'ffprobe'].map(name => ({
+export async function setupFfmpeg() {
+  const binaries = ['ffmpeg', 'ffprobe'].map((name) => ({
     binaryName: `${name}${executableSuffix}`,
     assetName: `${name}-${target}.gz`,
     gzipped: true

@@ -1,10 +1,6 @@
 <template>
   <div class="track-review-slide-container">
-    <track-banner
-      v-if="track"
-      class="parent-track-container"
-      :track="track"
-    />
+    <track-banner v-if="track" class="parent-track-container" :track="track" />
     <div class="controls-container df alic container-fluid">
       <button
         v-if="showPause || showUnPause"
@@ -14,43 +10,27 @@
         <span>
           {{ showPause ? 'Pause' : 'Unpause' }}
         </span>
-        <div
-          class="icon-wrapper"
-          :class="{ show: showPause }"
-        >
+        <div class="icon-wrapper" :class="{ show: showPause }">
           <button class="icon window-nodrag">
             <pause-icon />
           </button>
         </div>
-        <div
-          class="icon-wrapper"
-          :class="{ show: showUnPause }"
-        >
+        <div class="icon-wrapper" :class="{ show: showUnPause }">
           <button class="icon window-nodrag">
             <play-icon />
           </button>
         </div>
       </button>
-      <button
-        class="link-button"
-        @click="customUrl"
-      >
-        <span>
-          Custom Url
-        </span>
+      <button class="link-button" @click="customUrl">
+        <span> Custom Url </span>
         <div class="icon-wrapper show">
           <button class="icon window-nodrag">
             <link-icon />
           </button>
         </div>
       </button>
-      <button
-        class="link-button"
-        @click="searchYt"
-      >
-        <span>
-          Search YouTube
-        </span>
+      <button class="link-button" @click="searchYt">
+        <span> Search YouTube </span>
         <div class="icon-wrapper show">
           <button class="icon window-nodrag">
             <magnifier-icon />
@@ -62,9 +42,7 @@
         class="link-button hidable-item"
         @click="reset"
       >
-        <span>
-          Reset Selection
-        </span>
+        <span> Reset Selection </span>
         <div class="icon-wrapper show">
           <button class="icon window-nodrag">
             <restart-icon />
@@ -95,22 +73,37 @@ export default {
     RestartIcon,
     MagnifierIcon
   },
-  data () {
+  data() {
     return {
       track: null
     }
   },
   computed: {
-    showReset () {
-      return this.track && this.track.conversion && this.track.conversion.yt.length && ((this.track.selectionObj && !this.track.selectionObj.isBestMatch) || this.track.flags.selectionIsApplied)
+    showReset() {
+      return (
+        this.track &&
+        this.track.conversion &&
+        this.track.conversion.yt.length &&
+        ((this.track.selectionObj && !this.track.selectionObj.isBestMatch) ||
+          this.track.flags.selectionIsApplied)
+      )
     },
-    showPause () {
-      return this.track && this.track.status && !this.track.status.slug.includes('pause')
+    showPause() {
+      return (
+        this.track &&
+        this.track.status &&
+        !this.track.status.slug.includes('pause')
+      )
     },
-    showUnPause () {
-      return !this.showPause && this.track && this.track.status && this.track.status.slug.includes('pause')
+    showUnPause() {
+      return (
+        !this.showPause &&
+        this.track &&
+        this.track.status &&
+        this.track.status.slug.includes('pause')
+      )
     },
-    playlistTracksReComputed () {
+    playlistTracksReComputed() {
       return this.$store.state.Events.PLAYLIST_TRACKS_RE_COMPUTED
     }
   },
@@ -119,18 +112,19 @@ export default {
     //   this.refresh()
     // }
   },
-  created () {
+  created() {
     this.$root.$ComponentRefs.slides.TrackReview = this
   },
   methods: {
-    refresh () {
+    refresh() {
       console.log('onrefresh')
-      this.$root.$ComponentRefs.TrackReview && this.$root.$ComponentRefs.TrackReview.refreshTrack()
+      this.$root.$ComponentRefs.TrackReview &&
+        this.$root.$ComponentRefs.TrackReview.refreshTrack()
     },
-    setTrack (track) {
+    setTrack(track) {
       this.track = track
     },
-    async pauseTrack () {
+    async pauseTrack() {
       const id = this.track && this.track.id
       try {
         if (!id) throw new Error('NO TRACK ID')
@@ -140,7 +134,7 @@ export default {
         console.error(error)
       }
     },
-    async customUrl () {
+    async customUrl() {
       const id = this.track && this.track.id
       try {
         if (!id) throw new Error('NO TRACK ID')
@@ -150,10 +144,11 @@ export default {
         console.error(error)
       }
     },
-    async reset () {
-      await this.$root.$ComponentRefs.TrackReview && this.$root.$ComponentRefs.TrackReview.selectVideo(null)
+    async reset() {
+      ;(await this.$root.$ComponentRefs.TrackReview) &&
+        this.$root.$ComponentRefs.TrackReview.selectVideo(null)
     },
-    searchYt () {
+    searchYt() {
       this.$root.$controllers.core.searchYt(this.track)
     }
   }
@@ -162,7 +157,7 @@ export default {
 
 <style lang="scss" scoped>
 .track-review-slide-container {
-  padding-top: var(--tb-title-height)
+  padding-top: var(--tb-title-height);
 }
 
 .controls-container {
@@ -176,12 +171,12 @@ export default {
     width: 0;
     padding: 0;
     transition: var(--hover-n-active-transitions);
-    transform: scale(.7);
+    transform: scale(0.7);
     opacity: 0;
     pointer-events: none;
 
     &.show {
-      $p: .2em;
+      $p: 0.2em;
       pointer-events: all;
       transform: initial;
       padding: 0 $p;
@@ -193,16 +188,18 @@ export default {
   button.icon {
     display: flex;
     box-shadow: none;
-    transition: box-shadow var(--ts-g), var(--hover-n-active-transitions);
+    transition:
+      box-shadow var(--ts-g),
+      var(--hover-n-active-transitions);
 
     &:active {
       opacity: 0.7;
-      transform: scale(.95);
+      transform: scale(0.95);
     }
 
     background-color: transparent;
     border-radius: 50%;
-    padding: .3em;
+    padding: 0.3em;
     min-width: $icon-size;
     height: $icon-size;
     outline: 0;

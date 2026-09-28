@@ -1,21 +1,11 @@
 <template>
-  <div
-    v-show="!(!transitioning && !showLocal)"
-    class="modal-wrapper"
-  >
-    <div
-      :class="{ 'show': showLocal }"
-      class="modal-container"
-    >
+  <div v-show="!(!transitioning && !showLocal)" class="modal-wrapper">
+    <div :class="{ show: showLocal }" class="modal-container">
       <div class="content box-shadow">
         <modal-loader @close="close" />
       </div>
     </div>
-    <div
-      :class="{ 'show': showLocal }"
-      class="dark-body"
-      @click="close"
-    />
+    <div :class="{ show: showLocal }" class="dark-body" @click="close" />
   </div>
 </template>
 
@@ -25,7 +15,7 @@ export default {
   components: {
     ModalLoader
   },
-  data () {
+  data() {
     return {
       showLocal: false,
       transitioning: false,
@@ -34,15 +24,15 @@ export default {
     }
   },
   computed: {
-    modal () {
+    modal() {
       return this.$store.state.SharedStates.modal
     },
-    show () {
+    show() {
       return this.modal.show
     }
   },
   watch: {
-    show (val) {
+    show(val) {
       this.transitioning = true
       setTimeout(() => {
         if (val) this.$root.$(window).on('keyup', this.onKeyUp)
@@ -54,12 +44,12 @@ export default {
     }
   },
   methods: {
-    close () {
+    close() {
       if (this.transitioning) return
       this.$root.$(window).off('keyup', this.onKeyUp)
       this.$store._actions.closeModal[0]()
     },
-    onKeyUp ({ key }) {
+    onKeyUp({ key }) {
       return key === 'Escape' ? this.close() : null
     }
   }
@@ -88,10 +78,12 @@ $tst: var(--ts-g);
     right: 0;
     pointer-events: none;
     z-index: 1;
-    transition: transform $tst, opacity $tst;
+    transition:
+      transform $tst,
+      opacity $tst;
     transform-origin: bottom;
     opacity: 0;
-    transform: scale(.7);
+    transform: scale(0.7);
 
     &.show {
       opacity: 1;
@@ -111,25 +103,25 @@ $tst: var(--ts-g);
     opacity: 0;
 
     &.show {
-      opacity: .8;
+      opacity: 0.8;
     }
   }
 
   .content {
     background-color: var(--global-grey-secondary);
     pointer-events: all;
-    border-radius: .2em;
+    border-radius: 0.2em;
   }
 
   .modal-body {
-    font-size: .7em;
+    font-size: 0.7em;
   }
 
   .modal-controls {
     margin-top: 1em;
 
     .button {
-      margin: 0 .3em;
+      margin: 0 0.3em;
       min-width: 11em;
     }
   }

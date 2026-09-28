@@ -1,8 +1,8 @@
 import * as electron from 'electron'
 
 type UrlDecomposed = {
-  full: string,
-  base: string, // TODO rename to path
+  full: string
+  base: string // TODO rename to path
   payload: any
 }
 
@@ -15,10 +15,13 @@ const CBS: {
 const getUrl = (url: string): UrlDecomposed => {
   url = decodeURI(url)
   const full = decodeURI(url.replace(new RegExp(paths.BASE + '://', 'g'), ''))
-  const base = (full.indexOf('?') !== -1 && full.slice(0, full.indexOf('?'))) || full
+  const base =
+    (full.indexOf('?') !== -1 && full.slice(0, full.indexOf('?'))) || full
 
   const arg = '?payload='
-  const payload = full.indexOf(arg) !== -1 && JSON.parse(full.substring(full.indexOf(arg) + arg.length))
+  const payload =
+    full.indexOf(arg) !== -1 &&
+    JSON.parse(full.substring(full.indexOf(arg) + arg.length))
 
   return {
     full,
@@ -30,8 +33,8 @@ const getUrl = (url: string): UrlDecomposed => {
 const getCb = (path: UrlDecomposed) => {
   const cbs = {
     cbs: CBS[path.base] || [],
-    callAll (...args: any[]) {
-      this.cbs.forEach(fn => fn(...args))
+    callAll(...args: any[]) {
+      this.cbs.forEach((fn) => fn(...args))
     }
   }
   if (!Array.isArray(cbs.cbs)) cbs.cbs = [cbs.cbs]
@@ -46,37 +49,38 @@ export default {
   off
 }
 
-function startProtocols () {
+function startProtocols() {
   const protocol = electron.protocol
   protocol.registerHttpProtocol(paths.BASE, onRequest)
 }
 
-function onRequest (req: electron.ProtocolRequest) {
+function onRequest(req: electron.ProtocolRequest) {
   const parsed = getUrl(req.url)
   console.log('----> ' + parsed.base)
   const actualCb = getCb(parsed)
   actualCb && actualCb.callAll(parsed)
 }
 
-function on (path: string, cb: Function) {
+function on(path: string, cb: Function) {
   if (!path) throw new Error('PATH NOT SPECIFIED')
   if (typeof cb !== 'function') throw new Error('INVALID CALLBACK')
 
   let stack = CBS[path]
   if (!stack) stack = CBS[path] = []
-  else if (stack.some(fn => fn === cb)) return console.error('CALLBACK ALREADY ATTACHED')
+  else if (stack.some((fn) => fn === cb))
+    return console.error('CALLBACK ALREADY ATTACHED')
   stack.push(cb)
 
   return true
 }
 
-function off (path: string, cb: Function) {
+function off(path: string, cb: Function) {
   if (!path) throw new Error('PATH NOT SPECIFIED')
   if (typeof cb !== 'function') throw new Error('INVALID CALLBACK')
 
   const stack = CBS[path]
   if (!stack || !stack.length) return console.error('CALLBACK STACK IS EMPTY')
-  CBS[path] = stack.filter(fn => fn !== cb)
+  CBS[path] = stack.filter((fn) => fn !== cb)
 
   return true
 }

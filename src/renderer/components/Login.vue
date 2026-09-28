@@ -1,10 +1,6 @@
 <template>
   <div class="df fldc global-center">
-    <button
-      id="onboarding-login-button"
-      class="button"
-      @click="$emit('login')"
-    >
+    <button id="onboarding-login-button" class="button" @click="$emit('login')">
       Login to Spotify
     </button>
     <!-- <div>or</div>
@@ -14,8 +10,7 @@
 
 <script lang="ts">
 export default {
-  methods: {
-  }
+  methods: {}
   // //Auto login For dev speed purposes
   // mounted(){
   //     this.login();

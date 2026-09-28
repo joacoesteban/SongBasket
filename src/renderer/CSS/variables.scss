@@ -1,6 +1,5 @@
-
 @function tr($dur) {
-  @return calc(var(--transition-scale) * #{$dur})
+  @return calc(var(--transition-scale) * #{$dur});
 }
 :root {
   /* COLORS */
@@ -30,37 +29,39 @@
   /* TRANSITIONS */
   --transition-scale: 1;
   --bezier: cubic-bezier(0, 1, 0, 1);
-  --bezier-chill: cubic-bezier(0, 1, .5, 1);
-  --bezier-chill-2: cubic-bezier(0.12, 0.82, 0, 1);;
-  --bezier-chill-inverted: cubic-bezier(1, 0, 1, .5);
+  --bezier-chill: cubic-bezier(0, 1, 0.5, 1);
+  --bezier-chill-2: cubic-bezier(0.12, 0.82, 0, 1);
+  --bezier-chill-inverted: cubic-bezier(1, 0, 1, 0.5);
   --bezier-out: cubic-bezier(1, 0.24, 1, 0.66);
   --bezier-relaxed: cubic-bezier(0.35, 0.7, 0.25, 1);
   --bezier-round: cubic-bezier(0, 0.5, 0.5, 1);
-  --bezier-round-inverted: cubic-bezier(.5, 0, 1, .5);
+  --bezier-round-inverted: cubic-bezier(0.5, 0, 1, 0.5);
   --bezier-symmetric: cubic-bezier(0.7, 0, 0.25, 1);
-  --bezier-symmetric-inverted: cubic-bezier(0, .7, 1, 0.25);
-  --bezier-symmetric-hard: cubic-bezier(.5, .1, .5, .9);
-  --bezier-symmetric-hard-inverted: cubic-bezier(.1, .5, .9, .5);
+  --bezier-symmetric-inverted: cubic-bezier(0, 0.7, 1, 0.25);
+  --bezier-symmetric-hard: cubic-bezier(0.5, 0.1, 0.5, 0.9);
+  --bezier-symmetric-hard-inverted: cubic-bezier(0.1, 0.5, 0.9, 0.5);
 
-  --global-transition-time: #{tr(.5s)};
+  --global-transition-time: #{tr(0.5s)};
   --ts-g: var(--global-transition-time) var(--bezier-chill);
   --ts-g-inverted: var(--global-transition-time) var(--bezier-chill-inverted);
   --ts-g-out: var(--global-transition-time) var(--bezier-out);
   --ts-g-hard: var(--global-transition-time) var(--bezier);
   --ts-g-symmetric: var(--global-transition-time) var(--bezier-symmetric);
-  --home-transition: #{tr(.3s)} var(--bezier-chill);
-  --top-bar-slider-transition: #{tr(1s)} cubic-bezier(.2, 1, .5, 1);
+  --home-transition: #{tr(0.3s)} var(--bezier-chill);
+  --top-bar-slider-transition: #{tr(1s)} cubic-bezier(0.2, 1, 0.5, 1);
 
   $t: var(--ts-g);
-  --hover-n-active-transitions: opacity #{$t}, transform #{$t}, background-color #{$t};
+  --hover-n-active-transitions:
+    opacity #{$t}, transform #{$t}, background-color #{$t};
   --card-hover-transition: #{tr(1s)} var(--bezier-chill-2);
-  --card-hover-transition-fast: #{tr(.5s)} var(--bezier-chill-2);
+  --card-hover-transition-fast: #{tr(0.5s)} var(--bezier-chill-2);
 
   --body-colors-transition: #{tr(1s)} var(--bezier-chill);
 
   --button-transition-time: #{tr(0.3s)};
   --button-transition: var(--button-transition-time) var(--bezier-chill);
-  --banner-background-transition: width #{tr(1s)} var(--bezier-chill), opacity #{tr(.2s)} var(--bezier-chill);
+  --banner-background-transition:
+    width #{tr(1s)} var(--bezier-chill), opacity #{tr(0.2s)} var(--bezier-chill);
 
   /* VARIABLES */
   --body-color: var(--body-dark);

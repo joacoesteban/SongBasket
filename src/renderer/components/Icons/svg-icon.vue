@@ -17,12 +17,12 @@ export default {
       default: '#f0f'
     }
   },
-  data () {
+  data() {
     return {
       colorLocal: ''
     }
   },
-  mounted () {
+  mounted() {
     if (this.color[0] !== '#') this.colorLocal = '#' + this.color
     else this.colorLocal = this.color
   }

@@ -1,10 +1,7 @@
 <template>
   <div class="whole-container">
     <div class="home-container">
-      <div
-        class="rel-full"
-        style="height: initial"
-      >
+      <div class="rel-full" style="height: initial">
         <top-bar />
         <search-bar />
       </div>
@@ -15,10 +12,7 @@
         @openYtVideo="openYtVideo($event)"
       />
 
-      <floating-buttons
-        style="z-index: 1"
-        @youtubeConvert="youtubeConvert"
-      />
+      <floating-buttons style="z-index: 1" @youtubeConvert="youtubeConvert" />
     </div>
   </div>
 </template>
@@ -46,7 +40,7 @@ export default {
     FloatingButtons,
     HomeBackground
   },
-  data () {
+  data() {
     return {
       user: this.$store.state.CurrentUser.user,
       control: this.$store.state.CurrentUser.control,
@@ -55,55 +49,57 @@ export default {
     }
   },
   computed: {
-    allLoaded () {
+    allLoaded() {
       return this.control.total - this.control.offset <= 0
     },
-    syncedPlaylists () {
+    syncedPlaylists() {
       return this.$store.state.CurrentUser.syncedPlaylists
     },
-    currentPlaylistSet () {
+    currentPlaylistSet() {
       return this.$store.state.Events.CURRENT_PLAYLIST_SET
     },
-    routerAnimation () {
+    routerAnimation() {
       return this.$store.state.Events.ROUTER_ANIMATION
     }
   },
   watch: {
-    currentPlaylistSet () {
+    currentPlaylistSet() {
       this.$router.push('/home/playlist-view')
     }
   },
-  mounted () {
+  mounted() {
     // console.log('USER::::', this.user)
 
-    if (this.$store.state.CurrentUser.playlists.length === 0) { this.$router.push('/empty') }
+    if (this.$store.state.CurrentUser.playlists.length === 0) {
+      this.$router.push('/empty')
+    }
 
     this.$root.$IPC.answerMain('done loading', async () => {
       this.loading = false
     })
   },
   methods: {
-    loadMore () {
+    loadMore() {
       if (!this.loading) {
         this.loading = true
         this.$root.$IPC.callMain('loadMore')
       }
     },
-    openPlaylist (id) {
+    openPlaylist(id) {
       console.log(id, this.syncedPlaylists.length, this.playlistSynced(id))
       if (this.playlistSynced(id)) return this.setPlaylistNPush(id)
       this.$root.$IPC.callMain('get tracks from', id)
     },
-    setPlaylistNPush (id) {
+    setPlaylistNPush(id) {
       this.$root.$sbRouter.push({ name: 'playlist-view', params: { id } })
     },
-    playlistSynced (id) {
-      return this.syncedPlaylists.some(p => p === id)
+    playlistSynced(id) {
+      return this.syncedPlaylists.some((p) => p === id)
     },
-    youtubeConvert () {
+    youtubeConvert() {
       this.$root.$IPC.callMain('Youtube Convert')
     },
-    openYtVideo (id) {
+    openYtVideo(id) {
       console.log('openYtVideo', id)
       this.$root.$IPC.callMain('openYtVideo', id)
     }

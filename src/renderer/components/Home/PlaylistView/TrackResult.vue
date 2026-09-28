@@ -1,7 +1,9 @@
 <template>
   <Card
     :item="itemFormatted"
-    :row-classes="rowClasses + (isSelected ? ' border-green' : ' border-transparent')"
+    :row-classes="
+      rowClasses + (isSelected ? ' border-green' : ' border-transparent')
+    "
     :options="cardOptions"
     @click="handleClick"
   >
@@ -23,10 +25,7 @@
         </div>
       </div>
       <div class="duration-diff">
-        <span
-          class="bold"
-          :style="{ color: durationColor }"
-        >
+        <span class="bold" :style="{ color: durationColor }">
           {{ itemFormatted.duration }}
         </span>
       </div>
@@ -49,7 +48,7 @@ export default {
     durationColor: String,
     isSelected: Boolean
   },
-  data () {
+  data() {
     return {
       cardOptions: {
         height: '2.5em',
@@ -63,18 +62,27 @@ export default {
     }
   },
   computed: {
-    itemFormatted () {
+    itemFormatted() {
       const itm = this.item
       const snippet = itm.snippet
       const isCustom = itm.isCustomTrack
-      return (itm && {
-        ...itm,
-        name: isCustom ? snippet.title : itm.nameFormatted,
-        uploader: snippet.channelTitle,
-        issue: !isCustom && itm.isDoubtlyConversion ? ((itm.wordScore === 0 || !itm.nameTokensMap[0]) ? 'Name' : 'Duration') + ' Doesn\'t match' : null,
-        backgroundImage: snippet && snippet.thumbnails && snippet.thumbnails.high.url,
-        duration: isCustom ? 'CUSTOM' : (Math.round(itm.durationDiff)) + '\'\''
-      }) || {}
+      return (
+        (itm && {
+          ...itm,
+          name: isCustom ? snippet.title : itm.nameFormatted,
+          uploader: snippet.channelTitle,
+          issue:
+            !isCustom && itm.isDoubtlyConversion
+              ? (itm.wordScore === 0 || !itm.nameTokensMap[0]
+                  ? 'Name'
+                  : 'Duration') + " Doesn't match"
+              : null,
+          backgroundImage:
+            snippet && snippet.thumbnails && snippet.thumbnails.high.url,
+          duration: isCustom ? 'CUSTOM' : Math.round(itm.durationDiff) + "''"
+        }) ||
+        {}
+      )
     }
   },
   methods: {
@@ -87,7 +95,7 @@ export default {
     //       return null
     //   }
     // },
-    handleClick () {
+    handleClick() {
       this.$emit('setSelection')
     }
   }
@@ -102,7 +110,7 @@ span.matching-token {
 </style>
 <style lang="scss" scoped>
 .duration-diff {
-  >span {
+  > span {
     font-size: 3em;
   }
 }

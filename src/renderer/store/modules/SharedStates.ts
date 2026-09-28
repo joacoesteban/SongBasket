@@ -15,7 +15,7 @@ const getDefaultState = () => {
     CONNECTED_TO_API: true
   }
 }
-function defaultModal () {
+function defaultModal() {
   return {
     show: false,
     options: {
@@ -27,31 +27,31 @@ function defaultModal () {
 const state = getDefaultState()
 
 const actions = {
-  SETUP_LOADING_STATE ({ commit }, loadingState) {
+  SETUP_LOADING_STATE({ commit }, loadingState) {
     return new Promise<void>((resolve, reject) => {
       commit('SETUP_LOADING_STATE', loadingState)
       resolve()
     })
   },
-  connectionChange ({ commit }, value) {
+  connectionChange({ commit }, value) {
     commit('SET', { key: 'CONNECTED_TO_INTERNET', value })
   },
-  apiConnectionChange ({ commit }, value) {
+  apiConnectionChange({ commit }, value) {
     commit('SET', { key: 'CONNECTED_TO_API', value })
   },
-  openModal ({ commit }, options) {
+  openModal({ commit }, options) {
     return new Promise<void>((resolve, reject) => {
       commit('OPEN_MODAL', options)
       resolve()
     })
   },
-  closeModal ({ commit }) {
+  closeModal({ commit }) {
     return new Promise<void>((resolve, reject) => {
       commit('CLOSE_MODAL')
       resolve()
     })
   },
-  downloadChunk ({ commit }, { id, current, size }) {
+  downloadChunk({ commit }, { id, current, size }) {
     return new Promise<void>((resolve, reject) => {
       commit('DOWNLOAD_CHUNK', { id, current, size })
       resolve()
@@ -60,26 +60,24 @@ const actions = {
 }
 
 const mutations = {
-  TRIGGER (state, key) {
+  TRIGGER(state, key) {
     state[key] = !state[key]
   },
-  SET (state, { key, value }) {
+  SET(state, { key, value }) {
     Vue.set(state, key, value)
   },
-  SETUP_LOADING_STATE (state, loadingState) {
+  SETUP_LOADING_STATE(state, loadingState) {
     state.loadingState = loadingState
   },
-  OPEN_MODAL (state, { wich, payload }) {
+  OPEN_MODAL(state, { wich, payload }) {
     state.modal.show = true
     state.modal.options.wich = wich
     state.modal.options.payload = payload
   },
-  CLOSE_MODAL (state, options) {
+  CLOSE_MODAL(state, options) {
     state.modal.show = false
   },
-  DOWNLOAD_CHUNK (state, { id, current, size }) {
-
-  }
+  DOWNLOAD_CHUNK(state, { id, current, size }) {}
 }
 
 const getters = {

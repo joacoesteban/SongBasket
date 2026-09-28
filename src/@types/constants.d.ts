@@ -1,75 +1,75 @@
 import { BrowserWindow } from 'electron'
+
 import { Platform } from './App'
 
 type WindowConfig = {
-  width: number,
-  height: number,
-  frame?: boolean,
-  minWidth: number,
-  minHeight: number,
-  backgroundColor?: string,
-  useContentSize: boolean,
-  resizable?: boolean,
+  width: number
+  height: number
+  frame?: boolean
+  minWidth: number
+  minHeight: number
+  backgroundColor?: string
+  useContentSize: boolean
+  resizable?: boolean
   webPreferences: {
-    nodeIntegration: boolean,
+    nodeIntegration: boolean
     contextIsolation: boolean
   }
 }
 
 export type Constants = {
   // STATES
-  ENV_PROD: boolean,
-  IS_DEV: boolean,
+  ENV_PROD: boolean
+  IS_DEV: boolean
   APP_STATUS: {
-    IS_LOGGED: boolean,
+    IS_LOGGED: boolean
     FOLDERS: {
-      paths: string[],
+      paths: string[]
       selected: null | string
-    },
+    }
     UPDATES: {
-      updateError: Error | null,
-      updateAvailable: boolean,
-      updateVersion: string | null,
-      downloadInProgress: boolean,
-      downloadPtg: number,
+      updateError: Error | null
+      updateAvailable: boolean
+      updateVersion: string | null
+      downloadInProgress: boolean
+      downloadPtg: number
       updateDownloaded: boolean
     }
-  },
-  FFMPEG_BINS_DOWNLOADED: boolean,
-  CLEAN_CREDS_ON_LOGOUT: boolean,
+  }
+  FFMPEG_BINS_DOWNLOADED: boolean
+  CLEAN_CREDS_ON_LOGOUT: boolean
   // -------------
 
   // PATHS
-  BACKEND: string,
-  APP_SUPPORT_PATH: string,
-  APP_CWD: string,
-  PROCESS_CWD: string,
-  NODE_MODULES_PATH: string,
-  TEMP_PATH: string,
+  BACKEND: string
+  APP_SUPPORT_PATH: string
+  APP_CWD: string
+  PROCESS_CWD: string
+  NODE_MODULES_PATH: string
+  TEMP_PATH: string
   PROTOCOL_PATHS: {
     BASE: 'songbasket'
-  },
-  FFMPEG_BINARIES_PATH: string,
-  FFMPEG_VERSION_CONTROL_PATH: string,
-  YTDL_BINARIES_PATH: string,
-  YTDL_VERSION_CONTROL_PATH: string,
+  }
+  FFMPEG_BINARIES_PATH: string
+  FFMPEG_VERSION_CONTROL_PATH: string
+  YTDL_BINARIES_PATH: string
+  YTDL_VERSION_CONTROL_PATH: string
   // -------------
 
   // INSTANCES
-  MAIN_WINDOW: BrowserWindow | null,
-  LOADING_WINDOW: BrowserWindow | null,
-  LOGIN_WINDOW: BrowserWindow | null,
+  MAIN_WINDOW: BrowserWindow | null
+  LOADING_WINDOW: BrowserWindow | null
+  LOGIN_WINDOW: BrowserWindow | null
   // -------------
-  PLATFORM: Platform,
-  MAIN_WINDOW_CONFIG: WindowConfig,
-  LOADING_WINDOW_CONFIG: WindowConfig,
-  POPUP_WINDOW_CONFIG: WindowConfig,
+  PLATFORM: Platform
+  MAIN_WINDOW_CONFIG: WindowConfig
+  LOADING_WINDOW_CONFIG: WindowConfig
+  POPUP_WINDOW_CONFIG: WindowConfig
   // MISC
-  HEROKU_PING_INTERVAL: number,
-  APP_VERSION: string,
-  APP_VERSION_STRING: string,
-  CHANGELOG_URL: string,
+  HEROKU_PING_INTERVAL: number
+  APP_VERSION: string
+  APP_VERSION_STRING: string
+  CHANGELOG_URL: string
   FEATURES: {}
   // -------------
-
 }

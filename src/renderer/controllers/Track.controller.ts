@@ -1,15 +1,23 @@
 import env from './VueInstance'
+
 const TrackController = {
-  getArtistsString: (item) => (item.artists || item.data.artists).map(({ name }) => name).join(', '),
-  getPlaylistsString: (item) => item.playlists.map(({ id }) => env.instance.$store.getters.PlaylistById(id)).map(({ name }) => name).join(', '),
-  populateTrackSelection: track => {
+  getArtistsString: (item) =>
+    (item.artists || item.data.artists).map(({ name }) => name).join(', '),
+  getPlaylistsString: (item) =>
+    item.playlists
+      .map(({ id }) => env.instance.$store.getters.PlaylistById(id))
+      .map(({ name }) => name)
+      .join(', '),
+  populateTrackSelection: (track) => {
     if (track.flags.conversionError) return null
     let selectionId = track.selection
 
-    if (selectionId === false) return track.selectionObj = track.custom
+    if (selectionId === false) return (track.selectionObj = track.custom)
     if (selectionId === null) selectionId = track.conversion.bestMatch
 
-    track.selectionObj = track.conversion.yt.find(yt => yt && yt.youtube_id === selectionId) || (track.custom && track.custom.youtube_id === selectionId && track.custom)
+    track.selectionObj =
+      track.conversion.yt.find((yt) => yt && yt.youtube_id === selectionId) ||
+      (track.custom && track.custom.youtube_id === selectionId && track.custom)
   },
   getStatus: function (t) {
     const slug = (() => {
@@ -21,7 +29,8 @@ const TrackController = {
       // check selected doubtly conversion
       if (!t.selectionObj) return 'no-conversion'
       if (t.selectionObj.isCustomTrack) return 'custom:awaiting-download'
-      if (f.selectionIsApplied || !t.selectionObj.isDoubtlyConversion) return 'awaiting-download'
+      if (f.selectionIsApplied || !t.selectionObj.isDoubtlyConversion)
+        return 'awaiting-download'
       return 'review-conversion'
     })()
 
@@ -31,7 +40,7 @@ const TrackController = {
       color: Colors[slug]
     }
   },
-  sort (a, b) {
+  sort(a, b) {
     const aOrd = SortOrders[a.status.slug]
     const bOrd = SortOrders[b.status.slug]
 

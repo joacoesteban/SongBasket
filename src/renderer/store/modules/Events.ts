@@ -1,18 +1,20 @@
 import Vue from 'vue'
-import VueInstance from '../../main'
 import { ActionContext } from 'vuex'
+
 import { DownloadStartedEventPayload } from '../../../main/controllers/DownloadPhase/youtube-dl'
+import VueInstance from '../../main'
 
 type TriggerableProp =
-  'CURRENT_PLAYLIST_SET' |
-  'FFMPEG_BINS_DOWNLOADED' |
-  'STATE_REPLACED' |
-  'PLAYLIST_UNSYNCED' |
-  'RESET_SELECTION' |
-  'PLAYLIST_TRACKS_RE_COMPUTED' |
-  'PLAYLIST_STATE_CHANGED' // TODO turn this into an enum
+  | 'CURRENT_PLAYLIST_SET'
+  | 'FFMPEG_BINS_DOWNLOADED'
+  | 'STATE_REPLACED'
+  | 'PLAYLIST_UNSYNCED'
+  | 'RESET_SELECTION'
+  | 'PLAYLIST_TRACKS_RE_COMPUTED'
+  | 'PLAYLIST_STATE_CHANGED' // TODO turn this into an enum
 
-type LoadingEventTarget = 'PLAYLISTS:REFRESH' | 'YOUTUBIZE' | 'DOWNLOAD' | 'PLAYLIST:UNSYNC' | '' // TODO turn this into an enum
+type LoadingEventTarget =
+  'PLAYLISTS:REFRESH' | 'YOUTUBIZE' | 'DOWNLOAD' | 'PLAYLIST:UNSYNC' | '' // TODO turn this into an enum
 
 type LoadingEvent = {
   value: boolean
@@ -31,7 +33,7 @@ interface EventsState {
   PLAYLIST_STATE_CHANGED: boolean
   //
   ROUTER_ANIMATION: string
-  LOADING_STATE: LoadingEvent,
+  LOADING_STATE: LoadingEvent
   DOWNLOADED_TRACKS: number
   DOWNLOAD_QUEUE: {
     id: string
@@ -61,56 +63,60 @@ const getDefaultState: () => EventsState = () => ({
 })
 
 const actions: {
-  [key: string]: (context: ActionContext<EventsState, any>, payload?: any) => Promise<void> | void
+  [key: string]: (
+    context: ActionContext<EventsState, any>,
+    payload?: any
+  ) => Promise<void> | void
 } = {
-  trigger ({ commit }, key) {
+  trigger({ commit }, key) {
     commit('TRIGGER', window.changeCase.constantCase(key))
   },
-  currentPlaylistSet ({ commit }) {
+  currentPlaylistSet({ commit }) {
     commit('TRIGGER', 'CURRENT_PLAYLIST_SET')
   },
-  ffmpegBinsDownloaded ({ commit }, value) {
+  ffmpegBinsDownloaded({ commit }, value) {
     commit('SET', { key: 'FFMPEG_BINS_DOWNLOADED', value })
   },
-  stateReplaced ({ commit }) {
+  stateReplaced({ commit }) {
     commit('TRIGGER', 'STATE_REPLACED')
   },
-  playlistUnsynced ({ commit }) {
+  playlistUnsynced({ commit }) {
     commit('TRIGGER', 'PLAYLIST_UNSYNCED')
   },
-  resetSelection ({ commit }) {
+  resetSelection({ commit }) {
     commit('TRIGGER', 'RESET_SELECTION')
   },
-  reComputeConvertedTracks ({ commit }) {
+  reComputeConvertedTracks({ commit }) {
     // commit('TRIGGER', 'PLAYLIST_TRACKS_RE_COMPUTED')
     VueInstance.$controllers.core.formatConvertedTracks()
   },
-  playlistTracksReComputed ({ commit }) {
+  playlistTracksReComputed({ commit }) {
     commit('TRIGGER', 'PLAYLIST_TRACKS_RE_COMPUTED')
   },
-  playlistStateChanged ({ commit }) {
+  playlistStateChanged({ commit }) {
     commit('TRIGGER', 'PLAYLIST_STATE_CHANGED')
   },
-  routerAnimation ({ commit }, animation) {
+  routerAnimation({ commit }, animation) {
     commit('SET', { key: 'ROUTER_ANIMATION', value: animation })
   },
-  downloadStarted ({ commit }, tracks: DownloadStartedEventPayload) { // TODO typecheck payload
+  downloadStarted({ commit }, tracks: DownloadStartedEventPayload) {
+    // TODO typecheck payload
     commit('DOWNLOAD_STARTED', tracks)
   },
-  async downloadFinished ({ commit }, tracks) {
+  async downloadFinished({ commit }, tracks) {
     try {
       commit('DOWNLOAD_FINISHED', tracks)
     } catch (error) {
       throw error
     }
   },
-  downloadEvent ({ commit }, params) {
+  downloadEvent({ commit }, params) {
     commit('DOWNLOAD_EVENT', params)
   },
-  loadingEvent ({ commit }, payload) {
+  loadingEvent({ commit }, payload) {
     commit('LOADING_EVENT', payload)
   },
-  catchGlobalError ({ commit }, { type, error }) {
+  catchGlobalError({ commit }, { type, error }) {
     return new Promise((resolve, reject) => {
       commit('CATCH_GLOBAL_ERROR', { type, error })
       resolve()
@@ -123,36 +129,37 @@ const SET = (key: keyof EventsState, value: any) => Vue.set(state, key, value) /
 const mutations: {
   [key: string]: (state: EventsState, payload?: any) => void
 } = {
-  TRIGGER (state, key: TriggerableProp) {
+  TRIGGER(state, key: TriggerableProp) {
     state[key] = !state[key]
   },
-  SET (state, { key, value }) {
+  SET(state, { key, value }) {
     SET(key, value)
   },
-  DOWNLOAD_STARTED (state, tracks: DownloadStartedEventPayload) {
+  DOWNLOAD_STARTED(state, tracks: DownloadStartedEventPayload) {
     state.DOWNLOADED_TRACKS = 0
     state.DOWNLOAD_QUEUE = tracks.map(({ id, info }) => {
-      (info.finished || info.currentStatus.includes('error')) && ++state.DOWNLOADED_TRACKS
+      ;(info.finished || info.currentStatus.includes('error')) &&
+        ++state.DOWNLOADED_TRACKS
       return {
         id, // song id
         state: info.currentStatus,
         ptg: (info.currentStatus.includes('ing') && info.ptg) || 0
       }
     })
-    state.LOADING_STATE.ptg = 1 / tracks.length * state.DOWNLOADED_TRACKS
+    state.LOADING_STATE.ptg = (1 / tracks.length) * state.DOWNLOADED_TRACKS
   },
-  DOWNLOAD_FINISHED (state, tracks) {
+  DOWNLOAD_FINISHED(state, tracks) {
     onDownloadEnd()
   },
-  LOADING_EVENT (state, { target, value, ptg }) {
+  LOADING_EVENT(state, { target, value, ptg }) {
     const formatted = getLoadingEvent(target)
     formatted.target = target
     formatted.value = value
     formatted.ptg = ptg || 0
     SET('LOADING_STATE', formatted)
   },
-  DOWNLOAD_EVENT (state, { id, ptg, type }) {
-    const track = state.DOWNLOAD_QUEUE.find(t => t.id === id)
+  DOWNLOAD_EVENT(state, { id, ptg, type }) {
+    const track = state.DOWNLOAD_QUEUE.find((t) => t.id === id)
     if (!track) return
     type = type.split(':')
     switch (type[0]) {
@@ -211,21 +218,31 @@ const mutations: {
       onTrackProgress(ptg / 2 + (type[0] === 'extraction' ? 50 : 0))
     }
   },
-  CATCH_GLOBAL_ERROR (state, { type, error }) {
+  CATCH_GLOBAL_ERROR(state, { type, error }) {
     SET('GLOBAL_ERROR', getErrorType(type, error))
   }
 }
 
-const onTrackProgress = ptg => {
+const onTrackProgress = (ptg) => {
   // TODO check this func
   console.log('progress')
-  mutations.LOADING_EVENT(null, { target: 'DOWNLOAD', value: true, ptg: (state.DOWNLOADED_TRACKS / state.DOWNLOAD_QUEUE.length) + (1 / state.DOWNLOAD_QUEUE.length) * (ptg * 0.01) })
+  mutations.LOADING_EVENT(null, {
+    target: 'DOWNLOAD',
+    value: true,
+    ptg:
+      state.DOWNLOADED_TRACKS / state.DOWNLOAD_QUEUE.length +
+      (1 / state.DOWNLOAD_QUEUE.length) * (ptg * 0.01)
+  })
 }
 const onTrackFinished = () => {
   console.log('track finished')
   // TODO better solution
   if (!state.LOADING_STATE.value) return
-  mutations.LOADING_EVENT(null, { target: 'DOWNLOAD', value: true, ptg: ++state.DOWNLOADED_TRACKS / state.DOWNLOAD_QUEUE.length })
+  mutations.LOADING_EVENT(null, {
+    target: 'DOWNLOAD',
+    value: true,
+    ptg: ++state.DOWNLOADED_TRACKS / state.DOWNLOAD_QUEUE.length
+  })
 }
 const onDownloadEnd = () => {
   console.log('download end')
@@ -235,7 +252,7 @@ const onDownloadEnd = () => {
 const loadingEventTypes: {
   messages: {
     [key: string]: string
-  },
+  }
   defaultMessage: (env: LoadingEvent) => string
   default: LoadingEvent
   percentable: LoadingEvent
@@ -247,35 +264,40 @@ const loadingEventTypes: {
     'PLAYLIST:UNSYNC': 'Unsyncing Playlist',
     default: 'Loading'
   },
-  defaultMessage (env) {
+  defaultMessage(env) {
     return this.messages[env.target] || this.messages.default
   },
   // -----------------------
-  get default () {
+  get default() {
     return {
       value: false,
       target: '',
       showPtg: false,
       ptg: null,
-      get message () {
+      get message() {
         return loadingEventTypes.defaultMessage(this)
       }
     } as LoadingEvent
   },
-  get percentable () {
+  get percentable() {
     return {
       value: false,
       target: '' as LoadingEventTarget,
       showPtg: true,
       ptg: 0,
-      get message () {
-        return loadingEventTypes.defaultMessage(this) + ' ' + (this.ptg * 100).toFixed(1) + '%'
+      get message() {
+        return (
+          loadingEventTypes.defaultMessage(this) +
+          ' ' +
+          (this.ptg * 100).toFixed(1) +
+          '%'
+        )
       }
     }
   }
 }
 
-function getLoadingEvent (target: LoadingEventTarget) {
+function getLoadingEvent(target: LoadingEventTarget) {
   switch (target) {
     case 'PLAYLISTS:REFRESH':
       return loadingEventTypes.percentable
@@ -290,12 +312,14 @@ function getLoadingEvent (target: LoadingEventTarget) {
   }
 }
 
-function getErrorType (type: string, error: Error) { // TODO typecheck
+function getErrorType(type: string, error: Error) {
+  // TODO typecheck
   switch (type) {
     // case 'PLAYLISTS:REFRESH':
     default:
       return {
-        message: 'Something went wrong. Try again later or contact support at <a href="mailto:help@songbasket.com">help@songbasket.com</a>'
+        message:
+          'Something went wrong. Try again later or contact support at <a href="mailto:help@songbasket.com">help@songbasket.com</a>'
       }
   }
 }

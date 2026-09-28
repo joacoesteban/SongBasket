@@ -1,16 +1,17 @@
 import Vue from 'vue'
 import Router, { Route } from 'vue-router'
-import store from '../store'
 
-import LoadingScreen from '../components/LoadingScreen/LoadingScreen.vue'
-import Setup from '../components/Setup/Setup.vue'
-import FolderView from '../components/FolderView/FolderView.vue'
 // import SetHomeFolder from '../components/Setup/SetHomeFolder.vue'
 // import Login from '../components/Login.vue'
 // import Guest from '../components/Setup/Guest.vue'
 // import GuestVerify from '../components/Setup/GuestVerify.vue'
 import Empty from '../components/Empty.vue'
+import FolderView from '../components/FolderView/FolderView.vue'
 import Home from '../components/Home/Home.vue'
+import LoadingScreen from '../components/LoadingScreen/LoadingScreen.vue'
+import Setup from '../components/Setup/Setup.vue'
+import store from '../store'
+
 // import PlaylistsList from '../components/Home/PlaylistsList.vue'
 // import PlaylistView from '../components/Home/PlaylistView/PlaylistView.vue'
 
@@ -49,33 +50,39 @@ const router = new Router({
   ]
 })
 let transitioning = false
-const beforeEachQueue = [(to: Route, from: Route, next: () => void) => {
-  if (transitioning) return
-  transitioning = true
-  let anim1
-  let anim2 = 'fast '
-  const pull = 'pull'
-  const push = 'push'
+const beforeEachQueue = [
+  (to: Route, from: Route, next: () => void) => {
+    if (transitioning) return
+    transitioning = true
+    let anim1
+    let anim2 = 'fast '
+    const pull = 'pull'
+    const push = 'push'
 
-  if (to.fullPath === '/home') {
-    anim1 = pull
-    anim2 += push
-  } else {
-    anim1 = push
-    anim2 += pull
-  }
-  store.dispatch('routerAnimation', anim1)
-  setTimeout(() => {
-    next()
-    store.dispatch('routerAnimation', anim2)
+    if (to.fullPath === '/home') {
+      anim1 = pull
+      anim2 += push
+    } else {
+      anim1 = push
+      anim2 += pull
+    }
+    store.dispatch('routerAnimation', anim1)
     setTimeout(() => {
-      store.dispatch('routerAnimation', 'release')
+      next()
+      store.dispatch('routerAnimation', anim2)
       setTimeout(() => {
-        transitioning = false
+        store.dispatch('routerAnimation', 'release')
+        setTimeout(() => {
+          transitioning = false
+        }, 100)
       }, 100)
-    }, 100)
-  }, 300)
-}]
-router.beforeEach((to, from, next) => beforeEachQueue.forEach((func, index, arr) => func(to, from, index === arr.length - 1 ? next : () => { })))
+    }, 300)
+  }
+]
+router.beforeEach((to, from, next) =>
+  beforeEachQueue.forEach((func, index, arr) =>
+    func(to, from, index === arr.length - 1 ? next : () => {})
+  )
+)
 
 export default router

@@ -1,16 +1,10 @@
 <template>
   <div class="empty-container">
-    <div class="header">
-      It's quiet . . .
-    </div>
+    <div class="header">It's quiet . . .</div>
     <div class="info">
       We couldn't find any Playlists associated with this User.
     </div>
-    <router-link
-      to="/setup/guest"
-      tag="button"
-      class="button"
-    >
+    <router-link to="/setup/guest" tag="button" class="button">
       Go Back
     </router-link>
   </div>
@@ -18,8 +12,10 @@
 
 <script lang="ts">
 export default {
-  mounted () {
-    if (this.$store.state.CurrentUser.playlists.length) { this.$router.push('/home') }
+  mounted() {
+    if (this.$store.state.CurrentUser.playlists.length) {
+      this.$router.push('/home')
+    }
   }
 }
 </script>

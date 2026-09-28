@@ -3,10 +3,7 @@
     :class="loadingState === 'Loading' ? 'loading' : 'doneloading'"
     class="df fldc global-center alt"
   >
-    <button
-      class="button slim"
-      @click="$emit('backLogin')"
-    >
+    <button class="button slim" @click="$emit('backLogin')">
       Log in instead
     </button>
     <!-- <div class="top">
@@ -32,30 +29,21 @@
         class="std-input guest-search-box"
         type="text"
         @keyup.enter.prevent="guestSearch"
-      >
+      />
     </div>
 
     <div class="bot">
-      <div
-        v-if="loadingState !== null"
-        class="loading-state-indicator"
-      >
+      <div v-if="loadingState !== null" class="loading-state-indicator">
         {{ loadingState }}
       </div>
-      <button
-        class="button button-wide"
-        @click="guestSearch"
-      >
-        Search
-      </button>
+      <button class="button button-wide" @click="guestSearch">Search</button>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-
 export default {
-  data () {
+  data() {
     return {
       userQuery: '',
       mode: 0,
@@ -63,32 +51,40 @@ export default {
     }
   },
   computed: {
-    loadingState () {
+    loadingState() {
       const x = this.$store.state.SharedStates.loadingState
       switch (x) {
-        case 'loading': return 'Loading'
-        case 'not found': return !this.lastmode ? 'User not Found' : 'Playlist not Found'
-        case 'invalid id': return 'Invalid ID'
-        case 'found': return null
-        default: return null
+        case 'loading':
+          return 'Loading'
+        case 'not found':
+          return !this.lastmode ? 'User not Found' : 'Playlist not Found'
+        case 'invalid id':
+          return 'Invalid ID'
+        case 'found':
+          return null
+        default:
+          return null
       }
     }
   },
-  mounted () {
+  mounted() {
     // this.focusInput()
   },
   methods: {
-    guestSearch () {
+    guestSearch() {
       this.lastmode = this.mode
-      this.$emit('guestSearch', { query: this.userQuery, mode: this.mode ? 'playlist' : 'user' })
+      this.$emit('guestSearch', {
+        query: this.userQuery,
+        mode: this.mode ? 'playlist' : 'user'
+      })
     },
-    changeMode (mode) {
+    changeMode(mode) {
       if (mode === null) this.mode = this.mode === 0 ? 1 : 0
       else this.mode = mode
 
       this.focusInput()
     },
-    focusInput () {
+    focusInput() {
       this.$refs.guestSearchInput.focus()
     }
   }
@@ -99,15 +95,15 @@ export default {
 .alt {
   @keyframes shiftbackground {
     0% {
-      background: var(--dark-body)
+      background: var(--dark-body);
     }
 
     50% {
-      background: rgb(139, 80, 52)
+      background: rgb(139, 80, 52);
     }
 
     100% {
-      background: var(--dark-body)
+      background: var(--dark-body);
     }
   }
 
@@ -132,7 +128,7 @@ export default {
 
 .radio-container {
   $time: 5s;
-  $curve: cubic-bezier(.07, .98, .23, 1);
+  $curve: cubic-bezier(0.07, 0.98, 0.23, 1);
 
   position: relative;
   display: flex;
@@ -145,8 +141,7 @@ export default {
 
   &:hover {
     .radio-thumb {
-
-      transform: scale(1.1)
+      transform: scale(1.1);
     }
   }
 }
@@ -172,8 +167,8 @@ export default {
     }
   }
 
-  $time: .15s;
-  $curve: cubic-bezier(.79, .74, .26, .96);
+  $time: 0.15s;
+  $curve: cubic-bezier(0.79, 0.74, 0.26, 0.96);
 
   transition: transform $time $curve;
 
@@ -186,13 +181,11 @@ export default {
   &.left {
     animation: goleft $time $curve;
     left: 13%;
-
   }
 
   &.right {
     animation: goright $time $curve;
     left: 52%;
-
   }
 }
 
@@ -218,4 +211,5 @@ export default {
   left: 0;
   right: 0;
   font-size: 1.1rem;
-}</style>
+}
+</style>

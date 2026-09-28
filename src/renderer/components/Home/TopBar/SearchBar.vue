@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="global-search-bar-container"
-    :class="{ hide: hide }"
-  >
+  <div class="global-search-bar-container" :class="{ hide: hide }">
     <div class="filters-container">
       <div class="filters-content">
         <div class="search-bar global-scroll-shadow">
@@ -17,7 +14,7 @@
             @focus="searchInputOnFocus"
             @blur="searchInputOnBlur"
             @keydown.enter="handleInputConfirm"
-          >
+          />
         </div>
         <div class="filter-buttons" />
       </div>
@@ -27,38 +24,33 @@
 
 <script lang="ts">
 export default {
-  components: {
-  },
-  data () {
+  components: {},
+  data() {
     return {
       searchInput: '',
       model: this.$root.SEARCH_INPUT,
-      hideOn: [
-        'track-review',
-        'downloads-view'
-      ],
+      hideOn: ['track-review', 'downloads-view'],
       hide: false
     }
   },
-  computed: {
-  },
+  computed: {},
   watch: {
-    searchInput (val) {
+    searchInput(val) {
       this.model.writeEvent = !this.model.writeEvent
       this.model.value = val
     }
   },
-  mounted () {
+  mounted() {
     this.searchInputOnBlur()
     this.$root.$sbRouter.beforeTransition(this.onBeforeTransition)
   },
   methods: {
-    onBeforeTransition (to, from) {
+    onBeforeTransition(to, from) {
       this.searchInput = ''
       this.model.value = ''
       this.checkVisibility(to)
     },
-    checkVisibility (to) {
+    checkVisibility(to) {
       if (this.hideOn.includes(to.name)) {
         this.$root.$setRootVar('filters-container-height', '0')
         this.hide = true
@@ -67,13 +59,13 @@ export default {
       this.$root.$setRootVar('filters-container-height', '4em')
       this.hide = false
     },
-    searchInputOnFocus () {
+    searchInputOnFocus() {
       this.$root.searchInputElement = null
     },
-    searchInputOnBlur () {
+    searchInputOnBlur() {
       this.$root.searchInputElement = this.$refs['search-input']
     },
-    handleInputConfirm () {
+    handleInputConfirm() {
       // if (this.syncedPlaylistsFiltered && this.syncedPlaylistsFiltered.length === 1) {
       //   const pl = this.$children.find(p => p.playlistId === this.syncedPlaylistsFiltered[0].id)
       //   pl && pl.handleClick()
@@ -93,16 +85,22 @@ export default {
 
   .filters-container {
     pointer-events: none;
-    padding: .5em;
+    padding: 0.5em;
     top: 0;
     z-index: 1;
     box-sizing: border-box;
     height: var(--filters-container-height);
     $t: var(--ts-g);
-    transition: opacity $t, height $t;
+    transition:
+      opacity $t,
+      height $t;
 
     .filters-background {
-      background: linear-gradient(180deg, var(--global-grey-secondary), transparent);
+      background: linear-gradient(
+        180deg,
+        var(--global-grey-secondary),
+        transparent
+      );
       position: absolute;
       top: 0;
       left: 0;
@@ -131,7 +129,7 @@ export default {
       align-items: center;
       border-radius: 10em;
       padding-left: 1em;
-      padding-right: .2em;
+      padding-right: 0.2em;
     }
   }
 
@@ -143,4 +141,5 @@ export default {
       pointer-events: none !important;
     }
   }
-}</style>
+}
+</style>

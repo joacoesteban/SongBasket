@@ -1,17 +1,25 @@
 import axios, { AxiosInstance } from 'axios'
-import { SongBasketTrack } from '../../../@types/SongBasket'
-import { SpotifyApiPlaylistsResponse, SpotifyPlaylist, SpotifyPlaylistId, SpotifySnapshotId, SpotifyUser, SpotifyUserId } from '../../../@types/Spotify'
-import { YouTubeResult, YouTubeResultId } from '../../../@types/YouTube'
 
+import { SongBasketTrack } from '../../../@types/SongBasket'
+import {
+  SpotifyApiPlaylistsResponse,
+  SpotifyPlaylist,
+  SpotifyPlaylistId,
+  SpotifySnapshotId,
+  SpotifyUser,
+  SpotifyUserId
+} from '../../../@types/Spotify'
+import { YouTubeResult, YouTubeResultId } from '../../../@types/YouTube'
 import PATHS from '../../Global/PATHS'
 import REGEX from '../../Global/REGEX'
+
 // const URL = PATHS.makeUrl
 
 console.log('BACKEND: ', PATHS.BASE)
 
 let Api: AxiosInstance = getAxiosInstance()
 
-function getAxiosInstance () {
+function getAxiosInstance() {
   return axios.create({
     baseURL: PATHS.BASE,
     timeout: 20000,
@@ -19,17 +27,18 @@ function getAxiosInstance () {
       Authorization: 'Bearer ' + global.SONGBASKET_ID,
       user_id: global.USER_ID
     },
-    validateStatus: st => (st >= 200 && st < 300) || st === 304
+    validateStatus: (st) => (st >= 200 && st < 300) || st === 304
   })
 }
 
-export function createAxiosInstance () {
+export function createAxiosInstance() {
   Api = getAxiosInstance()
 }
 
-export async function ytDetails (id: YouTubeResultId) {
+export async function ytDetails(id: YouTubeResultId) {
   const reg = REGEX.videoUrl.exec(id)
-  if (!reg && !REGEX.videoId.test(id)) throw new Error('INVALID YOUTUBE VIDEO ID')
+  if (!reg && !REGEX.videoId.test(id))
+    throw new Error('INVALID YOUTUBE VIDEO ID')
   if (reg) id = reg[1]
   console.log('gettin', PATHS.VIDEO(id))
   const resp = await Api.get<YouTubeResult>(PATHS.VIDEO(id))
@@ -43,15 +52,24 @@ export const getMe = async (): Promise<SpotifyUser> => {
   return res.data
 }
 
-export const getUserPlaylists = async (user_id: SpotifyUserId, p: { offset: number | null } = { offset: null }) => {
+export const getUserPlaylists = async (
+  user_id: SpotifyUserId,
+  p: { offset: number | null } = { offset: null }
+) => {
   const params = {
-    offset: p.offset || 0,
+    offset: p.offset || 0
   }
-  const res = await Api.get<SpotifyApiPlaylistsResponse>(PATHS.USER_PLAYLISTS(user_id), { params })
+  const res = await Api.get<SpotifyApiPlaylistsResponse>(
+    PATHS.USER_PLAYLISTS(user_id),
+    { params }
+  )
   return res.data
 }
 
-export const getPlaylist = async (params: { id: SpotifyPlaylistId, snapshot_id?: SpotifySnapshotId }) => {
+export const getPlaylist = async (params: {
+  id: SpotifyPlaylistId
+  snapshot_id?: SpotifySnapshotId
+}) => {
   const { id, snapshot_id } = params
 
   const res = await Api.get<SpotifyPlaylist>(PATHS.PLAYLIST(id), {
@@ -65,7 +83,11 @@ export const getPlaylist = async (params: { id: SpotifyPlaylistId, snapshot_id?:
   return res.data
 }
 
-export async function youtubizeAll (tracks: SongBasketTrack[], isConvertable: (track: SongBasketTrack) => boolean, completionCallback: ((total: number) => void) | null): Promise<{ tracks: SongBasketTrack[], failed: number }> {
+export async function youtubizeAll(
+  tracks: SongBasketTrack[],
+  isConvertable: (track: SongBasketTrack) => boolean,
+  completionCallback: ((total: number) => void) | null
+): Promise<{ tracks: SongBasketTrack[]; failed: number }> {
   let totalTracks = 0
   let succeded = 0
   let failed = 0
@@ -78,9 +100,9 @@ export async function youtubizeAll (tracks: SongBasketTrack[], isConvertable: (t
       Api.post(PATHS.YOUTUBIZE, {
         track: JSON.stringify(tracks[i].query)
       })
-        .then(res => {
+        .then((res) => {
           console.log('on .then => conversion successful?', !!(res && res.data))
-          if (!res || !res.data) throw new Error('Conversion doesn\'t exist')
+          if (!res || !res.data) throw new Error("Conversion doesn't exist")
           tracks[i].conversion = res.data
           tracks[i].flags.converted = true
           tracks[i].flags.conversionError = false
@@ -104,7 +126,7 @@ export async function youtubizeAll (tracks: SongBasketTrack[], isConvertable: (t
     if (!totalTracks) areAllFinished(resolve)
   })
 
-  function areAllFinished (resolve: Function) {
+  function areAllFinished(resolve: Function) {
     if (succeded + failed === totalTracks) {
       resolve({ tracks, failed })
     }

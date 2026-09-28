@@ -1,9 +1,6 @@
 <template>
   <div>
-    <unsync
-      v-show="options.wich === 'unsync'"
-      @close="$emit('close')"
-    />
+    <unsync v-show="options.wich === 'unsync'" @close="$emit('close')" />
     <custom-track-url
       v-show="options.wich === 'custom-track-url'"
       @close="$emit('close')"
@@ -35,10 +32,9 @@ export default {
     DeleteFolder
   },
   computed: {
-    options () {
+    options() {
       return this.$store.state.SharedStates.modal.options
     }
   }
-
 }
 </script>

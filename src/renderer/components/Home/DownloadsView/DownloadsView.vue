@@ -19,17 +19,23 @@ export default {
     TrackBanner
   },
   computed: {
-    downloads () {
-      return (this.$store.state.Events.DOWNLOAD_QUEUE || []).map(t => this.$store.state.CurrentUser.convertedTracks.find(track => t.id === track.id))
+    downloads() {
+      return (this.$store.state.Events.DOWNLOAD_QUEUE || []).map((t) =>
+        this.$store.state.CurrentUser.convertedTracks.find(
+          (track) => t.id === track.id
+        )
+      )
     },
-    currentTrackDownload () {
+    currentTrackDownload() {
       return this.$store.state.Events.CURRENT_DOWNLOAD
     }
   },
   methods: {
-    giveMeTrackDownloadStatus (track) {
+    giveMeTrackDownloadStatus(track) {
       // if (this.currentTrackDownload !== track.id) return {state: 'awaiting'}
-      return this.$store.state.Events.DOWNLOAD_QUEUE.find(t => t.id === track.id)
+      return this.$store.state.Events.DOWNLOAD_QUEUE.find(
+        (t) => t.id === track.id
+      )
     }
   }
 }

@@ -17,25 +17,38 @@ run = "electron-vite dev"
 description = "Build and run the app as it ships"
 run = "electron-vite preview"
 
-[tasks.typecheck]
+[tasks."typecheck:main"]
 description = "Typecheck the main process"
 run = "tsc --noEmit -p tsconfig.main.json"
 
+[tasks.typecheck]
+description = "Typecheck the main process and renderer"
+run = "mise run typecheck:main && mise run typecheck:renderer"
+
 [tasks."typecheck:renderer"]
-description = "Typecheck the renderer (unfinished migration, currently red)"
+description = "Typecheck the renderer"
 run = "vue-tsc --noEmit -p tsconfig.renderer.json"
 
+[tasks.format]
+description = "Format source and configuration files"
+run = "prettier --write 'src/**/*.ts' 'src/**/*.css' 'src/**/*.scss' electron.vite.config.ts electron-builder.yml tsconfig.base.json tsconfig.main.json tsconfig.renderer.json eslint.config.mjs .prettierrc package.json && prettier --no-config --single-quote --no-semi --trailing-comma none --print-width 80 --write 'src/**/*.vue'"
+
+[tasks."format:check"]
+description = "Check source and configuration formatting"
+run = "prettier --check 'src/**/*.ts' 'src/**/*.css' 'src/**/*.scss' electron.vite.config.ts electron-builder.yml tsconfig.base.json tsconfig.main.json tsconfig.renderer.json eslint.config.mjs .prettierrc package.json && prettier --no-config --single-quote --no-semi --trailing-comma none --print-width 80 --check 'src/**/*.vue'"
+
 [tasks.lint]
-description = "Lint every source file"
-run = "eslint ."
+description = "Lint and check formatting"
+run = "eslint . && mise run format:check"
 
 [tasks."lint:fix"]
-description = "Lint and autofix every source file"
-run = "eslint . --fix"
+description = "Lint and format source files"
+run = "eslint . --fix && mise run format"
 
 [tasks.build]
 description = "Bundle main and renderer into out/"
 run = "electron-vite build"
+
 
 [tasks.pack]
 description = "Bundle and package an unsigned local app"

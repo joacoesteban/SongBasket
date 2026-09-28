@@ -1,9 +1,7 @@
 <template>
   <div class="container">
     <div class="header">
-      <b>
-        Enter a YouTube Url
-      </b>
+      <b> Enter a YouTube Url </b>
     </div>
     <div class="info light">
       <input
@@ -12,33 +10,17 @@
         class="std-input"
         type="text"
         @keyup.enter="accept"
-      >
+      />
       <div
-        :class="{ 'valid': valid === true, 'invalid': valid === false, 'hide': hide }"
+        :class="{ valid: valid === true, invalid: valid === false, hide: hide }"
         class="valid-container"
       />
     </div>
-    <div
-      :class="{ 'hide': hideControls }"
-      class="controls df jucc aliic"
-    >
-      <div
-        class="button accept"
-        @click="accept"
-      >
-        Accept
-      </div>
-      <div
-        class="button cancel"
-        @click="cancel"
-      >
-        Cancel
-      </div>
+    <div :class="{ hide: hideControls }" class="controls df jucc aliic">
+      <div class="button accept" @click="accept">Accept</div>
+      <div class="button cancel" @click="cancel">Cancel</div>
     </div>
-    <div
-      :class="{ 'hide': !hideControls }"
-      class="controls loading"
-    >
+    <div :class="{ hide: !hideControls }" class="controls loading">
       {{ loadingText }}
     </div>
   </div>
@@ -46,7 +28,7 @@
 
 <script lang="ts">
 export default {
-  data () {
+  data() {
     return {
       url: '',
       valid: null,
@@ -60,20 +42,20 @@ export default {
     }
   },
   computed: {
-    payload () {
+    payload() {
       return this.$store.state.SharedStates.modal.options.payload
     },
-    show () {
+    show() {
       return this.$store.state.SharedStates.modal.show
     }
   },
   watch: {
-    url (val) {
+    url(val) {
       if (val === '') return (this.hide = true)
       this.valid = this.regex.url.test(val) || this.regex.id.test(val)
       this.hide = false
     },
-    show (val) {
+    show(val) {
       if (val) return this.focusInput()
       this.url = ''
       this.valid = null
@@ -82,23 +64,27 @@ export default {
       this.loadingText = 'Loading'
     }
   },
-  mounted () {
+  mounted() {
     this.focusInput()
   },
   methods: {
-    focusInput () {
+    focusInput() {
       this.$refs.input && this.$refs.input.focus()
     },
-    cancel () {
+    cancel() {
       this.$emit('close')
       this.payload.cancelCb && this.payload.cancelCb()
     },
-    async accept () {
+    async accept() {
       if (!this.valid || this.url === '') return
       this.hide = true
       this.hideControls = true
 
-      this.$root.$IPC.callMain('YOUTUBE_DETAILS:GET', { url: this.url, trackId: this.payload.trackId })
+      this.$root.$IPC
+        .callMain('YOUTUBE_DETAILS:GET', {
+          url: this.url,
+          trackId: this.payload.trackId
+        })
         .then((details) => {
           this.$emit('close')
           this.payload.cb && this.payload.cb()
@@ -128,16 +114,18 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-size: .7em;
+  font-size: 0.7em;
   margin: 1em 0;
 }
 
-$transition: .2s cubic-bezier(.12, .82, 0, .99);
+$transition: 0.2s cubic-bezier(0.12, 0.82, 0, 0.99);
 
 .valid-container {
-  transition: width $transition, background-color $transition;
+  transition:
+    width $transition,
+    background-color $transition;
   width: 100%;
-  height: .2em;
+  height: 0.2em;
 
   &.hide {
     width: 0;
@@ -160,23 +148,26 @@ $transition: .2s cubic-bezier(.12, .82, 0, .99);
 
 .controls {
   margin-top: 1em;
-  transition: opacity $transition, transform $transition;
+  transition:
+    opacity $transition,
+    transform $transition;
   transform-origin: bottom;
   transform: scale(1);
   opacity: 1;
 
   &.hide {
-    transform: scale(.75);
+    transform: scale(0.75);
     opacity: 0;
   }
 
   .button {
-    margin: 0 .3em;
+    margin: 0 0.3em;
     width: 5em;
   }
 
   &.loading {
     position: absolute;
-    bottom: 1em
+    bottom: 1em;
   }
-}</style>
+}
+</style>

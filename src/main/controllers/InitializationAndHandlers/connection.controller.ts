@@ -1,11 +1,14 @@
-import * as dns from 'dns'
 import axios from 'axios'
+import * as dns from 'dns'
 
 let CB: (connected: boolean) => void
 let API_CB: (connected: boolean) => void
 
 export default {
-  init (params: { connectionChangeCallback: typeof CB, apiConnectionChangeCallback: typeof API_CB }) {
+  init(params: {
+    connectionChangeCallback: typeof CB
+    apiConnectionChangeCallback: typeof API_CB
+  }) {
     const { connectionChangeCallback, apiConnectionChangeCallback } = params
     CB = connectionChangeCallback || (() => {})
     API_CB = apiConnectionChangeCallback || (() => {})
@@ -14,7 +17,7 @@ export default {
   }
 }
 const checkInternet = () => {
-  dns.lookup('youtube.com', err => {
+  dns.lookup('youtube.com', (err) => {
     const connected = !(err && err.code === 'ENOTFOUND')
     if (connected !== global.CONNECTED_TO_INTERNET) {
       global.CONNECTED_TO_INTERNET = connected
@@ -36,6 +39,8 @@ const pingApi = async () => {
     global.CONNECTED_TO_API = connected
     API_CB(connected)
   }
-  const time: number = global.CONNECTED_TO_API ? global.CONSTANTS.HEROKU_PING_INTERVAL : 5000
+  const time: number = global.CONNECTED_TO_API
+    ? global.CONSTANTS.HEROKU_PING_INTERVAL
+    : 5000
   setTimeout(pingApi, time)
 }

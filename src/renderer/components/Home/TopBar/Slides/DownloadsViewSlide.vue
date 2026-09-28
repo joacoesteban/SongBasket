@@ -1,15 +1,11 @@
 <template>
   <div class="downloads-view-slide-container">
-    <span class="sb-title">
-      Downloads
-    </span>
+    <span class="sb-title"> Downloads </span>
   </div>
 </template>
 
 <script lang="ts">
-export default {
-
-}
+export default {}
 </script>
 
 <style lang="scss" scoped>

@@ -24,9 +24,7 @@
       @click="addFolder"
     >
       <button class="button all-click">
-        <span>
-          Add a new Folder
-        </span>
+        <span> Add a new Folder </span>
       </button>
     </div>
   </div>
@@ -38,25 +36,24 @@ export default {
   components: {
     Folder
   },
-  data () {
+  data() {
     return {
       title: 'Your Folders',
       folders: global.CONSTANTS.APP_STATUS.FOLDERS.paths
     }
   },
-  mounted () {
+  mounted() {
     // this.deleteFolder(this.folders[0])
   },
   methods: {
-    openFolder (path) {
+    openFolder(path) {
       this.$root.$controllers.core.setHomeFolder(path)
     },
-    editFolder (path) {
-    },
-    deleteFolder (path) {
+    editFolder(path) {},
+    deleteFolder(path) {
       this.$root.$controllers.core.askRemoveFolder({ path })
     },
-    async addFolder () {
+    async addFolder() {
       try {
         await this.$root.$controllers.setup.setHomeFolder()
         await this.$root.$controllers.setup.login()
@@ -80,8 +77,8 @@ export default {
 .setup-header {
   --height: 15vw;
 
-  >span {
-    font-size: .75em;
+  > span {
+    font-size: 0.75em;
   }
 }
 
@@ -97,7 +94,8 @@ export default {
   }
 }
 
-.folder-list {}
+.folder-list {
+}
 
 .controls-container {
   height: var(--controls-height);

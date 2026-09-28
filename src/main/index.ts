@@ -1,7 +1,7 @@
 // import * as electron from 'electron'
-import './environment-init'
 import bootstrap from './bootstrap'
+import './environment-init'
 
-(async () => {
+;(async () => {
   await bootstrap()
 })()

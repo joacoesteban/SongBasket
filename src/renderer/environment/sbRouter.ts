@@ -1,5 +1,8 @@
-export type locationEntry = { name: string, params: {} }
-export type transitionCallback = (to: locationEntry, from: locationEntry) => void
+export type locationEntry = { name: string; params: {} }
+export type transitionCallback = (
+  to: locationEntry,
+  from: locationEntry
+) => void
 class SbRouter {
   path: locationEntry = { name: '', params: {} }
   history: locationEntry[] = []
@@ -8,43 +11,43 @@ class SbRouter {
   afterTransitionCallbacks: transitionCallback[] = []
   transitioning: boolean = false
 
-  beforeTransition (func: transitionCallback) {
+  beforeTransition(func: transitionCallback) {
     this.beforeTransitionCallbacks.push(func)
   }
 
-  afterTransition (func: transitionCallback) {
+  afterTransition(func: transitionCallback) {
     this.afterTransitionCallbacks.push(func)
   }
 
-  setTransitioningState (bool: boolean) {
-    return this.transitioning = bool
+  setTransitioningState(bool: boolean) {
+    return (this.transitioning = bool)
   }
 
-  giveMeCurrent () {
+  giveMeCurrent() {
     return this.history[this.pointer]
   }
 
-  giveMePrevious () {
+  giveMePrevious() {
     return this.history[this.pointer - 1]
   }
 
-  giveMeNext () {
+  giveMeNext() {
     return this.history[this.pointer + 1]
   }
 
-  isSamePath (path1: locationEntry, path2 = this.path) {
+  isSamePath(path1: locationEntry, path2 = this.path) {
     return path1.isSameObject(path2)
   }
 
-  isLast () {
+  isLast() {
     return this.pointer + 1 === this.history.length
   }
 
-  clearHistory () {
+  clearHistory() {
     this.history = this.history.slice(0, this.pointer + 1)
   }
 
-  async push (location: locationEntry | string): Promise<void> {
+  async push(location: locationEntry | string): Promise<void> {
     if (this.transitioning) return
     if (typeof location === 'string') location = { name: location, params: {} }
 
@@ -60,7 +63,7 @@ class SbRouter {
     this.onAfterTransition(this.history[this.history.length - 2]) // From
   }
 
-  goBack () {
+  goBack() {
     if (this.transitioning) return
     if (this.pointer === 0) return
     this.onBeforeTransition(this.history[this.pointer - 1]) // To
@@ -69,7 +72,7 @@ class SbRouter {
     this.onAfterTransition(this.history[this.pointer + 1]) // From
   }
 
-  goForward () {
+  goForward() {
     if (this.transitioning) return
     if (this.isLast()) return
     this.onBeforeTransition(this.history[this.pointer + 1]) // To
@@ -78,14 +81,14 @@ class SbRouter {
     this.onAfterTransition(this.history[this.pointer - 1]) // From
   }
 
-  async onBeforeTransition (to: locationEntry) {
+  async onBeforeTransition(to: locationEntry) {
     // (to, from)
-    this.beforeTransitionCallbacks.forEach(f => f(to, this.path)) // TODO await Promise.all
+    this.beforeTransitionCallbacks.forEach((f) => f(to, this.path)) // TODO await Promise.all
   }
 
-  async onAfterTransition (from: locationEntry) {
+  async onAfterTransition(from: locationEntry) {
     // (on, from)
-    this.afterTransitionCallbacks.forEach(f => f(this.path, from)) // TODO await Promise.all
+    this.afterTransitionCallbacks.forEach((f) => f(this.path, from)) // TODO await Promise.all
   }
 }
 

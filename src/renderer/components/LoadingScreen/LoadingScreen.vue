@@ -1,17 +1,13 @@
 <template>
   <div class="loading-container">
-    <div>
-      Loading
-    </div>
-    <div class="regular point5-em mt-2">
-      Version {{ version }}
-    </div>
+    <div>Loading</div>
+    <div class="regular point5-em mt-2">Version {{ version }}</div>
   </div>
 </template>
 
 <script lang="ts">
 export default {
-  data () {
+  data() {
     return {
       version: global.CONSTANTS.APP_VERSION_STRING
     }

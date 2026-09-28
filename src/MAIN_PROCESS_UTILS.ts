@@ -1,11 +1,12 @@
 import * as fs from 'fs'
 import * as PATH from 'path'
+
 import { Platform } from './@types/App'
 
-export function cloneObject<T> (aObject: T): T {
+export function cloneObject<T>(aObject: T): T {
   return clone(aObject)
 }
-function clone (aObject: any) {
+function clone(aObject: any) {
   if (!aObject) {
     return aObject
   }
@@ -14,41 +15,44 @@ function clone (aObject: any) {
   const bObject: { [key: string]: any } = Array.isArray(aObject) ? [] : {}
   for (const k in aObject) {
     v = aObject[k]
-    bObject[k] = (typeof v === 'object') ? clone(v) : v
+    bObject[k] = typeof v === 'object' ? clone(v) : v
   }
 
   return bObject
 }
 
-export function removeDuplication (array: any[]) {
+export function removeDuplication(array: any[]) {
   if (!Array.isArray(array)) return
   for (let i = 0; i < array.length; i++) {
-    array = [array[i], ...array.filter(item => item !== array[i])]
+    array = [array[i], ...array.filter((item) => item !== array[i])]
   }
   return array
 }
 
-export function removeDuplicationId (array: any[]) {
+export function removeDuplicationId(array: any[]) {
   if (!Array.isArray(array)) return
   for (let i = 0; i < array.length; i++) {
-    array = [array[i], ...array.filter(item => item.id !== array[i].id)]
+    array = [array[i], ...array.filter((item) => item.id !== array[i].id)]
   }
   return array
 }
 
-export function encodeIntoFilename (text: string) {
+export function encodeIntoFilename(text: string) {
   const reg = /\\|\/|\*|\?|:|\*|\||"|<|>/g
   return text.replace(reg, '-')
 }
 
-export async function createDirRecursive (path: string) {
+export async function createDirRecursive(path: string) {
   const pathArray = path.split(/\/|\\/)
   if (await pathDoesExist(path)) return
 
-  let subPath = (global.CONSTANTS.PLATFORM === Platform.windows ? pathArray.splice(0, 1) : '') + '/'
+  let subPath =
+    (global.CONSTANTS.PLATFORM === Platform.windows
+      ? pathArray.splice(0, 1)
+      : '') + '/'
   for (let i = 0; i < pathArray.length; i++) {
     subPath = PATH.join(subPath, pathArray[i])
-    if (!await pathDoesExist(subPath)) {
+    if (!(await pathDoesExist(subPath))) {
       try {
         await createDir(subPath)
       } catch (err) {
@@ -59,56 +63,60 @@ export async function createDirRecursive (path: string) {
   }
 }
 
-export function pathDoesExist (path: string) {
+export function pathDoesExist(path: string) {
   return new Promise((resolve, reject) => {
-    fs.stat(path, err => resolve(!err))
+    fs.stat(path, (err) => resolve(!err))
   })
 }
-export function readFile (path: string) {
+export function readFile(path: string) {
   return new Promise((resolve, reject) => {
-    fs.readFile(path, (err, data) => err ? reject(err) : resolve(data))
+    fs.readFile(path, (err, data) => (err ? reject(err) : resolve(data)))
   })
 }
-export function writeFile (path: string, data: string): Promise<void> {
+export function writeFile(path: string, data: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    fs.writeFile(path, data, err => err ? reject(err) : resolve())
+    fs.writeFile(path, data, (err) => (err ? reject(err) : resolve()))
   })
 }
-export function link (path: string, path2: string): Promise<void> {
+export function link(path: string, path2: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    fs.link(path, path2, err => err ? reject(err) : resolve())
+    fs.link(path, path2, (err) => (err ? reject(err) : resolve()))
   })
 }
-export function unlink (path: string): Promise<void> {
+export function unlink(path: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    fs.unlink(path, err => err ? reject(err) : resolve())
+    fs.unlink(path, (err) => (err ? reject(err) : resolve()))
   })
 }
-export async function unlinkSafe (path: string) {
+export async function unlinkSafe(path: string) {
   if (await pathDoesExist(path)) await unlink(path)
 }
-export function createDir (path: string): Promise<void> {
+export function createDir(path: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    fs.mkdir(path, err => err ? reject(err) : resolve())
+    fs.mkdir(path, (err) => (err ? reject(err) : resolve()))
   })
 }
 
-export function linkNRemove (path1: string, path2: string): Promise<void> {
+export function linkNRemove(path1: string, path2: string): Promise<void> {
   return new Promise((resolve, reject) => {
     link(path1, path2)
       .then(() => {
-        unlink(path1)
-          .then(resolve)
-          .catch(reject)
+        unlink(path1).then(resolve).catch(reject)
       })
       .catch(reject)
   })
 }
-export function copyNRemove (path1: string, path2: string): Promise<void> {
-  return new Promise((resolve, reject) => fs.copyFile(path1, path2, err => err ? reject(err) : fs.unlink(path1, err => err ? reject(err) : resolve())))
+export function copyNRemove(path1: string, path2: string): Promise<void> {
+  return new Promise((resolve, reject) =>
+    fs.copyFile(path1, path2, (err) =>
+      err
+        ? reject(err)
+        : fs.unlink(path1, (err) => (err ? reject(err) : resolve()))
+    )
+  )
 }
 
-export function isSameDisk (path1: string, path2: string) {
+export function isSameDisk(path1: string, path2: string) {
   path1 = path1.toLowerCase()
   path2 = path2.toLowerCase()
   switch (global.CONSTANTS.PLATFORM as Platform) {
@@ -129,7 +137,10 @@ export function isSameDisk (path1: string, path2: string) {
         return path2.indexOf('/volumes') !== 0
       }
     case Platform.windows:
-      return path1.slice(0, path1.indexOf(':')) === path2.slice(0, path2.indexOf(':'))
+      return (
+        path1.slice(0, path1.indexOf(':')) ===
+        path2.slice(0, path2.indexOf(':'))
+      )
     // case 'other': // TODO add linux case
     //   break
   }

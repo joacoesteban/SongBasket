@@ -1,11 +1,11 @@
 import type * as NodeID3 from 'node-id3'
+
 import type IpcController from '../main/controllers/InitializationAndHandlers/ipc.controller'
-import type { Constants } from './constants'
-import type { SongbasketFoldersFile, SongBasketId } from './SongBasket'
+import type { SongBasketId, SongbasketFoldersFile } from './SongBasket'
 import type { SpotifyUser } from './Spotify'
+import type { Constants } from './constants'
 
 declare global {
-
   var ipcSend: typeof IpcController.send
   var USER_ID: SpotifyUser['id'] | null
   var SONGBASKET_ID: SongBasketId | null
@@ -31,7 +31,7 @@ declare global {
 
 export type Tags = Omit<NodeID3.Tags, 'userDefinedText'> & {
   userDefinedText?: Array<{
-    description: string,
+    description: string
     value: string
   }>
 }

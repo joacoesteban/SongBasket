@@ -1,15 +1,21 @@
 import env from './VueInstance'
+
 const PlaylistController = {
-  getObject (id) {
+  getObject(id) {
     console.log('ID?', id)
-    const obj = id && (env.store.state.CurrentUser.playlists.find(pl => pl.id === this.playlistId) || {})
+    const obj =
+      id &&
+      (env.store.state.CurrentUser.playlists.find(
+        (pl) => pl.id === this.playlistId
+      ) ||
+        {})
     console.log('OBJ?', obj)
     return obj
   },
-  isSynced (id) {
+  isSynced(id) {
     return id && env.store.getters.PlaylistIsSynced(id)
   },
-  getStatus (playlist) {
+  getStatus(playlist) {
     if (!playlist) return {}
     let status = {}
 
@@ -20,25 +26,29 @@ const PlaylistController = {
     let doubtly = 0
     let dirts = 0
     let toDownload = 0
-    playlist.tracks.items.map(t => env.root.CONVERTED_TRACKS_FORMATTED.find(track => track.id === t.id)).forEach(({ flags, selectionObj, status }) => {
-      switch (status && status.slug) {
-        case undefined:
-        case 'error':
-          ++errors
-          break
-        case 'no-conversion':
-        case 'review-conversion':
-          ++doubtly
-          break
-        case 'awaiting-conversion':
-          ++dirts
-          break
-        case 'awaiting-download':
-        case 'custom:awaiting-download':
-          ++toDownload
-          break
-      }
-    })
+    playlist.tracks.items
+      .map((t) =>
+        env.root.CONVERTED_TRACKS_FORMATTED.find((track) => track.id === t.id)
+      )
+      .forEach(({ flags, selectionObj, status }) => {
+        switch (status && status.slug) {
+          case undefined:
+          case 'error':
+            ++errors
+            break
+          case 'no-conversion':
+          case 'review-conversion':
+            ++doubtly
+            break
+          case 'awaiting-conversion':
+            ++dirts
+            break
+          case 'awaiting-download':
+          case 'custom:awaiting-download':
+            ++toDownload
+            break
+        }
+      })
     if (errors) {
       status = statuses.error
       status.ammount = errors
@@ -53,19 +63,23 @@ const PlaylistController = {
       status.ammount = toDownload
     }
 
-    status.trackChanges = (playlist.tracks.added && playlist.tracks.added.length) || 0 + (playlist.tracks.removed && playlist.tracks.removed.length) || 0
+    status.trackChanges =
+      (playlist.tracks.added && playlist.tracks.added.length) ||
+      0 + (playlist.tracks.removed && playlist.tracks.removed.length) ||
+      0
     status.baseState = 'synced'
 
     return status
   },
-  sort (a, b) {
+  sort(a, b) {
     const aOrd = a.status.sortOrder
     const bOrd = b.status.sortOrder
 
     if (!aOrd || !bOrd) return
 
     if (aOrd === bOrd) {
-      if (a.status.trackChanges || b.status.trackChanges) return b.status.trackChanges - a.status.trackChanges
+      if (a.status.trackChanges || b.status.trackChanges)
+        return b.status.trackChanges - a.status.trackChanges
       return b.status.ammount - a.status.ammount
     }
     return aOrd - bOrd
@@ -73,14 +87,14 @@ const PlaylistController = {
 }
 
 const statuses = {
-  get unsynced () {
+  get unsynced() {
     return {
       slug: 'unsynced',
       msg: 'click to sync',
       color: 'var(--button-purple)'
     }
   },
-  get paused () {
+  get paused() {
     return {
       slug: 'paused',
       msg: 'Paused',
@@ -89,47 +103,59 @@ const statuses = {
       baseState: 'synced'
     }
   },
-  get synced () {
+  get synced() {
     return {
       slug: 'synced',
       ammount: 0,
       sortOrder: 3,
       color: 'var(--green-accept)',
-      get msg () {
+      get msg() {
         return !this.ammount ? 'Synced' : this.ammount + ' to download'
       }
     }
   },
-  get doubtly () {
+  get doubtly() {
     return {
       slug: 'doubtly',
       ammount: 0,
       sortOrder: 1,
       color: 'var(--orange-warning)',
-      get msg () {
-        return this.ammount + ' track' + (this.ammount === 1 ? '' : 's') + ' to review'
+      get msg() {
+        return (
+          this.ammount +
+          ' track' +
+          (this.ammount === 1 ? '' : 's') +
+          ' to review'
+        )
       }
     }
   },
-  get dirty () {
+  get dirty() {
     return {
       slug: 'dirty',
       ammount: 0,
       sortOrder: 2,
       color: 'var(--button-purple)',
-      get msg () {
-        return this.ammount + ' track' + (this.ammount === 1 ? '' : 's') + ' to convert'
+      get msg() {
+        return (
+          this.ammount +
+          ' track' +
+          (this.ammount === 1 ? '' : 's') +
+          ' to convert'
+        )
       }
     }
   },
-  get error () {
+  get error() {
     return {
       slug: 'error',
       ammount: 0,
       sortOrder: 1,
       color: 'var(--red-cancel)',
-      get msg () {
-        return this.ammount + ' conversion error' + (this.ammount === 1 ? '' : 's')
+      get msg() {
+        return (
+          this.ammount + ' conversion error' + (this.ammount === 1 ? '' : 's')
+        )
       }
     }
   }

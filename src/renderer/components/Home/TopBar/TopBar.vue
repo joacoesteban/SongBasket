@@ -7,30 +7,15 @@
     <div class="drop-gradient abs-full hide-on-scroll" />
 
     <div class="title-bar-container abs-full">
-      <div
-        id="title-bar"
-        class="mac title-section"
-      >
-        <div
-          v-if="isMac"
-          class="title-bar-buttons-container"
-        >
-          <button
-            id="min-btn"
-            class="bar-btn button-minimize"
-          >
+      <div id="title-bar" class="mac title-section">
+        <div v-if="isMac" class="title-bar-buttons-container">
+          <button id="min-btn" class="bar-btn button-minimize">
             <div class="mask" />
           </button>
-          <button
-            id="max-btn"
-            class="bar-btn button-maximize"
-          >
+          <button id="max-btn" class="bar-btn button-maximize">
             <div class="mask" />
           </button>
-          <button
-            id="close-btn"
-            class="bar-btn button-close"
-          >
+          <button id="close-btn" class="bar-btn button-close">
             <div class="mask" />
           </button>
         </div>
@@ -42,10 +27,7 @@
           :class="{ show: showPrevBtn }"
           @click="navigationBack"
         >
-          <font-awesome-icon
-            size="xs"
-            icon="arrow-left"
-          />
+          <font-awesome-icon size="xs" icon="arrow-left" />
         </div>
         <div class="status-container">
           <span>
@@ -57,38 +39,20 @@
           :class="{ show: showForwBtn }"
           @click="navigationForw"
         >
-          <font-awesome-icon
-            size="xs"
-            icon="arrow-right"
-          />
+          <font-awesome-icon size="xs" icon="arrow-right" />
         </div>
       </div>
 
       <div class="title-section">
-        <div
-          id="title-bar"
-          class="windows"
-        >
-          <div
-            v-if="!isMac"
-            class="title-bar-buttons-container window-nodrag"
-          >
-            <div
-              id="min-btn"
-              class="bar-btn button-minimize"
-            >
+        <div id="title-bar" class="windows">
+          <div v-if="!isMac" class="title-bar-buttons-container window-nodrag">
+            <div id="min-btn" class="bar-btn button-minimize">
               <div class="mask" />
             </div>
-            <div
-              id="max-btn"
-              class="bar-btn button-unmaximize"
-            >
+            <div id="max-btn" class="bar-btn button-unmaximize">
               <div class="mask" />
             </div>
-            <div
-              id="close-btn"
-              class="bar-btn button-close"
-            >
+            <div id="close-btn" class="bar-btn button-close">
               <div class="mask" />
             </div>
           </div>
@@ -98,7 +62,10 @@
 
     <div
       class="bar-slider-container h-fc rel-full df"
-      :style="{ '--position-ptg': sliderPosition + '%', '--animation-duration': loadingBar.animationDuration + 'ms' }"
+      :style="{
+        '--position-ptg': sliderPosition + '%',
+        '--animation-duration': loadingBar.animationDuration + 'ms'
+      }"
     >
       <div class="df fldc aliend bar-slide h-fc show">
         <div class="section-switcher-container">
@@ -109,10 +76,7 @@
               class="section-switch window-nodrag"
               :class="{ active: activeSection === section.id }"
             >
-              <span
-                class="section-title semibold"
-                @click="section.cb"
-              >
+              <span class="section-title semibold" @click="section.cb">
                 {{ section.title }}
               </span>
             </div>
@@ -122,12 +86,12 @@
       <playlist-view-slide
         :class="{ show: currentPath === 'playlist-view' }"
         class="bar-slide"
-        style="--slide-height: 6em;"
+        style="--slide-height: 6em"
       />
       <track-review-slide
         :class="{ show: currentPath === 'track-review' }"
         class="bar-slide hidden-of"
-        style="--slide-height: 10em;"
+        style="--slide-height: 10em"
       />
       <downloads-view-slide
         :class="{ show: currentPath === 'downloads-view' }"
@@ -167,7 +131,7 @@ export default {
     DownloadsViewSlide,
     HomeIcon
   },
-  data () {
+  data() {
     let sectionId = 0
     return {
       user: this.$store.state.CurrentUser.user,
@@ -205,12 +169,14 @@ export default {
     }
   },
   computed: {
-    route () {
+    route() {
       return this.$route.name
     },
-    now () {
+    now() {
       const separator = ' / '
-      const thisDate = dateFormatter(this.$store.state.CurrentUser.lastSync || new Date())
+      const thisDate = dateFormatter(
+        this.$store.state.CurrentUser.lastSync || new Date()
+      )
       const hours = thisDate.time.hours + ':' + thisDate.time.minutes
       let date = ''
       if (thisDate.date.today) date = 'Today'
@@ -224,39 +190,41 @@ export default {
 
       return { date, hours }
     },
-    loadingState () {
+    loadingState() {
       return this.$store.state.Events.LOADING_STATE
     },
-    status () {
-      return !this.loadingState.value ? `Last Sync: ${this.now.date} @ ${this.now.hours}` : this.loadingState.message
+    status() {
+      return !this.loadingState.value
+        ? `Last Sync: ${this.now.date} @ ${this.now.hours}`
+        : this.loadingState.message
     }
   },
   watch: {
-    loadingState (val) {
+    loadingState(val) {
       this.handleLoadingState(val)
     }
   },
-  mounted () {
+  mounted() {
     window.bar = this
     // document.documentElement.style.setProperty('--loading-bar-animation-duration', (this.loadingBar.animationDuration / 100) + 's')
-    this.activeSection = this.sections.find(s => s.title === 'Playlists').id
+    this.activeSection = this.sections.find((s) => s.title === 'Playlists').id
 
     this.$root.$sbRouter.beforeTransition(this.handleRouterNavigation)
     this.$root.$sbRouter.afterTransition(this.checkNavBtns)
     this.checkNavBtns()
   },
   methods: {
-    checkNavBtns () {
+    checkNavBtns() {
       this.showPrevBtn = !!this.$root.$sbRouter.pointer
       this.showForwBtn = !this.$root.$sbRouter.isLast()
     },
-    navigationBack () {
+    navigationBack() {
       this.$root.$sbRouter.goBack()
     },
-    navigationForw () {
+    navigationForw() {
       this.$root.$sbRouter.goForward()
     },
-    handleRouterNavigation (to, from) {
+    handleRouterNavigation(to, from) {
       this.currentPath = to.name
       switch (to.name) {
         case 'downloads-view':
@@ -266,24 +234,24 @@ export default {
           break
         case 'home':
           this.slideTo(0)
-          const section = this.sections.find(s => s.slug === to.params.which)
+          const section = this.sections.find((s) => s.slug === to.params.which)
           section && (this.activeSection = section.id)
           break
       }
     },
-    slideTo (index) {
+    slideTo(index) {
       this.sliderPosition = -index * 100
     },
-    hideLoadingBar () {
+    hideLoadingBar() {
       this.removeBarClass(['static', 'dynamic'])
       this.addBarClassTemp('hide')
     },
-    showLoadingBar () {
+    showLoadingBar() {
       // this.loadingBar.staticLoading = val.target.includes('Getting Playlist')
       this.addBarClass('static')
       this.removeBarClass('hide', 'dynamic')
     },
-    handleLoadingState (val) {
+    handleLoadingState(val) {
       this.loadingBar.ptg = (val.ptg * 100).toFixed(2) + '%'
       const classes = {}
       this.showingLoadingBar = val.value
@@ -297,25 +265,25 @@ export default {
       //   this.showLoadingBar()
       // }
     },
-    addBarClass (className) {
+    addBarClass(className) {
       if (typeof className === 'string') className = [className]
-      className.forEach(name => {
+      className.forEach((name) => {
         this.$refs.loadingbar.classList.add(name)
       })
     },
-    addBarClassTemp (className) {
+    addBarClassTemp(className) {
       this.addBarClass(className)
       setTimeout(() => {
         this.removeBarClass(className)
       }, this.loadingBar.animationDuration * 1.5)
     },
-    removeBarClass (className) {
+    removeBarClass(className) {
       if (typeof className === 'string') className = [className]
-      className.forEach(name => {
+      className.forEach((name) => {
         this.$refs.loadingbar.classList.remove(name)
       })
     },
-    goTo (where) {
+    goTo(where) {
       this.$root.$sbRouter.push({
         name: 'home',
         params: {
@@ -367,15 +335,15 @@ $loading-bar-height: 3px;
     display: flex;
 
     &:nth-child(1) {
-      justify-content: flex-start
+      justify-content: flex-start;
     }
 
     &:nth-child(2) {
-      justify-content: center
+      justify-content: center;
     }
 
     &:nth-child(3) {
-      justify-content: flex-end
+      justify-content: flex-end;
     }
   }
 }
@@ -384,7 +352,11 @@ $loading-bar-height: 3px;
   bottom: -200%;
   top: 100%;
   z-index: -1;
-  background: linear-gradient(to bottom, var(--global-grey-secondary), transparent);
+  background: linear-gradient(
+    to bottom,
+    var(--global-grey-secondary),
+    transparent
+  );
   opacity: var(--scroll-opacity-inverted);
 }
 
@@ -392,11 +364,15 @@ $loading-bar-height: 3px;
   top: 100%;
   bottom: -120%;
   z-index: -1;
-  background: linear-gradient(to bottom, var(--global-grey-secondary) -50%, transparent);
+  background: linear-gradient(
+    to bottom,
+    var(--global-grey-secondary) -50%,
+    transparent
+  );
 }
 
 .tb-mid-section {
-  padding-top: .25em;
+  padding-top: 0.25em;
   min-width: 50%;
   bottom: initial;
 
@@ -408,7 +384,7 @@ $loading-bar-height: 3px;
 
 .bar-slider-container {
   transition: transform var(--top-bar-slider-transition);
-  transform: translateX(var(--position-ptg))
+  transform: translateX(var(--position-ptg));
 }
 
 .bar-slide {
@@ -437,7 +413,10 @@ $loading-bar-height: 3px;
   pointer-events: none;
   // $transition: var(--animation-duration) var(--bezier-chill);
   $transition: var(--ts-g);
-  transition: left $transition, right $transition, width $transition;
+  transition:
+    left $transition,
+    right $transition,
+    width $transition;
 
   .actual-loading-bar {
     height: $loading-bar-height;
@@ -482,12 +461,12 @@ $loading-bar-height: 3px;
 }
 
 .section-switch {
-  margin-left: .3em;
+  margin-left: 0.3em;
   cursor: pointer;
   opacity: 0.5;
 
   span.section-title {
-    font-size: .75em;
+    font-size: 0.75em;
     line-height: 1;
     transition: font-size var(--ts-g);
   }
@@ -501,7 +480,7 @@ $loading-bar-height: 3px;
 
     &:active {
       opacity: 0.5;
-      transform: scale(.98);
+      transform: scale(0.98);
     }
   }
 
@@ -517,7 +496,7 @@ $loading-bar-height: 3px;
 .navigation-btn {
   cursor: pointer;
   display: flex;
-  $m: .5em;
+  $m: 0.5em;
 
   &.right {
     margin-left: $m;
@@ -527,11 +506,12 @@ $loading-bar-height: 3px;
     margin-right: $m;
   }
 
-  transition: opacity var(--ts-g),
-  transform var(--ts-g);
+  transition:
+    opacity var(--ts-g),
+    transform var(--ts-g);
 
-  opacity: .1;
-  transform: scale(.8);
+  opacity: 0.1;
+  transform: scale(0.8);
 
   &.show {
     opacity: 1;
@@ -546,4 +526,5 @@ $loading-bar-height: 3px;
   height: $h;
   bottom: -$h;
   outline: 1px solid red;
-}</style>
+}
+</style>

@@ -1,12 +1,13 @@
 import type * as electron from 'electron'
+
 import { BrowserWindow, getGlobal } from '@electron/remote'
+
 import '../../main/controllers/Prototype/Array.ts'
 import '../../main/controllers/Prototype/Object.ts'
-
-import { vueProtoConfig, vueAppConfig } from './vue.renderer.config'
+import { vueAppConfig, vueProtoConfig } from './vue.renderer.config'
 import WindowRendererConfig from './window.renderer.config'
 
-const GLOBAL = window.CONSTANTS = getGlobal('CONSTANTS')
+const GLOBAL = (window.CONSTANTS = getGlobal('CONSTANTS'))
 
 export const setEnvironment = () => {
   // -----------------PROTOTYPES-----------------
@@ -19,26 +20,33 @@ export const setEnvironment = () => {
 
   const platform = GLOBAL.PLATFORM
 
-  function toggleFullscreen () {
+  function toggleFullscreen() {
     let isFullscreen = false
     if (document.fullscreenElement) {
       isFullscreen = true
       document.exitFullscreen()
     } else document.documentElement.requestFullscreen()
 
-    document.getElementById('max-btn')?.classList.remove('button-' + (isFullscreen ? 'un' : '') + 'maximize')
-    document.getElementById('max-btn')?.classList.add('button-' + (!isFullscreen ? 'un' : '') + 'maximize')
+    document
+      .getElementById('max-btn')
+      ?.classList.remove('button-' + (isFullscreen ? 'un' : '') + 'maximize')
+    document
+      .getElementById('max-btn')
+      ?.classList.add('button-' + (!isFullscreen ? 'un' : '') + 'maximize')
   }
   window.toggleFullscreen = toggleFullscreen
 
-  function toggleMaximization () {
-    electronWindow && (electronWindow.isMaximized() ? electronWindow.unmaximize() : electronWindow.maximize())
+  function toggleMaximization() {
+    electronWindow &&
+      (electronWindow.isMaximized()
+        ? electronWindow.unmaximize()
+        : electronWindow.maximize())
   }
   window.toggleMaximization = toggleMaximization
 
-  function init () {
+  function init() {
     // TODO improve this logic
-    const window = electronWindow = BrowserWindow.getFocusedWindow()
+    const window = (electronWindow = BrowserWindow.getFocusedWindow())
 
     const minBtn = document.getElementById('min-btn')
     const maxBtn = document.getElementById('max-btn')
@@ -57,7 +65,10 @@ export const setEnvironment = () => {
       maxBtn.classList.remove('button-unmaximize')
       maxBtn.classList.add('button-maximize')
     })
-    maxBtn.addEventListener('click', platform === 'mac' ? toggleFullscreen : toggleMaximization)
+    maxBtn.addEventListener(
+      'click',
+      platform === 'mac' ? toggleFullscreen : toggleMaximization
+    )
 
     closeBtn.addEventListener('click', function (e) {
       window.close()

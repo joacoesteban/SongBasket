@@ -1,20 +1,15 @@
 <template>
   <div class="track-review-container">
-    <div
-      class="container-fluid text-left pt-2"
-      style="--px: 2em"
-    >
-      <div
-        class="default-title text-secondary"
-        style="--fz: 1.2em"
-      >
-        {{ conversions.length ? 'Conversions' : 'No conversions found, try adding a custom url' }}
+    <div class="container-fluid text-left pt-2" style="--px: 2em">
+      <div class="default-title text-secondary" style="--fz: 1.2em">
+        {{
+          conversions.length
+            ? 'Conversions'
+            : 'No conversions found, try adding a custom url'
+        }}
       </div>
     </div>
-    <div
-      v-if="track"
-      class="conversions-list"
-    >
+    <div v-if="track" class="conversions-list">
       <track-banner
         v-for="(item, index) in conversions"
         :key="index"
@@ -37,46 +32,55 @@ export default {
   props: {
     refresh: Boolean
   },
-  data () {
+  data() {
     return {
       track: null
     }
   },
   computed: {
-    conversions () {
+    conversions() {
       let convs = this.track && this.track.conversion.yt
-      if (this.track && this.track.custom) convs = [this.track.custom, ...(convs || [])]
+      if (this.track && this.track.custom)
+        convs = [this.track.custom, ...(convs || [])]
       return convs || []
     },
-    selection () {
-      return this.track.selectionObj && (this.track.selectionObj.youtube_id || this.track.selectionObj.id)
+    selection() {
+      return (
+        this.track.selectionObj &&
+        (this.track.selectionObj.youtube_id || this.track.selectionObj.id)
+      )
     }
   },
   watch: {
-    refresh (val) {
+    refresh(val) {
       if (!val) return
       this.refreshTrack()
     }
   },
-  created () {
+  created() {
     this.$root.$ComponentRefs.TrackReview = this
   },
   methods: {
-    refreshTrack () {
+    refreshTrack() {
       const track = this.$root.$sbRouter.giveMeCurrent().params.track
       if (!track) return
-      this.track = this.$root.CONVERTED_TRACKS_FORMATTED.find(t => t.id === track.id)
+      this.track = this.$root.CONVERTED_TRACKS_FORMATTED.find(
+        (t) => t.id === track.id
+      )
       this.$root.$ComponentRefs.slides.TrackReview.setTrack(this.track)
       console.log(this.track)
     },
-    isSelected (id) {
+    isSelected(id) {
       return this.selection === id
     },
-    async selectVideo (item) {
+    async selectVideo(item) {
       try {
-        const newId = (item === null || item === false) ? item : item.youtube_id
+        const newId = item === null || item === false ? item : item.youtube_id
         if (newId === undefined || !this.track) throw new Error('NO TRACK')
-        await this.$root.$controllers.core.changeYtTrackSelection({ trackId: this.track.id, newId })
+        await this.$root.$controllers.core.changeYtTrackSelection({
+          trackId: this.track.id,
+          newId
+        })
         this.refreshTrack()
       } catch (error) {
         throw error

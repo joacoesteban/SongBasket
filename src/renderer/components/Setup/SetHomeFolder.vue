@@ -1,23 +1,15 @@
 <template>
   <div class="home-folder-container">
-    <div class="login-sb-welcome">
-      welcome to
-    </div>
-    <div class="login-sb-title">
-      SongBasket
-    </div>
-    <button
-      class="button"
-      @click="$emit('handleClick')"
-    >
+    <div class="login-sb-welcome">welcome to</div>
+    <div class="login-sb-title">SongBasket</div>
+    <button class="button" @click="$emit('handleClick')">
       Set a Home Folder
     </button>
   </div>
 </template>
 
 <script lang="ts">
-export default {
-}
+export default {}
 </script>
 
 <style scoped lang="scss">
@@ -37,6 +29,6 @@ export default {
   font-size: 4.2em;
   font-weight: 500;
   margin-bottom: 1.5rem;
-  line-height: 1
+  line-height: 1;
 }
 </style>

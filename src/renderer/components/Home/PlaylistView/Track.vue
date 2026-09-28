@@ -17,16 +17,10 @@
         </span>
       </div>
       <div class="ellipsis track-status">
-        <span
-          v-if="isNew"
-          class="bold uppercase point75-em color-green"
-        >
+        <span v-if="isNew" class="bold uppercase point75-em color-green">
           new
         </span>
-        <span
-          v-if="isRemoved"
-          class="bold uppercase point75-em color-red"
-        >
+        <span v-if="isRemoved" class="bold uppercase point75-em color-red">
           removed
         </span>
 
@@ -58,7 +52,7 @@ export default {
     isRemoved: Boolean,
     isReviewing: Boolean
   },
-  data () {
+  data() {
     return {
       cardOptions: {
         height: '2.5em',
@@ -68,22 +62,28 @@ export default {
         paddingX: 'var(--card-padding-x)',
         size: this.isNew || this.isRemoved ? '.8em' : ''
       },
-      rowClasses: this.isReviewing ? 'col-sm-12' : 'col-lg-3 col-md-4 col-s-6 col-xs-12',
+      rowClasses: this.isReviewing
+        ? 'col-sm-12'
+        : 'col-lg-3 col-md-4 col-s-6 col-xs-12',
       trackController: this.$root.$controllers.track,
       clickCB: undefined
     }
   },
   computed: {
-    itemFormatted () {
+    itemFormatted() {
       const album = this.item.album || this.item.data.album
-      return (this.item && {
-        ...this.item,
-        backgroundImage: album && album.images && album.images[0] && album.images[0].url
-      }) || {}
+      return (
+        (this.item && {
+          ...this.item,
+          backgroundImage:
+            album && album.images && album.images[0] && album.images[0].url
+        }) ||
+        {}
+      )
     }
   },
   methods: {
-    getCallback () {
+    getCallback() {
       const status = this.item.status && this.item.status.slug
       switch (status) {
         case 'awaiting-download':
@@ -98,12 +98,12 @@ export default {
           return null
       }
     },
-    handleClick () {
+    handleClick() {
       if (this.clickCB === undefined) this.clickCB = this.getCallback()
       console.log(this.clickCB)
       typeof this.clickCB === 'function' && this.clickCB()
     },
-    reviewTrack () {
+    reviewTrack() {
       this.$root.$controllers.core.reviewTrack(this.item)
     }
   }

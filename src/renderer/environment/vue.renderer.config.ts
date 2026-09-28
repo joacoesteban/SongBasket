@@ -1,39 +1,37 @@
+import { camelCase } from 'change-case'
 import $ from 'jquery'
+import Vue, { VueConstructor } from 'vue'
+
 import { library } from '@fortawesome/fontawesome-svg-core'
 import {
-  faArrowRight,
   faArrowLeft,
+  faArrowRight,
   faChevronUp
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { camelCase } from 'change-case'
-import * as utils from '../utils'
-import SbRouter from './sbRouter'
-import setIpcRoutes from './ipc.renderer.config'
-import Vue, { VueConstructor } from 'vue'
-import VueApp from '../main'
-import setupController from '../controllers/Setup.controller'
-import coreController from '../controllers/Core.controller'
-import trackController from '../controllers/Track.controller'
-import playlistController from '../controllers/Playlist.controller'
-import utilsController from '../controllers/Utils.controller'
-import modalController from '../controllers/Modal.controller'
 
-library.add(
-  faArrowRight,
-  faArrowLeft,
-  faChevronUp
-)
+import coreController from '../controllers/Core.controller'
+import modalController from '../controllers/Modal.controller'
+import playlistController from '../controllers/Playlist.controller'
+import setupController from '../controllers/Setup.controller'
+import trackController from '../controllers/Track.controller'
+import utilsController from '../controllers/Utils.controller'
+import VueApp from '../main'
+import * as utils from '../utils'
+import setIpcRoutes from './ipc.renderer.config'
+import SbRouter from './sbRouter'
+
+library.add(faArrowRight, faArrowLeft, faChevronUp)
 
 const VueProto: VueConstructor<Vue> = Vue
 
-export function vueProtoConfig () {
+export function vueProtoConfig() {
   VueProto.config.productionTip = false
 
   VueProto.component('FontAwesomeIcon', FontAwesomeIcon)
 }
 
-export function vueAppConfig (): void {
+export function vueAppConfig(): void {
   VueApp.$ = $
   VueApp.$uuid = () => crypto.randomUUID()
   VueApp.$sleep = utils.sleep
@@ -53,7 +51,7 @@ export function vueAppConfig (): void {
   VueApp.$sbRouter = new SbRouter()
 }
 
-function setControllers () {
+function setControllers() {
   VueApp.$controllers = {
     setup: setupController,
     core: coreController,

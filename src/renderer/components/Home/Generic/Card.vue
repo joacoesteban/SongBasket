@@ -13,10 +13,7 @@
       @mousedown="setMouseListener"
       @click="handleClick"
     >
-      <div
-        ref="content-container"
-        class="card-content"
-      >
+      <div ref="content-container" class="card-content">
         <div class="card-background abs-full">
           <div class="rel-full ovfh">
             <div
@@ -24,15 +21,15 @@
               :style="{ backgroundImage: `url(${bgImage})` }"
             />
             <div class="gradient" />
-            <div
-              ref="light-shine"
-              class="light-shine"
-            />
+            <div ref="light-shine" class="light-shine" />
           </div>
         </div>
         <div
           class="card-default-slot"
-          :style="{ height: options.height || '4em', 'font-size': options.size || '' }"
+          :style="{
+            height: options.height || '4em',
+            'font-size': options.size || ''
+          }"
         >
           <slot />
         </div>
@@ -42,7 +39,6 @@
 </template>
 
 <script lang="ts">
-
 let index = 0
 export default {
   props: {
@@ -59,35 +55,44 @@ export default {
     },
     pressed: Boolean
   },
-  data () {
+  data() {
     return {
       bounds: {
         bounds: null,
         timeStamp: -1
       },
       tOptions: {
-        x: this.$props.options.xRotationFactor !== undefined ? this.$props.options.xRotationFactor : 0.05,
-        y: this.$props.options.yRotationFactor !== undefined ? this.$props.options.yRotationFactor : 0.1,
+        x:
+          this.$props.options.xRotationFactor !== undefined
+            ? this.$props.options.xRotationFactor
+            : 0.05,
+        y:
+          this.$props.options.yRotationFactor !== undefined
+            ? this.$props.options.yRotationFactor
+            : 0.1,
         scaleFactor: (() => {
           if (this.$props.options.hovScaleFactor === false) return ''
-          const num = this.$props.options.hovScaleFactor !== undefined ? this.$props.options.hovScaleFactor : 1.05
+          const num =
+            this.$props.options.hovScaleFactor !== undefined
+              ? this.$props.options.hovScaleFactor
+              : 1.05
           return `scale3d(${num}, ${num}, 1)`
         })()
       }
     }
   },
   computed: {
-    bgImage () {
+    bgImage() {
       return this.item && this.item.backgroundImage
     },
-    classObject () {
+    classObject() {
       const obj = {
         pressed: this.pressed
       }
       obj[this.rowClasses || 'col-lg-4 col-md-6 col-xs-12'] = true
       return obj
     },
-    styleObject () {
+    styleObject() {
       const px = this.options.paddingX || ''
       const py = this.options.paddingY || ''
 
@@ -99,60 +104,75 @@ export default {
       }
     }
   },
-  mounted () {
+  mounted() {
     window.card = this
     window.cardItem = this.item
   },
   methods: {
-    handleClick () {
+    handleClick() {
       this.$emit('click')
     },
-    onMouseEnter (e) {
+    onMouseEnter(e) {
       this.hovering = true
       this.animateHover()
     },
-    animateHover () {
-      if (this.hoverTransitionsTimeout) { clearTimeout(this.hoverTransitionsTimeout); this.hoverTransitionsTimeout = null }
+    animateHover() {
+      if (this.hoverTransitionsTimeout) {
+        clearTimeout(this.hoverTransitionsTimeout)
+        this.hoverTransitionsTimeout = null
+      }
       this.applyHoverTransitions()
-      this.hoverTransitionsTimeout = setTimeout(this.clearHoverTransitions, 1000)
+      this.hoverTransitionsTimeout = setTimeout(
+        this.clearHoverTransitions,
+        1000
+      )
     },
-    applyHoverTransitions () {
-      this.getRotationElement().css('transition', 'transform var(--card-hover-transition)')
-      this.getLightShineElement().css('transition', 'all var(--card-hover-transition-fast)')
+    applyHoverTransitions() {
+      this.getRotationElement().css(
+        'transition',
+        'transform var(--card-hover-transition)'
+      )
+      this.getLightShineElement().css(
+        'transition',
+        'all var(--card-hover-transition-fast)'
+      )
     },
-    clearHoverTransitions () {
+    clearHoverTransitions() {
       this.getRotationElement().css('transition', '')
       this.getLightShineElement().css('transition', '')
       this.hoverTransitionsTimeout = null
     },
-    onMouseMove (e) {
+    onMouseMove(e) {
       this.hovering = true
       this.transformContainer(e)
     },
-    onMouseLeave () {
+    onMouseLeave() {
       this.hovering = false
       this.restoreTransformation()
       this.animateHover()
     },
-    setMouseListener () {
+    setMouseListener() {
       this.$root.$(window).on('mouseup', this.restoreTransformation)
     },
-    promiseNextTick () {
+    promiseNextTick() {
       return new Promise((resolve, reject) => this.$nextTick(resolve))
     },
-    getBounds () {
+    getBounds() {
       return this.$root.cardTransformInvalidation < this.bounds.timeStamp
         ? this.bounds.bounds
         : (this.bounds = {
             timeStamp: Date.now(),
             bounds: (() => {
-              const bounds = this.getRotationElement()[0].getBoundingClientRect();
-              ['x', 'y', 'width', 'height'].forEach(k => bounds[k] = bounds[k].toFixed(2))
+              const bounds =
+                this.getRotationElement()[0].getBoundingClientRect()
+              ;['x', 'y', 'width', 'height'].forEach(
+                (k) => (bounds[k] = bounds[k].toFixed(2))
+              )
               return bounds
             })()
           }).bounds
     },
-    transformContainer (e) {
+    transformContainer(e) {
       if (this.hoverTransitionsTimeout && Date.now() - index < 50) return
       index = Date.now()
       if (window.MOUSE_BEING_CLICKED) return
@@ -160,7 +180,7 @@ export default {
       this.getRotationElement().css('transform', vals[0])
       this.getLightShineElement().css(vals[1])
     },
-    getContainerTransformation ({ clientX, clientY }) {
+    getContainerTransformation({ clientX, clientY }) {
       const bounds = this.getBounds()
       const { x, y, width, height } = bounds
 
@@ -175,20 +195,34 @@ export default {
 
       if (tY < -4) tY = -4
       if (tY > 4) tY = 4
-      return [`perspective(1000px) rotateX(${tY}deg) rotateY(${tX}deg) ${this.pressed ? '' : this.tOptions.scaleFactor}`,
-        { transform: `rotate(${-tY / 2}deg) translateX(${valX * 5}%)` }]
+      return [
+        `perspective(1000px) rotateX(${tY}deg) rotateY(${tX}deg) ${this.pressed ? '' : this.tOptions.scaleFactor}`,
+        { transform: `rotate(${-tY / 2}deg) translateX(${valX * 5}%)` }
+      ]
     },
-    restoreTransformation (force) {
+    restoreTransformation(force) {
       if (!force && (window.MOUSE_BEING_CLICKED || this.hovering)) return
       this.$root.$(window).off('mouseup', this.restoreTransformation)
-      this.getRotationElement().css('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg)')
-      this.getLightShineElement().css({ 'background-position': '', transform: '' })
+      this.getRotationElement().css(
+        'transform',
+        'perspective(1000px) rotateX(0deg) rotateY(0deg)'
+      )
+      this.getLightShineElement().css({
+        'background-position': '',
+        transform: ''
+      })
     },
-    getRotationElement () {
-      return this.rotationElement || (this.rotationElement = this.$root.$(this.$refs['content-container']))
+    getRotationElement() {
+      return (
+        this.rotationElement ||
+        (this.rotationElement = this.$root.$(this.$refs['content-container']))
+      )
     },
-    getLightShineElement () {
-      return this.lightShineElement || (this.lightShineElement = this.$root.$(this.$refs['light-shine']))
+    getLightShineElement() {
+      return (
+        this.lightShineElement ||
+        (this.lightShineElement = this.$root.$(this.$refs['light-shine']))
+      )
     }
   }
 }
@@ -199,7 +233,7 @@ $q-false-color: #1b1b1b;
 $q-true-color: rgb(103, 214, 0);
 
 // $playlist-height: 4em;
-$title-size: .8em;
+$title-size: 0.8em;
 $transition-soft: var(--card-hover-transition);
 $transition-hard: var(--ts-g-hard);
 
@@ -236,24 +270,28 @@ $transition-hard: var(--ts-g-hard);
       }
     }
 
-    transition: transform $transition-soft,
-    opacity $transition-soft;
+    transition:
+      transform $transition-soft,
+      opacity $transition-soft;
     perspective: 1000px;
     perspective-origin: 50% 100px;
 
     &:active {
-      transition: transform $transition-hard, opacity $transition-hard;
-      transition-delay: .0575s;
-      transform: scale(.98);
-      opacity: .7;
+      transition:
+        transform $transition-hard,
+        opacity $transition-hard;
+      transition-delay: 0.0575s;
+      transform: scale(0.98);
+      opacity: 0.7;
     }
 
-    >.card-content {
+    > .card-content {
       cursor: pointer;
       position: relative;
       background: $q-false-color;
       $transition: var(--card-hover-transition);
-      transition: background-color $transition,
+      transition:
+        background-color $transition,
         box-shadow $transition;
       border-radius: var(--borr);
       overflow: hidden;
@@ -281,7 +319,11 @@ $transition-hard: var(--ts-g-hard);
       bottom: $offset;
       right: $offset;
       left: $offset;
-      background: linear-gradient(to right, $q-false-color var(--gradient-offset), transparent 200%);
+      background: linear-gradient(
+        to right,
+        $q-false-color var(--gradient-offset),
+        transparent 200%
+      );
     }
 
     .light-shine {
@@ -289,14 +331,19 @@ $transition-hard: var(--ts-g-hard);
       pointer-events: none;
       z-index: 1;
       $offset: -30;
-      top: $offset*1px;
-      bottom: $offset*1px;
+      top: $offset * 1px;
+      bottom: $offset * 1px;
       right: $offset * 0.5 * 1em;
       left: $offset * 0.5 * 1em;
       transition: opacity var(--card-hover-transition-fast);
       // transition: opacity $transition-soft;
-      opacity: .5;
-      background: linear-gradient(31deg, transparent 50%, rgba(255, 255, 255, .045) 50%, transparent 100%);
+      opacity: 0.5;
+      background: linear-gradient(
+        31deg,
+        transparent 50%,
+        rgba(255, 255, 255, 0.045) 50%,
+        transparent 100%
+      );
       // background: linear-gradient(31deg, transparent -100%,  rgba(0,0,0,.5) 50%, rgba(255,255,255,.045) 50%, transparent 100%);
       background-position: center;
     }
@@ -315,21 +362,21 @@ $transition-hard: var(--ts-g-hard);
     text-align-last: left;
     position: relative;
     display: flex;
-    padding: 0.6em .5em;
+    padding: 0.6em 0.5em;
   }
 
   // -----------------STATES-----------------
 
   &.pressed {
     .transformation-parent {
-      transform: scale(.9);
-      opacity: .7;
+      transform: scale(0.9);
+      opacity: 0.7;
 
       &:active {
-        transform: scale(.85);
-        opacity: .5;
+        transform: scale(0.85);
+        opacity: 0.5;
       }
     }
   }
-
-}</style>
+}
+</style>

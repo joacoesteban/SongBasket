@@ -1,10 +1,26 @@
 export const dateFormatter = (dateParam: string | number | Date) => {
   const now = new Date()
   dateParam = new Date(dateParam)
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+  const months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
+  ]
 
   const date = {
-    today: dateParam.getFullYear() === now.getFullYear() && dateParam.getMonth() === now.getMonth() && dateParam.getDate() === now.getDate(),
+    today:
+      dateParam.getFullYear() === now.getFullYear() &&
+      dateParam.getMonth() === now.getMonth() &&
+      dateParam.getDate() === now.getDate(),
     sameYear: dateParam.getFullYear() === now.getFullYear(),
     month: months[dateParam.getMonth()].substring(0, 3),
     date: dateParam.getDate(),
@@ -13,7 +29,10 @@ export const dateFormatter = (dateParam: string | number | Date) => {
 
   const time = {
     hours: dateParam.getHours(),
-    minutes: dateParam.getMinutes() < 10 ? '0' + dateParam.getMinutes() : dateParam.getMinutes()
+    minutes:
+      dateParam.getMinutes() < 10
+        ? '0' + dateParam.getMinutes()
+        : dateParam.getMinutes()
   }
 
   return { date, time }

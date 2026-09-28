@@ -1,17 +1,24 @@
-import customGetters from '../../Store/Helpers/customGetters'
 import * as chokidar from 'chokidar'
 import { FSWatcher } from 'chokidar'
-import * as utils from '../../../MAIN_PROCESS_UTILS'
-import UserMethods from './UserMethods'
-import REGEX from '../../Global/REGEX'
 import * as PATH from 'path'
 
-import { SongbasketCustomMp3Tag, SongbasketCustomMp3TagNormalized, SongbasketCustomMp3TagsNormalized } from '../../../@types/SongBasket'
+import {
+  SongbasketCustomMp3Tag,
+  SongbasketCustomMp3TagNormalized,
+  SongbasketCustomMp3TagsNormalized
+} from '../../../@types/SongBasket'
 import { SpotifyTrackId } from '../../../@types/Spotify'
 import { YouTubeResultId } from '../../../@types/YouTube'
+import * as utils from '../../../MAIN_PROCESS_UTILS'
+import REGEX from '../../Global/REGEX'
+import customGetters from '../../Store/Helpers/customGetters'
+import UserMethods from './UserMethods'
 
 type NormalizedTagMap = Record<SongbasketCustomMp3TagsNormalized, string | null>
-export type TrackList = Record<SpotifyTrackId, Record<YouTubeResultId, { playlists: string[] }>>
+export type TrackList = Record<
+  SpotifyTrackId,
+  Record<YouTubeResultId, { playlists: string[] }>
+>
 export type TrackFileEntry = NormalizedTagMap & { playlist: string }
 export enum FSWatcherEvent {
   ADD = 'add',
@@ -20,12 +27,12 @@ export enum FSWatcherEvent {
   UNLINKDIR = 'unlinkDir',
   ERROR = 'error',
   READY = 'ready',
-  RAW = 'raw',
+  RAW = 'raw'
 }
 export enum SBWatcherEvent {
   READY = 'ready',
   ADDED = 'added',
-  REMOVED = 'removed',
+  REMOVED = 'removed'
 }
 
 const homeFolderPath = () => global.HOME_FOLDER
@@ -44,27 +51,30 @@ resetFns()
 const FileWatchers: {
   tracks: {
     [key: string]: NormalizedTagMap
-  },
-  watchers: FSWatcher[],
-  createPlaylistWatchers: () => Promise<void>,
-  clearAll: () => Promise<void>,
-  rebuildWatchers: () => Promise<void>,
-  retrieveTags: (path: string) => Promise<NormalizedTagMap>,
-  retrieveTracks: () => TrackList,
-  addTrack: (path: string, params: NormalizedTagMap) => void,
-  removeTrack: (path: string) => void,
-  handleWatcherEvent: (event: FSWatcherEvent, args?: any) => void,
-  on: (event: SBWatcherEvent, fn: (...args: any) => any) => void,
-  trigger: (event: SBWatcherEvent, payload: TrackFileEntry) => void,
+  }
+  watchers: FSWatcher[]
+  createPlaylistWatchers: () => Promise<void>
+  clearAll: () => Promise<void>
+  rebuildWatchers: () => Promise<void>
+  retrieveTags: (path: string) => Promise<NormalizedTagMap>
+  retrieveTracks: () => TrackList
+  addTrack: (path: string, params: NormalizedTagMap) => void
+  removeTrack: (path: string) => void
+  handleWatcherEvent: (event: FSWatcherEvent, args?: any) => void
+  on: (event: SBWatcherEvent, fn: (...args: any) => any) => void
+  trigger: (event: SBWatcherEvent, payload: TrackFileEntry) => void
 } = {
   tracks: {},
   watchers: [],
-  async createPlaylistWatchers () {
+  async createPlaylistWatchers() {
     // TODO Create watchers anyway
     if (!(await UserMethods.retrieveLocalTracks()).length) return
     const syncedPlaylists = customGetters.SyncedPlaylistsSp()
-    syncedPlaylists.forEach(pl => {
-      const path = homeFolderPath() + '/' + utils.encodeIntoFilename(pl.folderName || pl.name)
+    syncedPlaylists.forEach((pl) => {
+      const path =
+        homeFolderPath() +
+        '/' +
+        utils.encodeIntoFilename(pl.folderName || pl.name)
 
       // READY++
 
@@ -74,13 +84,27 @@ const FileWatchers: {
       this.watchers.push(watcher)
 
       watcher
-        .on(FSWatcherEvent.ADD, (path) => this.handleWatcherEvent(FSWatcherEvent.ADD, path))
-        .on(FSWatcherEvent.CHANGE, (path) => this.handleWatcherEvent(FSWatcherEvent.CHANGE, path))
-        .on(FSWatcherEvent.UNLINK, (path) => this.handleWatcherEvent(FSWatcherEvent.UNLINK, path))
-        .on(FSWatcherEvent.UNLINKDIR, (path) => this.handleWatcherEvent(FSWatcherEvent.UNLINKDIR, path))
-        .on(FSWatcherEvent.ERROR, (error) => this.handleWatcherEvent(FSWatcherEvent.ERROR, error))
-        .on(FSWatcherEvent.READY, () => this.handleWatcherEvent(FSWatcherEvent.READY))
-        .on(FSWatcherEvent.RAW, (event, path, details) => this.handleWatcherEvent(FSWatcherEvent.RAW, [event, path, details]))
+        .on(FSWatcherEvent.ADD, (path) =>
+          this.handleWatcherEvent(FSWatcherEvent.ADD, path)
+        )
+        .on(FSWatcherEvent.CHANGE, (path) =>
+          this.handleWatcherEvent(FSWatcherEvent.CHANGE, path)
+        )
+        .on(FSWatcherEvent.UNLINK, (path) =>
+          this.handleWatcherEvent(FSWatcherEvent.UNLINK, path)
+        )
+        .on(FSWatcherEvent.UNLINKDIR, (path) =>
+          this.handleWatcherEvent(FSWatcherEvent.UNLINKDIR, path)
+        )
+        .on(FSWatcherEvent.ERROR, (error) =>
+          this.handleWatcherEvent(FSWatcherEvent.ERROR, error)
+        )
+        .on(FSWatcherEvent.READY, () =>
+          this.handleWatcherEvent(FSWatcherEvent.READY)
+        )
+        .on(FSWatcherEvent.RAW, (event, path, details) =>
+          this.handleWatcherEvent(FSWatcherEvent.RAW, [event, path, details])
+        )
 
       // 'add', 'addDir' and 'change' events also receive stat() results as second
       // argument when available: http://nodejs.org/api/fs.html#fs_class_fs_stats
@@ -89,7 +113,7 @@ const FileWatchers: {
       })
     })
   },
-  async clearAll () {
+  async clearAll() {
     try {
       for (const watcher of this.watchers) {
         await watcher.close()
@@ -101,7 +125,7 @@ const FileWatchers: {
       throw error
     }
   },
-  async rebuildWatchers () {
+  async rebuildWatchers() {
     try {
       await this.clearAll()
       await this.createPlaylistWatchers()
@@ -109,16 +133,18 @@ const FileWatchers: {
       throw error
     }
   },
-  async retrieveTags (path) {
+  async retrieveTags(path) {
     const tags = await UserMethods.retrieveMP3FileTags(path)
     const normalized: NormalizedTagMap = {
       spotify_id: null,
-      youtube_id: null,
+      youtube_id: null
     }
 
-    tags.forEach(tag => {
+    tags.forEach((tag) => {
       const normalizedTagName = ((tagName) => {
-        return Object.keys(SongbasketCustomMp3TagNormalized).find(key => tagName === key) as SongbasketCustomMp3TagNormalized
+        return Object.keys(SongbasketCustomMp3TagNormalized).find(
+          (key) => tagName === key
+        ) as SongbasketCustomMp3TagNormalized
       })(tag.name.replace('songbasket_', ''))
 
       if (normalizedTagName) normalized[normalizedTagName] = tag.value
@@ -126,7 +152,7 @@ const FileWatchers: {
 
     return normalized
   },
-  retrieveTracks () {
+  retrieveTracks() {
     const tracksFormatted: TrackList = {}
 
     for (const key in this.tracks) {
@@ -135,26 +161,34 @@ const FileWatchers: {
 
       if (spotify_id && youtube_id) {
         if (!tracksFormatted[spotify_id]) tracksFormatted[spotify_id] = {}
-        if (!tracksFormatted[spotify_id][youtube_id]) tracksFormatted[spotify_id][youtube_id] = { playlists: [] }
+        if (!tracksFormatted[spotify_id][youtube_id])
+          tracksFormatted[spotify_id][youtube_id] = { playlists: [] }
 
-        tracksFormatted[spotify_id][youtube_id].playlists.push(getNameFromPath(key))
+        tracksFormatted[spotify_id][youtube_id].playlists.push(
+          getNameFromPath(key)
+        )
       }
     }
     return tracksFormatted
   },
 
-  addTrack (path, { spotify_id, youtube_id }) {
+  addTrack(path, { spotify_id, youtube_id }) {
     for (const key in this.tracks) {
       if (key === path && this.tracks[key]) return
     }
 
     this.tracks[path] = {
-      spotify_id, youtube_id
+      spotify_id,
+      youtube_id
     }
 
-    this.trigger(SBWatcherEvent.ADDED, { playlist: getNameFromPath(path), spotify_id, youtube_id })
+    this.trigger(SBWatcherEvent.ADDED, {
+      playlist: getNameFromPath(path),
+      spotify_id,
+      youtube_id
+    })
   },
-  removeTrack (path) {
+  removeTrack(path) {
     const trackToDelete = this.tracks[path]
     if (trackToDelete) {
       const playlist = getNameFromPath(path)
@@ -167,9 +201,8 @@ const FileWatchers: {
     }
   },
 
-  async handleWatcherEvent (event, args) {
+  async handleWatcherEvent(event, args) {
     if (event === FSWatcherEvent.RAW) {
-
     } else if (event === FSWatcherEvent.READY) {
       // READY--
       // this.trigger('ready', this.tracks)
@@ -195,26 +228,32 @@ const FileWatchers: {
   },
 
   // ------------EVENTS------------
-  on (event, fn) {
+  on(event, fn) {
     if (typeof fn !== 'function') throw new Error('Callback is not a function')
     const stack = giveMeStack(event)
     if (stack) stack.push(fn)
   },
-  trigger (event, params) {
+  trigger(event, params) {
     // if (READY > 0) return
     const stack = giveMeStack(event)
-    if (stack) stack.forEach(fn => fn(params))
+    if (stack) stack.forEach((fn) => fn(params))
   }
 }
 
-const isValidAudioPath = (path: string) => (REGEX.mp3File.test(path))
+const isValidAudioPath = (path: string) => REGEX.mp3File.test(path)
 
 const getNameFromPath = (path: string) => {
   path = PATH.dirname(path)
   return path.substring(path.lastIndexOf('/') + 1)
 }
 
-const giveMeStack = (event: SBWatcherEvent): typeof onTrackAddedFns | typeof onTrackAddedFns | typeof onReadyFns | null => {
+const giveMeStack = (
+  event: SBWatcherEvent
+):
+  | typeof onTrackAddedFns
+  | typeof onTrackAddedFns
+  | typeof onReadyFns
+  | null => {
   switch (event) {
     case SBWatcherEvent.READY:
       return onReadyFns

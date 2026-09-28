@@ -1,23 +1,23 @@
 export type dateFormatted = {
-  today: boolean,
-  sameYear: boolean,
-  month: string,
-  date: number,
-  year: number,
-  raw: Date,
+  today: boolean
+  sameYear: boolean
+  month: string
+  date: number
+  year: number
+  raw: Date
 }
 
 export type timeFormatted = {
-  rawHours: number,
-  rawMinutes: number,
-  rawSeconds: number,
-  hours: string,
-  minutes: string,
-  seconds: string,
+  rawHours: number
+  rawMinutes: number
+  rawSeconds: number
+  hours: string
+  minutes: string
+  seconds: string
 }
 // ------------------------------------------
 
-export function convertMS (milliseconds: number) {
+export function convertMS(milliseconds: number) {
   let minutes, seconds
   seconds = Math.floor(milliseconds / 1000)
   minutes = Math.floor(seconds / 60)
@@ -28,10 +28,11 @@ export function convertMS (milliseconds: number) {
   }
 }
 
-export const sleep = (time: number): Promise<void> => new Promise((resolve, reject) => setTimeout(resolve, time))
+export const sleep = (time: number): Promise<void> =>
+  new Promise((resolve, reject) => setTimeout(resolve, time))
 export const jsonClone = (obj: any) => JSON.parse(JSON.stringify(obj))
 
-export function dateFormatter (dateParam: Date | number | string) {
+export function dateFormatter(dateParam: Date | number | string) {
   if (!dateParam) return null
 
   dateParam = new Date(dateParam)
@@ -40,12 +41,15 @@ export function dateFormatter (dateParam: Date | number | string) {
   const now = new Date()
 
   const date: dateFormatted = {
-    today: dateParam.getFullYear() === now.getFullYear() && dateParam.getMonth() === now.getMonth() && dateParam.getDate() === now.getDate(),
+    today:
+      dateParam.getFullYear() === now.getFullYear() &&
+      dateParam.getMonth() === now.getMonth() &&
+      dateParam.getDate() === now.getDate(),
     sameYear: dateParam.getFullYear() === now.getFullYear(),
     month: months[dateParam.getMonth()].substring(0, 3),
     date: dateParam.getDate(),
     year: dateParam.getFullYear(),
-    raw: dateParam,
+    raw: dateParam
   }
 
   const rawHours = dateParam.getHours()
@@ -57,7 +61,7 @@ export function dateFormatter (dateParam: Date | number | string) {
     rawSeconds,
     hours: ((rawHours < 10 ? '0' : '') + rawHours).toString(),
     minutes: ((rawMinutes < 10 ? '0' : '') + rawMinutes).toString(),
-    seconds: ((rawSeconds < 10 ? '0' : '') + rawSeconds).toString(),
+    seconds: ((rawSeconds < 10 ? '0' : '') + rawSeconds).toString()
   }
 
   return { date, time }
@@ -65,4 +69,17 @@ export function dateFormatter (dateParam: Date | number | string) {
 
 // ------------------------------------------
 
-const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const months = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December'
+]

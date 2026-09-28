@@ -5,8 +5,7 @@
 // }
 
 const ModalController = {
-  genericModal (options = {}) {
-  }
+  genericModal(options = {}) {}
 }
 
 export default ModalController

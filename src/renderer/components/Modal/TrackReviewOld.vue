@@ -1,9 +1,6 @@
 <template>
   <div class="track-review-container row">
-    <Track
-      :item="item"
-      :is-reviewing="true"
-    />
+    <Track :item="item" :is-reviewing="true" />
 
     <TrackResult
       v-for="(convItem, index) in conversions"
@@ -14,16 +11,8 @@
       @setSelection="setSelection(convItem)"
     />
 
-    <div
-      class="link-button"
-      @click="selectCustomUrl"
-    >
-      Use Custom URL
-    </div>
-    <div
-      class="link-button"
-      @click="pauseTrack"
-    >
+    <div class="link-button" @click="selectCustomUrl">Use Custom URL</div>
+    <div class="link-button" @click="pauseTrack">
       {{ item.flags.paused ? 'Unpause' : 'Pause' }} Track
     </div>
   </div>
@@ -41,13 +30,13 @@ export default {
     options: Object
   },
   computed: {
-    item () {
+    item() {
       return this.options.tracks[this.options.index]
     },
-    conversions () {
+    conversions() {
       return this.item.conversion.yt.concat(this.item.custom || [])
     },
-    min () {
+    min() {
       let min = Math.abs(this.conversions[0].durationDiff)
       this.conversions.forEach(({ durationDiff }) => {
         durationDiff = Math.abs(durationDiff)
@@ -55,7 +44,7 @@ export default {
       })
       return min
     },
-    max () {
+    max() {
       let max = 0
       this.conversions.forEach(({ durationDiff }) => {
         durationDiff = Math.abs(durationDiff)
@@ -64,19 +53,22 @@ export default {
       return max
     }
   },
-  mounted () {
+  mounted() {
     console.log(this.options)
   },
   methods: {
-    durationColor ({ durationDiff }) {
+    durationColor({ durationDiff }) {
       durationDiff = Math.abs(durationDiff)
       const deg = 150 - 150 * Math.abs(durationDiff / this.max)
       return `hsl(${deg}, 100%, 50%)`
     },
-    selectCustomUrl () {
-      this.$root.OPEN_MODAL({ wich: 'custom-track-url', payload: { trackId: this.item.id, playlistId: this.options.playlistId } })
+    selectCustomUrl() {
+      this.$root.OPEN_MODAL({
+        wich: 'custom-track-url',
+        payload: { trackId: this.item.id, playlistId: this.options.playlistId }
+      })
     },
-    async pauseTrack () {
+    async pauseTrack() {
       const id = this.item && this.item.id
       try {
         if (!id) throw new Error('NO TRACK ID')
@@ -85,14 +77,21 @@ export default {
         console.error(error)
       }
     },
-    async setSelection (item) {
-      if (item.youtube_id === this.item.selectionObj.youtube_id && this.item.flags.selectionIsApplied) return
+    async setSelection(item) {
+      if (
+        item.youtube_id === this.item.selectionObj.youtube_id &&
+        this.item.flags.selectionIsApplied
+      )
+        return
       let newId = item.youtube_id
       if (item.isCustomTrack) newId = false
       if (item.isBestMatch) newId = null
 
       try {
-        await this.$root.$controllers.core.changeYtTrackSelection({ trackId: this.item.id, newId })
+        await this.$root.$controllers.core.changeYtTrackSelection({
+          trackId: this.item.id,
+          newId
+        })
         this.$root.$controllers.track.populateTrackSelection(this.item)
       } catch (error) {
         console.error(error)
@@ -106,6 +105,6 @@ export default {
 .track-review-container {
   width: 90vw;
   box-sizing: border-box;
-  padding: .5em;
+  padding: 0.5em;
 }
 </style>
