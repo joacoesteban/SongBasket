@@ -33,6 +33,7 @@ The desktop migrations below are complete. The API rewrite is still open.
 - `src/shared/ipc.ts` defines invoke requests, invoke responses, and renderer event payloads.
 - The renderer uses Vue 3 and Vue Router 4 with hash history.
 - The renderer state service uses typed IPC events. It does not use Pinia or Vuex.
+- The main process forwards `FileWatchers` MP3 additions and removals as `DOWNLOADED_FILE:ADDED` and `DOWNLOADED_FILE:REMOVED`. The renderer applies them to its downloaded-file map after 200 ms without new events.
 - Main and loading windows use a sandboxed preload, context isolation, and disabled Node integration.
 - The old global and prototype-extension pattern is gone. `src/main/Global/` provides explicit module exports for constants and state accessors.
 - `@electron/remote`, jQuery, and Font Awesome are not part of the renderer boundary.
@@ -68,23 +69,23 @@ The legacy backend uses PostgreSQL separately. Its database design, driver, sche
 
 ## Current code map
 
-| Path | Current responsibility |
-| --- | --- |
-| `src/main/index.ts`, `src/main/bootstrap.ts`, `src/main/environment-init.ts` | Electron startup, environment setup, windows, and lifecycle |
-| `src/main/controllers/InitializationAndHandlers/` | Application orchestration, authentication, IPC handlers, connections, and API requests |
-| `src/main/controllers/FileSystem/` | Library folders, filesystem watchers, MP3 tags, and downloaded-file reconciliation |
-| `src/main/controllers/DownloadPhase/`, `src/main/utils/binaries.ts` | Local downloads, audio processing, and binary management |
-| `src/main/Store/` | Main-process application state and persistence command forwarding |
-| `src/main/persistence/` | SQLite sessions, relational repositories, legacy import, migrations, snapshots, and file links |
-| `src/main/Global/` | Explicit main-process constants and state accessors |
-| `src/main/queryMaker.ts` | Track queries for YouTube matching |
-| `src/main/utils/credentials.ts` | Session persistence through Electron `safeStorage` |
-| `src/preload/index.ts` | Sandboxed typed IPC bridge |
-| `src/shared/` | Shared IPC and domain contracts |
-| `src/renderer/` | Vue 3 UI, Vue Router 4 hash routes, composable state service, and components |
-| `src/@types/` | Domain types and renderer declarations |
-| `backend/src/index.js`, `backend/src/routes/`, `backend/src/controllers/` | Legacy Express API, Spotify OAuth, YouTube matching, and PostgreSQL access |
-| `electron.vite.config.ts`, `electron-builder.yml` | Desktop bundle and packaging configuration |
+| Path                                                                         | Current responsibility                                                                         |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `src/main/index.ts`, `src/main/bootstrap.ts`, `src/main/environment-init.ts` | Electron startup, environment setup, windows, and lifecycle                                    |
+| `src/main/controllers/InitializationAndHandlers/`                            | Application orchestration, authentication, IPC handlers, connections, and API requests         |
+| `src/main/controllers/FileSystem/`                                           | Library folders, filesystem watchers, MP3 tags, and downloaded-file reconciliation             |
+| `src/main/controllers/DownloadPhase/`, `src/main/utils/binaries.ts`          | Local downloads, audio processing, and binary management                                       |
+| `src/main/Store/`                                                            | Main-process application state and persistence command forwarding                              |
+| `src/main/persistence/`                                                      | SQLite sessions, relational repositories, legacy import, migrations, snapshots, and file links |
+| `src/main/Global/`                                                           | Explicit main-process constants and state accessors                                            |
+| `src/main/queryMaker.ts`                                                     | Track queries for YouTube matching                                                             |
+| `src/main/utils/credentials.ts`                                              | Session persistence through Electron `safeStorage`                                             |
+| `src/preload/index.ts`                                                       | Sandboxed typed IPC bridge                                                                     |
+| `src/shared/`                                                                | Shared IPC and domain contracts                                                                |
+| `src/renderer/`                                                              | Vue 3 UI, Vue Router 4 hash routes, composable state service, and components                   |
+| `src/@types/`                                                                | Domain types and renderer declarations                                                         |
+| `backend/src/index.js`, `backend/src/routes/`, `backend/src/controllers/`    | Legacy Express API, Spotify OAuth, YouTube matching, and PostgreSQL access                     |
+| `electron.vite.config.ts`, `electron-builder.yml`                            | Desktop bundle and packaging configuration                                                     |
 
 `backend/` is a Git submodule with its own manifest and lockfile. It is not a root package workspace.
 Root dependency installation does not install backend dependencies.
@@ -118,24 +119,24 @@ Use mise configuration for environment values. Do not create `.env` files, despi
 
 `mise.toml` defines these tools and tasks:
 
-| Command | Current behavior |
-| --- | --- |
-| `mise install` | Installs Node 24 and Bun 1 |
-| `mise run install` | Installs root dependencies and the Electron binary through Bun |
-| `mise run dev` | Runs the app with hot reload |
-| `mise run preview` | Builds and runs the app as it ships |
-| `mise run test` | Bundles and runs the SQLite persistence tests |
-| `mise run typecheck:main` | Typechecks the main process |
-| `mise run typecheck:preload` | Typechecks the preload bridge and shared contracts |
-| `mise run typecheck:renderer` | Typechecks the renderer |
-| `mise run typecheck` | Runs the main, preload, shared, and renderer typechecks |
-| `mise run format` | Formats source and configuration files |
-| `mise run format:check` | Checks source and configuration formatting |
-| `mise run lint` | Runs ESLint and the formatting check |
-| `mise run lint:fix` | Runs ESLint fixes and formats source files |
-| `mise run build` | Bundles the main process and renderer into `out/` |
-| `mise run pack` | Bundles and packages an unsigned local app |
-| `mise run dist` | Bundles and packages distributables for the current platform |
+| Command                       | Current behavior                                               |
+| ----------------------------- | -------------------------------------------------------------- |
+| `mise install`                | Installs Node 24 and Bun 1                                     |
+| `mise run install`            | Installs root dependencies and the Electron binary through Bun |
+| `mise run dev`                | Runs the app with hot reload                                   |
+| `mise run preview`            | Builds and runs the app as it ships                            |
+| `mise run test`               | Bundles and runs every `tests/*.test.ts` file                  |
+| `mise run typecheck:main`     | Typechecks the main process                                    |
+| `mise run typecheck:preload`  | Typechecks the preload bridge and shared contracts             |
+| `mise run typecheck:renderer` | Typechecks the renderer                                        |
+| `mise run typecheck`          | Runs the main, preload, shared, and renderer typechecks        |
+| `mise run format`             | Formats source and configuration files                         |
+| `mise run format:check`       | Checks source and configuration formatting                     |
+| `mise run lint`               | Runs ESLint and the formatting check                           |
+| `mise run lint:fix`           | Runs ESLint fixes and formats source files                     |
+| `mise run build`              | Bundles the main process and renderer into `out/`              |
+| `mise run pack`               | Bundles and packages an unsigned local app                     |
+| `mise run dist`               | Bundles and packages distributables for the current platform   |
 
 The root package also provides matching Bun scripts for development, typechecking, testing, linting, formatting, packaging, and publishing.
 The backend's `npm start` command runs `nodemon src/index.js`. Its `npm run dev` command delegates to `npm start`.

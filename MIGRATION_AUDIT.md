@@ -29,6 +29,12 @@ Read legacy files with `jj file show -r lt <path>`. Citations use `lt:<path>:<li
 
 Findings 3, 4, 5, 6, and 8 share one root cause. The legacy `Track.controller` and `Playlist.controller` status logic was not ported. The current renderer also has no live downloaded-file map to compute a `downloaded` state from.
 
+## Resolution
+
+All twelve findings are fixed. The tests in `tests/` cover the pure behavior of findings 2 to 11. Findings 1 to 4, 7 to 9, and 12 were also checked in the running Electron app with a temporary library.
+
+Finding 4 also depended on a watcher bug that `lt` had too. `createPlaylistWatchers` returned early because `retrieveLocalTracks()` with its default empty filter selects no playlists. Watchers are now always created, so the "Empty-library watcher skip" entry under [Not regressions](#not-regressions) no longer describes current behavior.
+
 ## Findings
 
 ### 1. Scroll-linked top bar and search bar opacity
