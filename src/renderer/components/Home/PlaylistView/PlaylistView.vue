@@ -2,7 +2,7 @@
   <div class="plv-container w100">
     <div
       class="track-list row hideable-container"
-      :class="{ hide: navigationPending }"
+      :class="{ hide: navigationPending || filterPending }"
       style="--list-transition-time: 250ms"
     >
       <div
@@ -49,31 +49,51 @@
         </div>
       </div>
       <div class="list">
-        <Track v-for="item in iterableItems" :key="item.id" :item="item" />
+        <Track
+          v-for="item in filteredIterableItems"
+          :key="item.id"
+          :item="item"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import {
+  computed,
+  nextTick,
+  onActivated,
+  onBeforeUnmount,
+  onDeactivated,
+  ref,
+  watch
+} from 'vue'
 import { useRoute } from 'vue-router'
 
 import { navigate, navigationPending, routeNames } from '../../../router'
-import { useSongBasketState } from '../../../state'
+import { useSearchFilter, useSongBasketState } from '../../../state'
 import type { Playlist, TrackItem } from '../model'
+import { trackMatches } from '../model'
 import { sortTracksByStatus } from '../track-status'
 import Track from './Track.vue'
 
 const route = useRoute()
 const { state, downloadedTracks } = useSongBasketState()
+const isActive = computed(() => route.name === routeNames.playlistView)
+const { query: searchQuery, pending: filterPending } = useSearchFilter()
 const changesContainer = ref<HTMLElement | null>(null)
 const changesHeight = ref(0)
 
-const playlistId = computed(() => {
+const playlistId = ref('')
+const updatePlaylistId = (): void => {
+  if (route.name !== routeNames.playlistView) return
   const id = route.params['id']
-  if (typeof id === 'string') return id
-  return ''
+  if (typeof id !== 'string') return
+  playlistId.value = id
+}
+watch([() => route.name, () => route.params['id']], updatePlaylistId, {
+  immediate: true
 })
 const playlist = computed<Playlist | null>(() => {
   const value = state.value
@@ -103,12 +123,16 @@ const iterableItems = computed<readonly TrackItem[]>(() => {
   if (isSynced.value) return convertedItems.value
   return playlist.value?.tracks.items ?? []
 })
+const filteredIterableItems = computed<readonly TrackItem[]>(() =>
+  iterableItems.value.filter((item) => trackMatches(item, searchQuery.value))
+)
 const changesHeightLabel = computed(() => {
   if (!showingChanges.value) return '0px'
   return `${changesHeight.value}px`
 })
 
 const calculateChangesHeight = (): void => {
+  if (!isActive.value) return
   const element = changesContainer.value
   if (element === null) return
   changesHeight.value = Array.from(element.children).reduce(
@@ -118,24 +142,40 @@ const calculateChangesHeight = (): void => {
 }
 
 let resizeObserver: ResizeObserver | undefined
-onMounted(() => {
-  void nextTick(calculateChangesHeight)
-  if (changesContainer.value !== null && 'ResizeObserver' in window) {
-    resizeObserver = new ResizeObserver(calculateChangesHeight)
-    resizeObserver.observe(changesContainer.value)
-  }
+const disconnectResizeObserver = (): void => {
+  resizeObserver?.disconnect()
+  resizeObserver = undefined
+}
+const observeChangesContainer = (): void => {
+  if (resizeObserver !== undefined) return
+  const element = changesContainer.value
+  if (element === null || !('ResizeObserver' in window)) return
+  resizeObserver = new ResizeObserver(calculateChangesHeight)
+  resizeObserver.observe(element)
+}
+const redirectIfPlaylistMissing = (): void => {
+  if (!isActive.value || state.value === null || playlist.value !== null) return
+  void navigate({ name: routeNames.playlistsList })
+}
+
+onActivated(() => {
+  redirectIfPlaylistMissing()
+  void nextTick(() => {
+    calculateChangesHeight()
+    observeChangesContainer()
+  })
 })
+
+onDeactivated(disconnectResizeObserver)
 
 watch([playlistId, showingChanges], () => {
+  if (!isActive.value) return
   void nextTick(calculateChangesHeight)
 })
 
-watch(playlist, (value) => {
-  if (value !== null) return
-  void navigate({ name: routeNames.playlistsList })
-})
+watch([playlist, isActive], redirectIfPlaylistMissing)
 
-onBeforeUnmount(() => resizeObserver?.disconnect())
+onBeforeUnmount(disconnectResizeObserver)
 </script>
 
 <style lang="scss" scoped>

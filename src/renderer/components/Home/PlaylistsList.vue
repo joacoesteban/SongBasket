@@ -1,16 +1,16 @@
 <template>
-  <div ref="listElement" class="pll-container">
+  <div class="pll-container">
     <div
       class="actual-list row hideable-container"
-      :class="{ hide: navigationPending }"
+      :class="{ hide: navigationPending || filterPending }"
       style="--list-transition-time: 250ms"
     >
-      <div v-if="playlists.length === 0" class="no-playlists">
+      <div v-if="noPlaylists" class="no-playlists">
         No Playlists found{{ allLoadedLabel }}
       </div>
       <div class="horizontal-scroller">
         <Playlist
-          v-for="playlist in syncedPlaylists"
+          v-for="playlist in filteredSyncedPlaylists"
           :key="playlist.id"
           :playlist="playlist"
           @open-playlist="openPlaylist"
@@ -18,7 +18,7 @@
       </div>
       <div class="list">
         <Playlist
-          v-for="playlist in unsyncedPlaylists"
+          v-for="playlist in filteredUnsyncedPlaylists"
           :key="playlist.id"
           :playlist="playlist"
           @open-playlist="openPlaylist"
@@ -34,17 +34,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed } from 'vue'
 
 import { navigate, navigationPending, routeNames } from '../../router'
-import { useSongBasketActions, useSongBasketState } from '../../state'
+import {
+  useSearchFilter,
+  useSongBasketActions,
+  useSongBasketState
+} from '../../state'
 import Playlist from './Playlist.vue'
 import type { Playlist as PlaylistModel } from './model'
+import { playlistMatches } from './model'
 import { sortPlaylistsByStatus } from './playlist-status'
 
 const { state, downloadedTracks } = useSongBasketState()
 const { loadMorePlaylists } = useSongBasketActions()
-const listElement = ref<HTMLElement | null>(null)
+const { query: searchQuery, pending: filterPending } = useSearchFilter()
 
 const playlists = computed<readonly PlaylistModel[]>(
   () => state.value?.playlists ?? []
@@ -64,6 +69,21 @@ const unsyncedPlaylists = computed(() => {
     (playlist) => !value.syncedPlaylists.includes(playlist.id)
   )
 })
+const filteredSyncedPlaylists = computed(() =>
+  syncedPlaylists.value.filter((playlist) =>
+    playlistMatches(playlist, searchQuery.value)
+  )
+)
+const filteredUnsyncedPlaylists = computed(() =>
+  unsyncedPlaylists.value.filter((playlist) =>
+    playlistMatches(playlist, searchQuery.value)
+  )
+)
+const noPlaylists = computed(
+  () =>
+    filteredSyncedPlaylists.value.length === 0 &&
+    filteredUnsyncedPlaylists.value.length === 0
+)
 const allLoaded = computed(() => {
   const control = state.value?.control
   if (control === undefined) return true
@@ -81,21 +101,6 @@ const openPlaylist = (id: string): void => {
 const loadMore = (): void => {
   void loadMorePlaylists()
 }
-
-const onScroll = (): void => {
-  const element = listElement.value
-  if (element === null) return
-  const ratio = Math.min(element.scrollTop / 100, 1)
-  element.style.setProperty('--scroll-opacity', String(ratio))
-}
-
-onMounted(() => {
-  listElement.value?.addEventListener('scroll', onScroll)
-})
-
-onBeforeUnmount(() => {
-  listElement.value?.removeEventListener('scroll', onScroll)
-})
 </script>
 
 <style lang="scss" scoped>

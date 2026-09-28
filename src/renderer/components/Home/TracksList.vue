@@ -1,9 +1,8 @@
 <template>
-  <div ref="listElement" class="tkl-container">
+  <div class="tkl-container">
     <div
-      ref="actual-list"
       class="actual-list row hideable-container"
-      :class="{ hide: navigationPending }"
+      :class="{ hide: navigationPending || filterPending }"
       style="--list-transition-time: 250ms"
     >
       <div v-if="tracks.length === 0" class="no-tracks">No Tracks found</div>
@@ -15,36 +14,25 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed } from 'vue'
 
 import { navigationPending } from '../../router'
-import { useSongBasketState } from '../../state'
+import { useSearchFilter, useSongBasketState } from '../../state'
 import Track from './PlaylistView/Track.vue'
 import type { Track as TrackModel } from './model'
+import { trackMatches } from './model'
 import { sortTracksByStatus } from './track-status'
 
 const { state, downloadedTracks } = useSongBasketState()
-const listElement = ref<HTMLElement | null>(null)
-const tracks = computed<readonly TrackModel[]>(() => {
+const { query: searchQuery, pending: filterPending } = useSearchFilter()
+const sortedTracks = computed<readonly TrackModel[]>(() => {
   const value = state.value
   if (value === null) return []
   return sortTracksByStatus(value.convertedTracks, downloadedTracks.value)
 })
-
-const onScroll = (): void => {
-  const element = listElement.value
-  if (element === null) return
-  const ratio = Math.min(element.scrollTop / 100, 1)
-  element.style.setProperty('--scroll-opacity', String(ratio))
-}
-
-onMounted(() => {
-  listElement.value?.addEventListener('scroll', onScroll)
-})
-
-onBeforeUnmount(() => {
-  listElement.value?.removeEventListener('scroll', onScroll)
-})
+const tracks = computed<readonly TrackModel[]>(() =>
+  sortedTracks.value.filter((track) => trackMatches(track, searchQuery.value))
+)
 </script>
 
 <style lang="scss" scoped>

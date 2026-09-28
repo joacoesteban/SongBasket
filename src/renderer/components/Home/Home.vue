@@ -5,9 +5,15 @@
         <TopBar />
         <SearchBar />
       </div>
-      <div class="home-router router-view" :class="routerClasses">
+      <div
+        ref="homeRouter"
+        class="home-router router-view"
+        :class="routerClasses"
+      >
         <RouterView v-slot="{ Component }">
-          <component :is="Component" :key="route.fullPath" />
+          <KeepAlive>
+            <component :is="Component" :key="route.name" />
+          </KeepAlive>
         </RouterView>
       </div>
       <FloatingButtons style="z-index: 1" />
@@ -16,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 
 import {
@@ -34,6 +40,7 @@ defineOptions({ name: 'HomeView' })
 
 const route = useRoute()
 const { state } = useSongBasketState()
+const homeRouter = ref<HTMLElement | null>(null)
 const routerClasses = computed<Record<string, boolean>>(() => ({
   [navigationDirection.value]: true,
   fast: navigationFast.value
@@ -50,11 +57,28 @@ watch(
   }
 )
 
+const updateScrollOpacity = (): void => {
+  const element = homeRouter.value
+  if (element === null) return
+  const ratio = Math.min(element.scrollTop / 100, 1)
+  document.documentElement.style.setProperty('--scroll-opacity', String(ratio))
+}
+
 onMounted(() => {
+  const element = homeRouter.value
+  if (element !== null) {
+    element.addEventListener('scroll', updateScrollOpacity)
+    updateScrollOpacity()
+  }
   const playlists = state.value?.playlists
   if (playlists !== undefined && playlists.length === 0) {
     void navigate({ name: routeNames.empty })
   }
+})
+
+onBeforeUnmount(() => {
+  homeRouter.value?.removeEventListener('scroll', updateScrollOpacity)
+  document.documentElement.style.removeProperty('--scroll-opacity')
 })
 </script>
 

@@ -9,3 +9,4 @@ export {
   useSongBasketActions
 } from './useSongBasketActions'
 export type { SongBasketActions } from './useSongBasketActions'
+export { useSearch, useSearchFilter } from './useSearch'

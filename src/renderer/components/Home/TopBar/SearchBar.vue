@@ -19,13 +19,18 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { routeNames } from '../../../router'
+import { useSearch } from '../../../state'
 
 const route = useRoute()
-const searchInputValue = ref('')
+const { searchQuery, resetSearch, setSearchQuery } = useSearch()
+const searchInputValue = computed({
+  get: () => searchQuery.value,
+  set: (value: string) => setSearchQuery(value)
+})
 const hidden = ref(false)
 
 const setVisibility = (): void => {
@@ -40,12 +45,9 @@ const setVisibility = (): void => {
     height
   )
 }
-const resetSearch = (): void => {
-  searchInputValue.value = ''
-}
 
 watch(
-  () => route.name,
+  () => route.fullPath,
   () => {
     resetSearch()
     setVisibility()
@@ -55,8 +57,8 @@ watch(
 onMounted(() => {
   setVisibility()
 })
-
 onBeforeUnmount(() => {
+  resetSearch()
   document.documentElement.style.removeProperty('--filters-container-height')
 })
 </script>
