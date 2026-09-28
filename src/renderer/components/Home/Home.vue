@@ -5,11 +5,9 @@
         <TopBar />
         <SearchBar />
       </div>
-      <div class="home-router">
+      <div class="home-router router-view" :class="routerClasses">
         <RouterView v-slot="{ Component }">
-          <div class="router-view" :class="routerClasses">
-            <component :is="Component" :key="route.fullPath" />
-          </div>
+          <component :is="Component" :key="route.fullPath" />
         </RouterView>
       </div>
       <FloatingButtons style="z-index: 1" />
@@ -78,7 +76,6 @@ onMounted(() => {
 .home-router {
   z-index: 1;
   max-height: 100%;
-  transition: padding var(--ts-g);
   padding-top: var(--filters-container-height);
   display: flex;
   box-sizing: border-box;
