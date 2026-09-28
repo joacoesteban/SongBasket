@@ -6,6 +6,13 @@ Electron desktop app. The main process talks to the SongBasket backend
 (`https://api.songbasket.com`), which owns the Spotify OAuth flow and the
 YouTube matching. Downloads run locally through `yt-dlp` and `ffmpeg`.
 
+The API source is included as a Git submodule in `backend/`. Initialize it
+after cloning:
+
+```bash
+git submodule update --init --recursive
+```
+
 ## Requirements
 
 [mise](https://mise.jdx.dev) provides Node and Yarn. Everything else installs
@@ -43,6 +50,7 @@ a debugger by hand.
 | `src/main` | Main process: boot, IPC routes, store, download pipeline, filesystem watchers |
 | `src/renderer` | Vue 2.7 app: router, Vuex store, components |
 | `src/@types` | Shared types and global declarations |
+| `backend` | API source (Git submodule) |
 | `electron.vite.config.ts` | Build config for both bundles |
 | `electron-builder.yml` | Packaging and publishing |
 
