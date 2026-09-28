@@ -2,42 +2,28 @@
   <svg
     height="100%"
     width="100%"
-    :style="style"
-    :class="customClasses"
+    :style="iconStyle"
+    :class="className"
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
+    aria-hidden="true"
   >
     <path :d="path" />
   </svg>
 </template>
 
-<script lang="ts">
-export default {
-  props: {
-    path: {
-      type: String,
-      require: true
-    },
-    iconColor: {
-      type: String,
-      require: true
-    },
-    className: {
-      type: String,
-      require: true
-    }
-  },
-  data() {
-    return {
-      customClasses: this.className,
-      style: {
-        background: 'none',
-        fill: this.iconColor
-      }
-    }
-  },
-  computed: {}
-}
-</script>
+<script setup lang="ts">
+import { computed } from 'vue'
 
-<style></style>
+type Props = {
+  path: string
+  iconColor: string
+  className: string
+}
+
+const props = defineProps<Props>()
+const iconStyle = computed(() => ({
+  background: 'none',
+  fill: props.iconColor
+}))
+</script>

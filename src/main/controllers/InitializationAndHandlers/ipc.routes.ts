@@ -1,88 +1,68 @@
-import { SpotifyPlaylistId, SpotifyTrackId } from '../../../@types/Spotify'
-import { YouTubeResultId } from '../../../@types/YouTube'
-// import store from '../../../renderer/store/index.js'
-import FileWatchers, { SBWatcherEvent } from '../FileSystem/FileWatchers'
+import type { SpotifyPlaylistId, SpotifyTrackId } from '../../../@types/Spotify'
+import type { YouTubeResultId } from '../../../@types/YouTube'
 import * as handlers from './handlers'
-import IpcController from './ipc.controller'
+import { registerInvokeHandler } from './ipc.controller'
 import WindowController from './window.controller'
 
-// :::::::::::::::::::::::::::::::::IPC:::::::::::::::::::::::::::::::::
-export default function () {
-  const ipcSend = IpcController.send
-  const on = IpcController.answerRenderer
+export default function registerIpcRoutes(): void {
+  registerInvokeHandler('GET_STATUS', handlers.sendStatus)
 
-  on('GET_STATUS', handlers.sendStatus)
+  registerInvokeHandler('WINDOW:LOCK', () => WindowController.lockWindow())
+  registerInvokeHandler('WINDOW:UNLOCK', () => WindowController.unlockWindow())
+  registerInvokeHandler('WINDOW:MINIMIZE', () => WindowController.minimize())
+  registerInvokeHandler('WINDOW:TOGGLE_MAXIMIZE', () =>
+    WindowController.toggleMaximize()
+  )
+  registerInvokeHandler('WINDOW:CLOSE', () => WindowController.close())
 
-  on('WINDOW:LOCK', WindowController.lockWindow)
-  on('WINDOW:UNLOCK', WindowController.unlockWindow)
+  registerInvokeHandler('YOUTUBE_DETAILS:GET', handlers.getYtTrackDetails)
 
-  on('YOUTUBE_DETAILS:GET', handlers.getYtTrackDetails)
+  registerInvokeHandler('DOWNLOAD', handlers.download)
 
-  on('download', handlers.download)
+  registerInvokeHandler('VIDEO:OPEN', handlers.openYtVideo)
+  registerInvokeHandler('VIDEO:SEARCH', handlers.searchYtVideo)
 
-  on('VIDEO:OPEN', handlers.openYtVideo)
-  on('VIDEO:SEARCH', handlers.searchYtVideo)
+  registerInvokeHandler('HOME_FOLDERS:ASK', handlers.askHomeFolder)
+  registerInvokeHandler('HOME_FOLDER:SET', handlers.setHomeFolder)
+  registerInvokeHandler('HOME_FOLDER:OPEN', handlers.openHomeFolder)
 
-  on('HOME_FOLDERS:ASK', handlers.askHomeFolder)
-  on('HOME_FOLDER:SET', handlers.setHomeFolder)
-  on('HOME_FOLDER:OPEN', handlers.openHomeFolder)
+  registerInvokeHandler('LOGIN', handlers.login)
+  registerInvokeHandler('LOGOUT', handlers.logout)
+  registerInvokeHandler('REFRESH', handlers.refresh)
+  registerInvokeHandler('PLAYLISTS:LOAD_MORE', handlers.loadMorePlaylists)
+  registerInvokeHandler('YOUTUBE:CONVERT', handlers.youtubize)
 
-  on('LOGIN', handlers.login)
-
-  on('LOGOUT', handlers.logout)
-
-  // on('APP_UPDATE:CONFIRM', updater.handlers.onUserUpdateConfirmation)
-
-  on('REFRESH', handlers.refresh)
-
-  on('PLAYLISTS:LOAD_MORE', async () => {
-    await handlers.loadMorePlaylists()
-  })
-
-  on('get tracks from', () => {
-    console.log('wtf')
-  })
-
-  on('Youtube Convert', handlers.youtubize)
-
-  on('PLAYLISTS:QUEUE', async function (id: SpotifyPlaylistId) {
+  registerInvokeHandler('PLAYLISTS:QUEUE', async (id: SpotifyPlaylistId) => {
     await handlers.queuePlaylist(id)
   })
-  on('PLAYLISTS:UNSYNC', async function ({ id }: { id: SpotifyPlaylistId }) {
-    await handlers.unsyncPlaylist(id)
-  })
-
-  on('PLAYLISTS:PAUSE', async function ({ id }: { id: SpotifyPlaylistId }) {
-    await handlers.pausePlaylist(id)
-  })
-
-  on('TRACK:PAUSE', async function ({ id }: { id: SpotifyTrackId }) {
-    await handlers.pauseTrack(id)
-  })
-
-  on(
+  registerInvokeHandler(
+    'PLAYLISTS:UNSYNC',
+    async ({ id }: { id: SpotifyPlaylistId }) => {
+      await handlers.unsyncPlaylist(id)
+    }
+  )
+  registerInvokeHandler(
+    'PLAYLISTS:PAUSE',
+    async ({ id }: { id: SpotifyPlaylistId }) => {
+      await handlers.pausePlaylist(id)
+    }
+  )
+  registerInvokeHandler(
+    'TRACK:PAUSE',
+    async ({ id }: { id: SpotifyTrackId }) => {
+      await handlers.pauseTrack(id)
+    }
+  )
+  registerInvokeHandler(
     'TRACK:CHANGE_SELECTION',
-    async function ({
+    async ({
       trackId,
       newId
     }: {
       trackId: SpotifyTrackId
-      newId: YouTubeResultId
-    }) {
+      newId: YouTubeResultId | null
+    }) => {
       await handlers.changeYtTrackSelection({ trackId, newId })
     }
   )
-  // FileWatchers
-  // TODO turn into ipc promise
-
-  on('FileWatchers:ASK_TRACKS', function () {
-    ipcSend('FileWatchers:RETRIEVED_TRACKS', FileWatchers.retrieveTracks())
-  })
-
-  FileWatchers.on(SBWatcherEvent.ADDED, (track) => {
-    ipcSend('FileWatchers:ADDED', track)
-  })
-  FileWatchers.on(SBWatcherEvent.REMOVED, (track) => {
-    ipcSend('FileWatchers:REMOVED', track)
-  })
 }

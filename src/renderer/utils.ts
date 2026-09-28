@@ -1,4 +1,4 @@
-export type dateFormatted = {
+export type DateFormatted = {
   today: boolean
   sameYear: boolean
   month: string
@@ -7,7 +7,7 @@ export type dateFormatted = {
   raw: Date
 }
 
-export type timeFormatted = {
+export type TimeFormatted = {
   rawHours: number
   rawMinutes: number
   rawSeconds: number
@@ -15,61 +15,77 @@ export type timeFormatted = {
   minutes: string
   seconds: string
 }
-// ------------------------------------------
 
-export function convertMS(milliseconds: number) {
-  let minutes, seconds
-  seconds = Math.floor(milliseconds / 1000)
-  minutes = Math.floor(seconds / 60)
-  seconds = seconds % 60
+export type DateFormatResult = {
+  date: DateFormatted
+  time: TimeFormatted
+} | null
+
+export type CssVariableValue = string | number
+
+export function setCssVariable(name: string, value: CssVariableValue): void {
+  document.documentElement.style.setProperty(`--${name}`, String(value))
+}
+
+export function convertMS(milliseconds: number): {
+  minutes: number
+  seconds: number
+} {
+  const totalSeconds = Math.floor(milliseconds / 1000)
   return {
-    minutes,
-    seconds
+    minutes: Math.floor(totalSeconds / 60),
+    seconds: totalSeconds % 60
   }
 }
 
 export const sleep = (time: number): Promise<void> =>
-  new Promise((resolve, reject) => setTimeout(resolve, time))
-export const jsonClone = (obj: any) => JSON.parse(JSON.stringify(obj))
+  new Promise((resolve) => {
+    setTimeout(resolve, time)
+  })
 
-export function dateFormatter(dateParam: Date | number | string) {
+export function dateFormatter(
+  dateParam: Date | number | string
+): DateFormatResult {
   if (!dateParam) return null
 
-  dateParam = new Date(dateParam)
-  if (isNaN(dateParam.getTime())) return null
+  const parsedDate = new Date(dateParam)
+  if (Number.isNaN(parsedDate.getTime())) return null
 
   const now = new Date()
+  const month = MONTHS[parsedDate.getMonth()]
+  if (month === undefined) return null
 
-  const date: dateFormatted = {
+  const date: DateFormatted = {
     today:
-      dateParam.getFullYear() === now.getFullYear() &&
-      dateParam.getMonth() === now.getMonth() &&
-      dateParam.getDate() === now.getDate(),
-    sameYear: dateParam.getFullYear() === now.getFullYear(),
-    month: months[dateParam.getMonth()].substring(0, 3),
-    date: dateParam.getDate(),
-    year: dateParam.getFullYear(),
-    raw: dateParam
+      parsedDate.getFullYear() === now.getFullYear() &&
+      parsedDate.getMonth() === now.getMonth() &&
+      parsedDate.getDate() === now.getDate(),
+    sameYear: parsedDate.getFullYear() === now.getFullYear(),
+    month: month.substring(0, 3),
+    date: parsedDate.getDate(),
+    year: parsedDate.getFullYear(),
+    raw: parsedDate
   }
 
-  const rawHours = dateParam.getHours()
-  const rawMinutes = dateParam.getMinutes()
-  const rawSeconds = dateParam.getSeconds()
-  const time: timeFormatted = {
+  const rawHours = parsedDate.getHours()
+  const rawMinutes = parsedDate.getMinutes()
+  const rawSeconds = parsedDate.getSeconds()
+  const time: TimeFormatted = {
     rawHours,
     rawMinutes,
     rawSeconds,
-    hours: ((rawHours < 10 ? '0' : '') + rawHours).toString(),
-    minutes: ((rawMinutes < 10 ? '0' : '') + rawMinutes).toString(),
-    seconds: ((rawSeconds < 10 ? '0' : '') + rawSeconds).toString()
+    hours: padTimeComponent(rawHours),
+    minutes: padTimeComponent(rawMinutes),
+    seconds: padTimeComponent(rawSeconds)
   }
 
   return { date, time }
 }
 
-// ------------------------------------------
+const padTimeComponent = (value: number): string =>
+  String(value).padStart(2, '0')
 
-const months = [
+const MONTHS = [
   'January',
   'February',
   'March',

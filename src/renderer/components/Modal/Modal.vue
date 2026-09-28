@@ -1,59 +1,59 @@
 <template>
-  <div v-show="!(!transitioning && !showLocal)" class="modal-wrapper">
+  <div v-show="showWrapper" class="modal-wrapper">
     <div :class="{ show: showLocal }" class="modal-container">
       <div class="content box-shadow">
-        <modal-loader @close="close" />
+        <ModalLoader />
       </div>
     </div>
     <div :class="{ show: showLocal }" class="dark-body" @click="close" />
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+
+import { useModal } from '../../state/useModal'
 import ModalLoader from './ModalLoader.vue'
-export default {
-  components: {
-    ModalLoader
-  },
-  data() {
-    return {
-      showLocal: false,
-      transitioning: false,
-      // TODO adapt to global transition scale factor
-      transitionTime: 300
-    }
-  },
-  computed: {
-    modal() {
-      return this.$store.state.SharedStates.modal
-    },
-    show() {
-      return this.modal.show
-    }
-  },
-  watch: {
-    show(val) {
-      this.transitioning = true
-      setTimeout(() => {
-        if (val) this.$root.$(window).on('keyup', this.onKeyUp)
-        this.showLocal = val
-        setTimeout(() => {
-          this.transitioning = false
-        }, this.transitionTime)
-      }, 0)
-    }
-  },
-  methods: {
-    close() {
-      if (this.transitioning) return
-      this.$root.$(window).off('keyup', this.onKeyUp)
-      this.$store._actions.closeModal[0]()
-    },
-    onKeyUp({ key }) {
-      return key === 'Escape' ? this.close() : null
-    }
-  }
+
+defineOptions({ name: 'ModalOverlay' })
+
+const transitionTime = 300
+const { modal, closeModal } = useModal()
+const showLocal = ref(false)
+const transitioning = ref(false)
+const showWrapper = computed(() => showLocal.value || transitioning.value)
+let transitionHandle: ReturnType<typeof setTimeout> | undefined
+
+const onKeyUp = (event: KeyboardEvent): void => {
+  if (event.key === 'Escape') close()
 }
+
+const close = (): void => {
+  if (transitioning.value) return
+  if (modal.value === null) return
+  closeModal()
+}
+
+watch(
+  modal,
+  (request) => {
+    transitioning.value = true
+    if (transitionHandle !== undefined) clearTimeout(transitionHandle)
+    transitionHandle = setTimeout(() => {
+      showLocal.value = request !== null
+      transitionHandle = setTimeout(() => {
+        transitioning.value = false
+      }, transitionTime)
+    }, 0)
+  },
+  { immediate: true }
+)
+
+onMounted(() => window.addEventListener('keyup', onKeyUp))
+onBeforeUnmount(() => {
+  window.removeEventListener('keyup', onKeyUp)
+  if (transitionHandle !== undefined) clearTimeout(transitionHandle)
+})
 </script>
 
 <style lang="scss">
@@ -99,7 +99,6 @@ $tst: var(--ts-g);
     background-color: #000;
     z-index: 0;
     cursor: pointer;
-    z-index: 0;
     opacity: 0;
 
     &.show {

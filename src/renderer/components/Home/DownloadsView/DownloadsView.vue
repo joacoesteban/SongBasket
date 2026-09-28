@@ -1,10 +1,10 @@
 <template>
   <div class="w100">
     <div class="banner-list w100">
-      <track-banner
-        v-for="(track, index) in downloads"
-        :key="index"
-        :download-status="giveMeTrackDownloadStatus(track, index)"
+      <TrackBanner
+        v-for="track in downloads"
+        :key="track.id"
+        :download-status="downloadStatus(track.id)"
         :is-download="true"
         :track="track"
       />
@@ -12,31 +12,27 @@
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
+import { computed } from 'vue'
+
+import { useSongBasketState } from '../../../state'
+import type { Track } from '../model'
 import TrackBanner from './TrackBanner.vue'
-export default {
-  components: {
-    TrackBanner
-  },
-  computed: {
-    downloads() {
-      return (this.$store.state.Events.DOWNLOAD_QUEUE || []).map((t) =>
-        this.$store.state.CurrentUser.convertedTracks.find(
-          (track) => t.id === track.id
-        )
-      )
-    },
-    currentTrackDownload() {
-      return this.$store.state.Events.CURRENT_DOWNLOAD
-    }
-  },
-  methods: {
-    giveMeTrackDownloadStatus(track) {
-      // if (this.currentTrackDownload !== track.id) return {state: 'awaiting'}
-      return this.$store.state.Events.DOWNLOAD_QUEUE.find(
-        (t) => t.id === track.id
-      )
-    }
+
+const { state, downloadItems } = useSongBasketState()
+const downloads = computed<readonly Track[]>(() => {
+  const tracks = state.value?.convertedTracks ?? []
+  return downloadItems.value
+    .map((item) => tracks.find((track) => track.id === item.id))
+    .filter((track): track is Track => track !== undefined)
+})
+
+const downloadStatus = (id: string): { state: string; ptg: number } => {
+  const item = downloadItems.value.find((candidate) => candidate.id === id)
+  if (item === undefined) return { state: 'awaiting', ptg: 0 }
+  return {
+    state: item.info.currentStatus,
+    ptg: item.info.ptg
   }
 }
 </script>

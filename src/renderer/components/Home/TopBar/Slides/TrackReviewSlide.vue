@@ -3,155 +3,112 @@
     <track-banner v-if="track" class="parent-track-container" :track="track" />
     <div class="controls-container df alic container-fluid">
       <button
-        v-if="showPause || showUnPause"
+        v-if="showPause || showUnpause"
         class="link-button"
         @click="pauseTrack"
       >
-        <span>
-          {{ showPause ? 'Pause' : 'Unpause' }}
-        </span>
-        <div class="icon-wrapper" :class="{ show: showPause }">
-          <button class="icon window-nodrag">
+        <span>{{ pauseLabel }}</span>
+        <span class="icon-wrapper show">
+          <span v-if="showPause" class="icon window-nodrag">
             <pause-icon />
-          </button>
-        </div>
-        <div class="icon-wrapper" :class="{ show: showUnPause }">
-          <button class="icon window-nodrag">
+          </span>
+          <span v-if="showUnpause" class="icon window-nodrag">
             <play-icon />
-          </button>
-        </div>
+          </span>
+        </span>
       </button>
       <button class="link-button" @click="customUrl">
-        <span> Custom Url </span>
-        <div class="icon-wrapper show">
-          <button class="icon window-nodrag">
+        <span>Custom Url</span>
+        <span class="icon-wrapper show">
+          <span class="icon window-nodrag">
             <link-icon />
-          </button>
-        </div>
+          </span>
+        </span>
       </button>
       <button class="link-button" @click="searchYt">
-        <span> Search YouTube </span>
-        <div class="icon-wrapper show">
-          <button class="icon window-nodrag">
+        <span>Search YouTube</span>
+        <span class="icon-wrapper show">
+          <span class="icon window-nodrag">
             <magnifier-icon />
-          </button>
-        </div>
+          </span>
+        </span>
       </button>
       <button
-        :class="{ hidden: !showReset }"
         class="link-button hidable-item"
+        :class="{ hidden: !showReset }"
+        :disabled="!showReset"
         @click="reset"
       >
-        <span> Reset Selection </span>
-        <div class="icon-wrapper show">
-          <button class="icon window-nodrag">
+        <span>Reset Selection</span>
+        <span class="icon-wrapper show">
+          <span class="icon window-nodrag">
             <restart-icon />
-          </button>
-        </div>
+          </span>
+        </span>
       </button>
     </div>
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+import LinkIcon from '../../../../assets/icons/link-icon.vue'
+import MagnifierIcon from '../../../../assets/icons/magnifier-icon.vue'
+import PauseIcon from '../../../../assets/icons/pause-icon.vue'
+import PlayIcon from '../../../../assets/icons/play-icon.vue'
+import RestartIcon from '../../../../assets/icons/restart-icon.vue'
+import { useSongBasketActions, useSongBasketState } from '../../../../state'
+import { useModal } from '../../../../state/useModal'
 import TrackBanner from '../../DownloadsView/TrackBanner.vue'
-import DownloadIcon from '@/assets/icons/download-icon'
-import CloseIcon from '@/assets/icons/close-icon'
-import PauseIcon from '@/assets/icons/pause-icon'
-import PlayIcon from '@/assets/icons/play-icon'
-import LinkIcon from '@/assets/icons/link-icon'
-import RestartIcon from '@/assets/icons/restart-icon'
-import MagnifierIcon from '@/assets/icons/magnifier-icon'
-export default {
-  components: {
-    TrackBanner,
-    DownloadIcon,
-    CloseIcon,
-    PauseIcon,
-    PlayIcon,
-    LinkIcon,
-    RestartIcon,
-    MagnifierIcon
-  },
-  data() {
-    return {
-      track: null
-    }
-  },
-  computed: {
-    showReset() {
-      return (
-        this.track &&
-        this.track.conversion &&
-        this.track.conversion.yt.length &&
-        ((this.track.selectionObj && !this.track.selectionObj.isBestMatch) ||
-          this.track.flags.selectionIsApplied)
-      )
-    },
-    showPause() {
-      return (
-        this.track &&
-        this.track.status &&
-        !this.track.status.slug.includes('pause')
-      )
-    },
-    showUnPause() {
-      return (
-        !this.showPause &&
-        this.track &&
-        this.track.status &&
-        this.track.status.slug.includes('pause')
-      )
-    },
-    playlistTracksReComputed() {
-      return this.$store.state.Events.PLAYLIST_TRACKS_RE_COMPUTED
-    }
-  },
-  watch: {
-    // playlistTracksReComputed () {
-    //   this.refresh()
-    // }
-  },
-  created() {
-    this.$root.$ComponentRefs.slides.TrackReview = this
-  },
-  methods: {
-    refresh() {
-      console.log('onrefresh')
-      this.$root.$ComponentRefs.TrackReview &&
-        this.$root.$ComponentRefs.TrackReview.refreshTrack()
-    },
-    setTrack(track) {
-      this.track = track
-    },
-    async pauseTrack() {
-      const id = this.track && this.track.id
-      try {
-        if (!id) throw new Error('NO TRACK ID')
-        await this.$root.$controllers.core.pauseTrack(id)
-        this.refresh()
-      } catch (error) {
-        console.error(error)
-      }
-    },
-    async customUrl() {
-      const id = this.track && this.track.id
-      try {
-        if (!id) throw new Error('NO TRACK ID')
-        await this.$root.$controllers.core.askTrackCustomUrl(id)
-        this.refresh()
-      } catch (error) {
-        console.error(error)
-      }
-    },
-    async reset() {
-      ;(await this.$root.$ComponentRefs.TrackReview) &&
-        this.$root.$ComponentRefs.TrackReview.selectVideo(null)
-    },
-    searchYt() {
-      this.$root.$controllers.core.searchYt(this.track)
-    }
-  }
+
+const route = useRoute()
+const state = useSongBasketState()
+const actions = useSongBasketActions()
+const { openModal } = useModal()
+
+const track = computed(() => {
+  const id = route.params['id']
+  if (typeof id !== 'string') return null
+  return (
+    state.state.value?.convertedTracks.find((item) => item.id === id) ?? null
+  )
+})
+const showPause = computed(() => track.value?.flags.paused === false)
+const showUnpause = computed(() => track.value?.flags.paused === true)
+const pauseLabel = computed(() => {
+  if (showPause.value) return 'Pause'
+  return 'Unpause'
+})
+const showReset = computed(() => {
+  const current = track.value
+  if (current === null || current.conversion === null) return false
+  return current.conversion.yt.length > 0 && !current.flags.selectionIsApplied
+})
+
+const pauseTrack = (): void => {
+  const current = track.value
+  if (current === null) return
+  void actions.pauseTrack(current.id)
+}
+const customUrl = (): void => {
+  const current = track.value
+  if (current === null) return
+  openModal({ kind: 'custom-track-url', trackId: current.id })
+}
+const searchYt = (): void => {
+  const query = track.value?.query?.query
+  if (query === undefined || query.length === 0) return
+  void actions.searchVideo(query)
+}
+const reset = (): void => {
+  const current = track.value
+  if (current === null) return
+  void actions.changeTrackSelection({
+    trackId: current.id,
+    newId: null
+  })
 }
 </script>
 
@@ -163,7 +120,6 @@ export default {
 .controls-container {
   display: flex;
   align-items: center;
-  // padding-left: .25em;
   $icon-size: 1.5em;
 
   .icon-wrapper {
@@ -185,25 +141,17 @@ export default {
     }
   }
 
-  button.icon {
+  span.icon {
     display: flex;
     box-shadow: none;
     transition:
       box-shadow var(--ts-g),
       var(--hover-n-active-transitions);
-
-    &:active {
-      opacity: 0.7;
-      transform: scale(0.95);
-    }
-
     background-color: transparent;
     border-radius: 50%;
     padding: 0.3em;
     min-width: $icon-size;
     height: $icon-size;
-    outline: 0;
-    border: 0;
 
     svg {
       padding: 0;

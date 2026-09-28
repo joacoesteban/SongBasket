@@ -3,8 +3,6 @@ import Positioner from 'electron-positioner'
 import windowStateKeeper from 'electron-window-state'
 import * as PATH from 'path'
 
-import { enable as enableRemote } from '@electron/remote/main'
-
 import {
   LOADING_WINDOW_CONFIG,
   MAIN_WINDOW_CONFIG
@@ -29,6 +27,9 @@ const windowController: {
   positioner: Positioner | null
   lockWindow: (params?: { setSize?: boolean }) => void
   unlockWindow: (params?: { setSize?: boolean; setPosition?: boolean }) => void
+  minimize: () => void
+  toggleMaximize: () => void
+  close: () => void
   onAppInit: () => void
   createMainWindow: () => void
   createLoadingWindow: () => void
@@ -70,6 +71,18 @@ const windowController: {
       }
     }, 500)
   },
+  minimize() {
+    getMainWindow()?.minimize()
+  },
+  toggleMaximize() {
+    const window = getMainWindow()
+    if (!window) return
+    if (window.isMaximized()) window.unmaximize()
+    else window.maximize()
+  },
+  close() {
+    getMainWindow()?.close()
+  },
   onAppInit() {
     windowController.createMainWindow()
     getLoadingWindow()?.close()
@@ -91,7 +104,6 @@ const windowController: {
 
     windowController.positioner = new Positioner(window)
 
-    enableRemote(window.webContents)
     loadRenderer(window)
     window.on('closed', () => {
       setMainWindow(null)
@@ -103,7 +115,6 @@ const windowController: {
     const window = new BrowserWindow(LOADING_WINDOW_CONFIG)
     setLoadingWindow(window)
 
-    enableRemote(window.webContents)
     loadRenderer(window)
     window.on('closed', () => {
       setLoadingWindow(null)

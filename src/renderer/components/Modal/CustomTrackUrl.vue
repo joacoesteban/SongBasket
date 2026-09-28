@@ -1,8 +1,6 @@
 <template>
   <div class="container">
-    <div class="header">
-      <b> Enter a YouTube Url </b>
-    </div>
+    <div class="header"><b>Enter a YouTube URL</b></div>
     <div class="info light">
       <input
         ref="input"
@@ -12,13 +10,19 @@
         @keyup.enter="accept"
       />
       <div
-        :class="{ valid: valid === true, invalid: valid === false, hide: hide }"
+        :class="{
+          valid: valid === true,
+          invalid: valid === false,
+          hide: url === ''
+        }"
         class="valid-container"
       />
     </div>
     <div :class="{ hide: hideControls }" class="controls df jucc aliic">
-      <div class="button accept" @click="accept">Accept</div>
-      <div class="button cancel" @click="cancel">Cancel</div>
+      <button class="button accept" :disabled="valid !== true" @click="accept">
+        Accept
+      </button>
+      <button class="button cancel" @click="emit('close')">Cancel</button>
     </div>
     <div :class="{ hide: !hideControls }" class="controls loading">
       {{ loadingText }}
@@ -26,79 +30,70 @@
   </div>
 </template>
 
-<script lang="ts">
-export default {
-  data() {
-    return {
-      url: '',
-      valid: null,
-      hide: true,
-      hideControls: false,
-      loadingText: 'Loading',
-      regex: {
-        url: /(^(https:\/\/www.youtube.com.watch\?v=([a-zA-Z0-9-_]{11}))$)/,
-        id: /^[a-zA-Z0-9-_]{11}$/
-      }
-    }
-  },
-  computed: {
-    payload() {
-      return this.$store.state.SharedStates.modal.options.payload
-    },
-    show() {
-      return this.$store.state.SharedStates.modal.show
-    }
-  },
-  watch: {
-    url(val) {
-      if (val === '') return (this.hide = true)
-      this.valid = this.regex.url.test(val) || this.regex.id.test(val)
-      this.hide = false
-    },
-    show(val) {
-      if (val) return this.focusInput()
-      this.url = ''
-      this.valid = null
-      this.hide = true
-      this.hideControls = false
-      this.loadingText = 'Loading'
-    }
-  },
-  mounted() {
-    this.focusInput()
-  },
-  methods: {
-    focusInput() {
-      this.$refs.input && this.$refs.input.focus()
-    },
-    cancel() {
-      this.$emit('close')
-      this.payload.cancelCb && this.payload.cancelCb()
-    },
-    async accept() {
-      if (!this.valid || this.url === '') return
-      this.hide = true
-      this.hideControls = true
+<script setup lang="ts">
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-      this.$root.$IPC
-        .callMain('YOUTUBE_DETAILS:GET', {
-          url: this.url,
-          trackId: this.payload.trackId
-        })
-        .then((details) => {
-          this.$emit('close')
-          this.payload.cb && this.payload.cb()
-        })
-        .catch(() => {
-          this.loadingText = 'Video not found'
-          setTimeout(() => {
-            this.hideControls = false
-            this.loadingText = 'Loading'
-          }, 200)
-        })
-    }
+import type { SpotifyTrackId } from '../../../@types/Spotify'
+import { useModal } from '../../state/useModal'
+import { useSongBasketActions } from '../../state/useSongBasketActions'
+
+const props = defineProps<{ trackId: SpotifyTrackId }>()
+const emit = defineEmits<{ close: [] }>()
+const actions = useSongBasketActions()
+const { modal } = useModal()
+const input = ref<HTMLInputElement | null>(null)
+const url = ref('')
+const hideControls = ref(false)
+const loadingText = ref('Loading')
+const valid = computed<boolean | null>(() => {
+  if (url.value === '') return null
+  return (
+    /^https:\/\/www\.youtube\.com\/watch\?v=[a-zA-Z0-9_-]{11}$/.test(
+      url.value
+    ) || /^[a-zA-Z0-9_-]{11}$/.test(url.value)
+  )
+})
+let resetHandle: ReturnType<typeof setTimeout> | undefined
+
+const focusInput = async (): Promise<void> => {
+  await nextTick()
+  input.value?.focus()
+}
+
+const reset = (): void => {
+  url.value = ''
+  hideControls.value = false
+  loadingText.value = 'Loading'
+}
+
+const accept = async (): Promise<void> => {
+  if (valid.value !== true) return
+  hideControls.value = true
+  try {
+    await actions.getYoutubeDetails(url.value, props.trackId)
+    emit('close')
+  } catch {
+    loadingText.value = 'Video not found'
+    if (resetHandle !== undefined) clearTimeout(resetHandle)
+    resetHandle = setTimeout(() => {
+      hideControls.value = false
+      loadingText.value = 'Loading'
+    }, 200)
   }
 }
+
+watch(modal, (request) => {
+  if (request?.kind === 'custom-track-url') {
+    void focusInput()
+    return
+  }
+  reset()
+})
+
+onMounted(() => void focusInput())
+onBeforeUnmount(() => {
+  if (resetHandle !== undefined) clearTimeout(resetHandle)
+})
 </script>
 
 <style lang="scss" scoped>

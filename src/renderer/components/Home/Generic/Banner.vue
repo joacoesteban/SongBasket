@@ -1,13 +1,11 @@
 <template>
   <div class="banner-container">
-    <div class="banner-default-slot">
-      <slot />
-    </div>
+    <div class="banner-default-slot"><slot /></div>
   </div>
 </template>
 
-<script lang="ts">
-export default {}
+<script setup lang="ts">
+defineOptions({ name: 'BannerView' })
 </script>
 
 <style lang="scss" scoped>

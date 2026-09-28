@@ -1,13 +1,18 @@
 import * as PATH from 'path'
 
-import { SongBasketTrackFile } from '../../../@types/SongBasket'
-import { SpotifyPlaylistId, SpotifyTrack } from '../../../@types/Spotify'
+import type { SongBasketTrackFile } from '../../../@types/SongBasket'
+import type { SpotifyPlaylistId, SpotifyTrack } from '../../../@types/Spotify'
 import * as utils from '../../../MAIN_PROCESS_UTILS'
+import type {
+  AppErrorDto,
+  DownloadStartItem,
+  DownloadEvent as RendererDownloadEvent
+} from '../../../shared/ipc'
 import { APP_SUPPORT_PATH } from '../../Global/constants'
 import { getConnectedToInternet, getHomeFolder } from '../../Global/state'
 import customGetters from '../../Store/Helpers/customGetters'
 import { ytDlp } from '../../utils/binaries'
-import ipc from '../InitializationAndHandlers/ipc.controller'
+import { ipcSend } from '../InitializationAndHandlers/ipc.controller'
 import { applyTags, extractMp3 } from './FfmpegController'
 import { QueryTrack, downloadLinkRemove } from './StoredTracksChecker'
 import { downloadAudio } from './yt-dlp'
@@ -34,12 +39,6 @@ enum LifeCycle {
 
 type DownloadEvent = {
   type: LifeCycle
-  id: string
-  ptg?: number
-}
-
-type RendererDownloadEvent = {
-  type: string
   id: string
   ptg?: number
 }
@@ -127,27 +126,75 @@ const tempDownloadsFolderPath = () =>
   PATH.join(APP_SUPPORT_PATH, 'temp', 'downloads')
 
 let lastEvent: RendererDownloadEvent | null = null
+type EventGroup = 'download' | 'extraction' | 'tags'
+const eventTypes = {
+  download: {
+    start: 'download:start',
+    progress: 'download:progress',
+    error: 'download:error',
+    end: 'download:end'
+  },
+  extraction: {
+    start: 'extraction:start',
+    progress: 'extraction:progress',
+    error: 'extraction:error',
+    end: 'extraction:end'
+  },
+  tags: {
+    start: 'tags:start',
+    progress: 'tags:progress',
+    error: 'tags:error',
+    end: 'tags:end'
+  }
+} satisfies Record<EventGroup, Record<LifeCycle, RendererDownloadEvent['type']>>
+
+const serializeError = (error: Error | null): AppErrorDto | null => {
+  if (error === null) return null
+  const result: AppErrorDto = {
+    name: error.name,
+    message: error.message
+  }
+  if (error.stack) result.stack = error.stack
+  return result
+}
+
 const emitEvent = {
-  send: ipc.send,
+  send: ipcSend,
   timeoutInProgress: false,
-  makeTimeout: (params: DownloadEvent, key: string) => {
+  makeTimeout: (params: DownloadEvent, key: EventGroup) => {
     lastEvent = {
       ...params,
-      type: key + ':' + params.type
+      type: eventTypes[key][params.type]
     }
 
     if (emitEvent.timeoutInProgress) return
     emitEvent.timeoutInProgress = true
     setTimeout(() => {
-      emitEvent.send('DOWNLOAD:EVENT', lastEvent)
+      const event = lastEvent
+      if (event !== null) emitEvent.send('DOWNLOAD:EVENT', event)
       emitEvent.timeoutInProgress = false
     }, 300)
   },
   downloadStarted: (tracks: DownloadInstance[]) => {
-    emitEvent.send(
-      'DOWNLOAD:START',
-      tracks.map(({ id, info }) => ({ id, info }))
-    )
+    const items: DownloadStartItem[] = tracks.map(({ id, info }) => ({
+      id,
+      info: {
+        ...info,
+        download: {
+          ...info.download,
+          error: serializeError(info.download.error)
+        },
+        extraction: {
+          ...info.extraction,
+          error: serializeError(info.extraction.error)
+        },
+        tags: {
+          ...info.tags,
+          error: serializeError(info.tags.error)
+        }
+      }
+    }))
+    emitEvent.send('DOWNLOAD:START', items)
   },
   downloadFinished: () => {
     emitEvent.send('DOWNLOAD:END')

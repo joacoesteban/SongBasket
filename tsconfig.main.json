@@ -6,16 +6,17 @@
   },
   "include": [
     "src/main/**/*.ts",
+    "src/shared/**/*.ts",
     "src/@types/**/*.ts",
     "src/@types/**/*.d.ts",
     "src/MAIN_PROCESS_UTILS.ts",
     "src/UTILS.ts",
-    "electron.vite.config.ts"
+    "electron.vite.config.ts",
+    "tests/**/*.ts"
   ],
   "exclude": [
     "src/@types/vue.d.ts",
     "src/@types/vue-shim.d.ts",
-    "src/@types/vuex.d.ts",
     "src/@types/window.d.ts"
   ]
 }

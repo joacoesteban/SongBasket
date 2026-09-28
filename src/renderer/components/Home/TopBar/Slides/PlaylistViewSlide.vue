@@ -1,147 +1,167 @@
 <template>
   <div v-if="playlist" class="pl-view-slide-container">
-    <div class="image" :style="{ 'background-image': `url(${image})` }">
-      <div class="rel-full">
-        <div class="gradient abs-full" />
-        <!-- <div class="gradient-y abs-full"></div> -->
-      </div>
+    <div class="image" :style="imageStyle">
+      <div class="gradient abs-full" />
+      <div class="gradient-y abs-full" />
     </div>
-
     <div class="data">
-      <div class="title df alic bold window-nodrag">
-        <span>
-          {{ playlist.name }}
-        </span>
-        <div class="controls-container">
-          <div class="icon-wrapper" :class="{ show: showDownload }">
-            <button class="icon window-nodrag" @click="downloadPlaylist">
-              <download-icon />
-            </button>
-          </div>
-          <div class="icon-wrapper" :class="{ show: showUnsync }">
-            <button class="icon window-nodrag" @click="unsyncPlaylist">
-              <close-icon />
-            </button>
-          </div>
-          <div class="icon-wrapper" :class="{ show: showPause }">
-            <button class="icon window-nodrag" @click="pausePlaylist">
-              <pause-icon />
-            </button>
-          </div>
-          <div class="icon-wrapper" :class="{ show: showUnPause }">
-            <button class="icon window-nodrag" @click="pausePlaylist">
-              <play-icon />
-            </button>
-          </div>
-        </div>
+      <div class="title">
+        <span class="bold">{{ playlist.name }}</span>
       </div>
-      <div class="track-count regular">
-        <span>
-          {{ trackAmmountStr }}
-        </span>
+      <div class="track-count">
+        <span>{{ trackAmountText }}</span>
       </div>
       <div
+        v-if="status"
         class="playlist-status-indicator"
-        :style="{ '--status-color': statusObj.color }"
+        :style="{ '--status-color': status.color }"
       >
-        <span class="bold uppercase">
-          {{ statusObj.msg }}
-        </span>
+        <span class="bold uppercase">{{ status.message }}</span>
+      </div>
+      <div class="controls-container">
+        <div class="icon-wrapper show">
+          <button
+            class="icon window-nodrag"
+            aria-label="Download playlist"
+            @click="downloadPlaylist"
+          >
+            <download-icon />
+          </button>
+        </div>
+        <div class="icon-wrapper show">
+          <button
+            class="icon window-nodrag"
+            aria-label="Unsync playlist"
+            @click="unsyncPlaylist"
+          >
+            <close-icon />
+          </button>
+        </div>
+        <div v-if="showPause" class="icon-wrapper show">
+          <button
+            class="icon window-nodrag"
+            aria-label="Pause playlist"
+            @click="pausePlaylist"
+          >
+            <pause-icon />
+          </button>
+        </div>
+        <div v-if="showUnpause" class="icon-wrapper show">
+          <button
+            class="icon window-nodrag"
+            aria-label="Resume playlist"
+            @click="pausePlaylist"
+          >
+            <play-icon />
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
-<script lang="ts">
-import DownloadIcon from '@/assets/icons/download-icon'
-import CloseIcon from '@/assets/icons/close-icon'
-import PauseIcon from '@/assets/icons/pause-icon'
-import PlayIcon from '@/assets/icons/play-icon'
-export default {
-  components: {
-    DownloadIcon,
-    CloseIcon,
-    PauseIcon,
-    PlayIcon
-  },
-  data() {
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
+import CloseIcon from '../../../../assets/icons/close-icon.vue'
+import DownloadIcon from '../../../../assets/icons/download-icon.vue'
+import PauseIcon from '../../../../assets/icons/pause-icon.vue'
+import PlayIcon from '../../../../assets/icons/play-icon.vue'
+import { routeNames } from '../../../../router'
+import { useSongBasketActions, useSongBasketState } from '../../../../state'
+import { useModal } from '../../../../state/useModal'
+
+type PlaylistStatus = {
+  slug: 'unsynced' | 'paused' | 'synced' | 'error' | 'review' | 'convert'
+  message: string
+  color: string
+}
+
+const route = useRoute()
+const router = useRouter()
+const state = useSongBasketState()
+const actions = useSongBasketActions()
+const { openModal } = useModal()
+
+const playlist = computed(() => {
+  const id = route.params['id']
+  if (typeof id !== 'string') return null
+  return state.state.value?.playlists.find((item) => item.id === id) ?? null
+})
+const playlistTrackIds = computed(() => {
+  const current = playlist.value
+  if (current === null) return new Set<string>()
+  return new Set(current.tracks.items.map((track) => track.id))
+})
+const status = computed<PlaylistStatus | null>(() => {
+  const current = playlist.value
+  if (current === null) return null
+  if (!state.state.value?.syncedPlaylists.includes(current.id)) {
     return {
-      playlist: null,
-      statusObj: {}
-    }
-  },
-  computed: {
-    trackAmmount() {
-      return this.playlist && this.playlist.tracks && this.playlist.tracks.total
-    },
-    trackAmmountStr() {
-      return this.trackAmmount + ' Track' + (this.trackAmmount === 1 ? '' : 's')
-    },
-    image() {
-      return (
-        this.playlist &&
-        this.playlist.images &&
-        this.playlist.images[0] &&
-        this.playlist.images[0].url
-      )
-    },
-    playlistTracksReComputed() {
-      return this.$store.state.Events.PLAYLIST_TRACKS_RE_COMPUTED
-    },
-    playlistStateChanged() {
-      return this.$store.state.Events.PLAYLIST_STATE_CHANGED
-    },
-    // -----------------
-    showDownload() {
-      return this.showPause
-    },
-    showUnsync() {
-      return true
-    },
-    showPause() {
-      return this.statusObj && !this.statusObj.slug.includes('pause')
-    },
-    showUnPause() {
-      return !this.showPause
-    }
-  },
-  watch: {
-    playlistTracksReComputed() {
-      this.setStatus()
-    },
-    playlistStateChanged() {
-      this.getPlaylist()
-    }
-  },
-  created() {
-    this.$root.$sbRouter.beforeTransition(this.getPlaylist)
-  },
-  methods: {
-    getPlaylist(path = this.$root.$sbRouter.giveMeCurrent()) {
-      if (path && path.name === 'home') return
-      const { params } = path
-      this.playlist = params && this.$store.getters.PlaylistById(params.id)
-      this.setStatus()
-    },
-    setStatus() {
-      if (!this.playlist) return
-      this.statusObj = this.$root.$controllers.playlist.getStatus(this.playlist)
-    },
-    downloadPlaylist() {
-      if (!(this.playlist && this.playlist.id)) return
-      this.$root.$controllers.core.download(this.playlist.id)
-      this.$root.$sbRouter.push({ name: 'downloads-view' })
-    },
-    unsyncPlaylist() {
-      this.$store.dispatch('openModal', {
-        wich: 'unsync',
-        payload: { id: this.playlist.id }
-      })
-    },
-    pausePlaylist() {
-      this.$root.$controllers.core.pausePlaylist(this.playlist.id)
+      slug: 'unsynced',
+      message: 'Click to sync',
+      color: 'var(--button-purple)'
     }
   }
+  if (current.isPaused) {
+    return { slug: 'paused', message: 'Paused', color: 'var(--global-grey)' }
+  }
+
+  const tracks = state.state.value?.convertedTracks.filter((track) =>
+    playlistTrackIds.value.has(track.id)
+  )
+  const errorCount =
+    tracks?.filter((track) => track.flags.conversionError).length ?? 0
+  if (errorCount > 0) {
+    return {
+      slug: 'error',
+      message: `${errorCount} conversion error${pluralSuffix(errorCount)}`,
+      color: 'var(--red-cancel)'
+    }
+  }
+  const conversionCount =
+    tracks?.filter((track) => !track.flags.converted).length ?? 0
+  if (conversionCount > 0) {
+    return {
+      slug: 'convert',
+      message: `${conversionCount} track${pluralSuffix(conversionCount)} to convert`,
+      color: 'var(--button-purple)'
+    }
+  }
+  return { slug: 'synced', message: 'Synced', color: 'var(--green-accept)' }
+})
+const trackAmountText = computed(() => {
+  const amount = playlist.value?.tracks.total ?? 0
+  return `${amount} Track${pluralSuffix(amount)}`
+})
+const imageStyle = computed<Record<string, string>>(() => {
+  const image = playlist.value?.images[0]?.url
+  if (image === undefined) return {}
+  return { backgroundImage: `url("${image}")` }
+})
+const showPause = computed(() => status.value?.slug !== 'paused')
+const showUnpause = computed(() => status.value?.slug === 'paused')
+
+const pluralSuffix = (amount: number): string => {
+  if (amount === 1) return ''
+  return 's'
+}
+const downloadPlaylist = (): void => {
+  const current = playlist.value
+  if (current === null) return
+  void actions.download([current.id])
+  void router.push({ name: routeNames.downloadsView })
+}
+const unsyncPlaylist = (): void => {
+  const current = playlist.value
+  if (current === null) return
+  openModal({ kind: 'unsync', playlistId: current.id })
+}
+const pausePlaylist = (): void => {
+  const current = playlist.value
+  if (current === null) return
+  void actions.pausePlaylist(current.id)
 }
 </script>
 
@@ -206,6 +226,7 @@ $tit-fz: 1.2em;
 
   .playlist-status-indicator {
     margin-top: 0.5em;
+    color: var(--status-color);
   }
 }
 

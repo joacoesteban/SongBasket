@@ -1,169 +1,48 @@
 <template>
-  <div ref="tracks-list" class="tkl-container">
-    <div
-      ref="actual-list"
-      class="actual-list row hideable-container"
-      :class="listAnimationClass"
-    >
-      <div v-if="noTracks" class="no-tracks">No Tracks found</div>
+  <div ref="listElement" class="tkl-container">
+    <div class="actual-list row hideable-container">
+      <div v-if="tracks.length === 0" class="no-tracks">No Tracks found</div>
       <div class="list row">
-        <Track
-          v-for="track in tracksFiltered ? tracksFiltered : tracks"
-          :key="track.id"
-          :item="track"
-        />
+        <Track v-for="track in tracks" :key="track.id" :item="track" />
       </div>
     </div>
   </div>
 </template>
 
-<script lang="ts">
-import Track from './PlaylistView/Track.vue'
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
-export default {
-  components: {
-    Track
-  },
-  data() {
-    return {
-      user: this.$store.state.CurrentUser.user,
-      loading: false,
-      transitioning: false,
-      noTracks: false,
-      filterBackgroundOpacity: 0,
-      listAnimationTime: 250,
-      listAnimationClass: '',
-      tracks: [],
-      tracksFiltered: null,
-      filterMap: {},
-      scrollOpKey: 'scroll-opacity'
-    }
-  },
-  computed: {
-    searchInput() {
-      return this.$root.SEARCH_INPUT.value
-    },
-    stateReplaced() {
-      return this.$store.state.Events.STATE_REPLACED
-    },
-    playlistTracksReComputed() {
-      return this.$store.state.Events.PLAYLIST_TRACKS_RE_COMPUTED
-    },
-    playlistStateChanged() {
-      return this.$store.state.Events.PLAYLIST_STATE_CHANGED
-    }
-  },
-  watch: {
-    stateReplaced() {
-      this.refreshAll()
-    },
-    playlistTracksReComputed() {
-      this.refreshAll()
-    },
-    searchInput() {
-      if (!this.isMounted()) return
-      this.scheduleFilter()
-    },
-    playlistStateChanged() {
-      this.refreshAll()
-    }
-  },
-  mounted() {
-    this.refreshAll()
-    this.$refs['actual-list'].style.setProperty(
-      '--list-transition-time',
-      this.listAnimationTime + 'ms'
-    )
-    // this.$root.plListEnv = this
-    // this.$root.onComponentLoaderMount = function () {
-    //   console.log('dousinho')
-    //   const env = this.$root.plListEnv
-    //   this.$root.$(env.getContainerElement()).on('scroll', env.calcScrollOpacity)
-    //   env.calcScrollOpacity()
-    // }
-  },
-  methods: {
-    isMounted() {
-      const path = this.$root.$sbRouter.giveMeCurrent()
-      return path.name === 'home' && path.params.which === 'tracks-list'
-    },
-    handleInputConfirm() {
-      if (this.tracksFiltered && this.tracksFiltered.length === 1) {
-        const track = this.$children.find(
-          (t) => t.item.id === this.tracksFiltered[0].id
-        )
-        track && track.handleClick()
-      }
-    },
-    async transitionTracks(what) {
-      this.listAnimationClass = what
-      await this.$root.$sleep(this.listAnimationTime)
-      return !(this.transitioning = false)
-    },
-    async hideTracks() {
-      await this.transitionTracks('hide')
-    },
-    async showTracks() {
-      await this.transitionTracks('show')
-    },
-    refreshAll() {
-      this.tracks = (this.$root.CONVERTED_TRACKS_FORMATTED || []).sort(
-        this.$root.$controllers.track.sort
-      )
-      this.scheduleFilter()
-    },
-    calcScrollOpacity() {
-      let ratio = this.getContainerElement().scrollTop / 100
-      if (ratio > 1) ratio = 1
-      this.$root.$setRootVar(
-        this.scrollOpKey,
-        (this.filterBackgroundOpacity = ratio)
-      )
-    },
-    getContainerElement() {
-      return (
-        this.containerElement ||
-        (this.containerElement = this.$root.$refs['home-router'])
-      )
-    },
-    async scheduleFilter() {
-      this.lastType = Date.now()
-      await this.hideTracks()
-      if (Date.now() - this.lastType < this.listAnimationTime) return
-      this.filter()
-      this.showTracks()
-    },
-    filter() {
-      const txt = (this.searchInput && this.searchInput.toLowerCase()) || ''
-      let noTracks = false
-      if (!txt.length) {
-        this.tracksFiltered = null
-      } else {
-        noTracks =
-          (this.tracksFiltered = this.tracks.filter((track) =>
-            this.filterFn(track, txt)
-          )).length === 0
-      }
-      this.noTracks = noTracks
-    },
-    filterFn(track, txt) {
-      const { name, artists } = track.data
-      return [name, ...artists.map(({ name }) => name)].some((token) =>
-        token.toLowerCase().includes(txt)
-      )
-    }
-  }
+import { useSongBasketState } from '../../state'
+import Track from './PlaylistView/Track.vue'
+import type { Track as TrackModel } from './model'
+
+const { state } = useSongBasketState()
+const listElement = ref<HTMLElement | null>(null)
+const tracks = computed<readonly TrackModel[]>(
+  () => state.value?.convertedTracks ?? []
+)
+
+const onScroll = (): void => {
+  const element = listElement.value
+  if (element === null) return
+  const ratio = Math.min(element.scrollTop / 100, 1)
+  element.style.setProperty('--scroll-opacity', String(ratio))
 }
+
+onMounted(() => {
+  listElement.value?.addEventListener('scroll', onScroll)
+})
+
+onBeforeUnmount(() => {
+  listElement.value?.removeEventListener('scroll', onScroll)
+})
 </script>
 
 <style lang="scss" scoped>
-$bezier: cubic-bezier(0, 1, 0, 1);
-$bezier-chill: cubic-bezier(0, 1, 0.5, 1);
-
 .tkl-container {
   --padding-x: var(--container-padding-x);
   --card-padding-x: 0.5em;
-  /* margin-bottom: 2.4rem; */
+  --scroll-opacity: 0;
   text-align: center;
   height: fit-content;
   width: 100%;
@@ -172,67 +51,11 @@ $bezier-chill: cubic-bezier(0, 1, 0.5, 1);
   padding-top: 0;
 }
 
-.actual-list {
-  > .list {
-    padding: 0 var(--padding-x);
-  }
+.actual-list > .list {
+  padding: 0 var(--padding-x);
 }
 
-.filters-container {
-  pointer-events: none;
-  padding: 0.5em;
-  margin-bottom: 1em;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-
-  .filters-background {
-    background: linear-gradient(
-      180deg,
-      var(--global-grey-secondary),
-      transparent
-    );
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: -1;
-  }
-
-  .filters-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    // padding: 0 1em;
-  }
-
-  .search-bar {
-    pointer-events: all;
-
-    .filters-background {
-      background: var(--global-grey-secondary);
-    }
-
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    border-radius: 10em;
-    padding-left: 1em;
-    padding-right: 0.2em;
-  }
-}
-
-.no-playlists {
+.no-tracks {
   margin: 4em 0;
-}
-
-.background-container {
-  position: sticky;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
 }
 </style>

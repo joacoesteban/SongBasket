@@ -1,4 +1,3 @@
-import type { BrowserWindow } from 'electron'
 import type * as NodeID3 from 'node-id3'
 
 declare global {

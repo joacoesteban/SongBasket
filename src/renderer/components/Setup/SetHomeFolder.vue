@@ -2,14 +2,14 @@
   <div class="home-folder-container">
     <div class="login-sb-welcome">welcome to</div>
     <div class="login-sb-title">SongBasket</div>
-    <button class="button" @click="$emit('handleClick')">
+    <button class="button" @click="emit('handleClick')">
       Set a Home Folder
     </button>
   </div>
 </template>
 
-<script lang="ts">
-export default {}
+<script setup lang="ts">
+const emit = defineEmits<{ handleClick: [] }>()
 </script>
 
 <style scoped lang="scss">

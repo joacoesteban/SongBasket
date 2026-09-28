@@ -1,180 +1,67 @@
 <template>
   <div
     class="login-container window-drag-recursive"
-    :style="'--offset: ' + offsetPtg + '%'"
+    :style="{ '--offset': `${offsetPtg}%` }"
   >
-    <set-home-folder @handleClick="setHomeFolder" />
+    <SetHomeFolder @handle-click="setHomeFolder" />
     <div class="user-login-container">
       <div class="setup-header">
-        {{ header.text }}
+        {{ headerText }}
       </div>
       <div class="slider-container">
         <div class="slider" :style="{ '--offset-x': offsetXPtg }">
-          <Login v-if="showLogin" @login="login" @guestLogin="nextSub" />
-          <Guest v-if="showLogin" @backLogin="backLogin" />
-          <guest-verify v-if="showLogin" />
+          <Login v-if="showLogin" @login="login" />
         </div>
       </div>
+      <div v-if="setupError" class="setup-error">{{ setupError }}</div>
     </div>
   </div>
 </template>
 
-<script lang="ts">
-import SetHomeFolder from './SetHomeFolder.vue'
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+import { routeNames } from '../../router'
+import { useSongBasketActions } from '../../state/useSongBasketActions'
 import Login from '../Login.vue'
-import Guest from './Guest.vue'
-import GuestVerify from './GuestVerify.vue'
-export default {
-  components: {
-    SetHomeFolder,
-    Login,
-    Guest,
-    GuestVerify
-  },
-  data() {
-    return {
-      header: {
-        show: true,
-        text: "Let's find your music",
-        userOnHold: null,
-        showHeader: false
-      },
-      controller: this.$root.$controllers.setup,
-      currentSlide: 0,
-      currentSubSlide: 0
-    }
-  },
-  computed: {
-    action() {
-      return this.$route.params.action
-    },
-    loadingState() {
-      return this.$store.state.loadingState
-    },
-    offsetPtg() {
-      return (this.currentSlide || 0) * 100
-    },
-    offsetXPtg() {
-      return -((this.currentSubSlide || 0) * 100) + '%'
-    },
-    showLogin() {
-      return this.currentSlide === 1
-    }
-    // showLogin () {
-    //   return this.currentSlide === 1 && this.currentSubSlide === 0
-    // },
-    // showGuest () {
-    //   return this.currentSlide === 1 && this.currentSubSlide === 1
-    // },
-    // showGuestVerify () {
-    //   return this.currentSlide === 1 && this.currentSubSlide === 2
-    // }
-  },
-  mounted() {
-    this.$root.$IPC.answerMain('continueToLogin', async () => {
-      this.redirect('login')
-    })
+import SetHomeFolder from './SetHomeFolder.vue'
 
-    this.$root.$IPC.answerMain('not-found', async () => {
-      this.$store.dispatch('SETUP_LOADING_STATE', 'not found')
-    })
-    this.$root.$IPC.answerMain('invalid', async () => {
-      this.$store.dispatch('SETUP_LOADING_STATE', 'invalid id')
-    })
+defineOptions({ name: 'SetupView' })
 
-    this.$root.$IPC.answerMain('user-found', async (user) => {
-      this.$store.dispatch('SETUP_LOADING_STATE', 'found')
-      this.userOnHold = user
-      this.redirect('guest-verify', user)
-    })
+const router = useRouter()
+const actions = useSongBasketActions()
+const currentSlide = ref(0)
+const setupError = ref<string | null>(null)
 
-    this.$root.$IPC.answerMain('playlists done', async () => {
-      this.$store.dispatch('SETUP_LOADING_STATE', 'found')
-      this.redirect('home')
-    })
-  },
-  methods: {
-    async setHomeFolder() {
-      try {
-        console.log('try')
-        const canAdvance = await this.controller.setHomeFolder()
-        console.log('resolved')
-        canAdvance && this.next()
-      } catch (error) {
-        console.error('ERROR setting folder', error)
-      }
-    },
-    async transition() {
-      await this.$root.$sleep(300)
-    },
-    async next() {
-      // if ()
-      this.currentSlide++
-      await this.transition()
-    },
-    async prev() {
-      if (this.currentSlide === 0) return
-      this.currentSlide++
-      await this.transition()
-    },
-    async nextSub() {
-      this.currentSubSlide++
-      await this.transition()
-    },
-    async prevSub() {
-      if (this.currentSubSlide === 0) return
-      this.currentSubSlide--
-      await this.transition()
-    },
-    async backLogin() {
-      this.prevSub()
-      await this.transition()
-      await this.$root.$sleep(300)
-      this.$root.$('#onboarding-login-button').focus()
-      await this.$root.$sleep(500)
-      this.login()
-    },
-    login() {
-      this.controller.login()
-    },
-    guestSearch(request) {
-      if (
-        this.loadingState !== 'Loading' &&
-        request.query !== '' &&
-        request.query !== undefined &&
-        request.query !== null
-      ) {
-        this.$store.dispatch('SETUP_LOADING_STATE', 'loading')
-        this.$root.$IPC.callMain('guestSignIn', request)
-      }
-    },
-    redirect(path, payload) {
-      switch (path) {
-        case 'login': {
-          this.header.text = "Let's find your music"
-          this.$router.push('/setup/login')
-          break
-        }
-        case 'guest-verify': {
-          this.$router.push({ name: 'guest-verify', params: { user: payload } })
-          this.header.text = 'Is this You?'
-          break
-        }
-        case 'home': {
-          this.$router.push({ path: '/home' })
-          break
-        }
-        case 'guest': {
-          this.header.text = "Let's find your music"
-          this.$router.push('/setup/guest')
-          break
-        }
-      }
-    },
-    confirmUser() {
-      this.$root.$IPC.callMain('guestConfirm', this.userOnHold.id)
-    }
+const headerText = computed(() => {
+  if (currentSlide.value === 1) return 'Log in to find your music'
+  return "Let's find your music"
+})
+const offsetPtg = computed(() => currentSlide.value * 100)
+const offsetXPtg = computed(() => `${currentSlide.value * -100}%`)
+const showLogin = computed(() => currentSlide.value === 1)
+
+const setHomeFolder = async (): Promise<void> => {
+  setupError.value = null
+  const result = await actions.askHomeFolder()
+  if (result.error !== null) {
+    if (result.error.message === 'CANCELLED') return
+    setupError.value = result.error.message
+    return
   }
+  if (result.isLogged) {
+    await router.push({ name: routeNames.home })
+    return
+  }
+  currentSlide.value = 1
+}
+
+const login = async (): Promise<void> => {
+  setupError.value = null
+  await actions.login()
+  await actions.unlockWindow()
+  await router.push({ name: routeNames.home })
 }
 </script>
 
@@ -220,5 +107,11 @@ export default {
       height: 100%;
     }
   }
+}
+
+.setup-error {
+  color: var(--red-cancel);
+  text-align: center;
+  padding: 0.5rem 1rem;
 }
 </style>

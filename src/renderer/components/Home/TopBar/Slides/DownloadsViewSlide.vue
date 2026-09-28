@@ -1,12 +1,10 @@
 <template>
   <div class="downloads-view-slide-container">
-    <span class="sb-title"> Downloads </span>
+    <span class="sb-title">Downloads</span>
   </div>
 </template>
 
-<script lang="ts">
-export default {}
-</script>
+<script setup lang="ts"></script>
 
 <style lang="scss" scoped>
 .downloads-view-slide-container {

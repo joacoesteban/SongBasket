@@ -1,272 +1,135 @@
 <template>
   <div class="plv-container w100">
-    <div class="track-list row hideable-container" :class="listAnimationClass">
-      <div
-        class="changes-container"
-        :class="{ show: showingChanges }"
-        :style="{ '--changes-height': changesHeightFormmated }"
-      >
-        <div v-if="added.length" class="pb-1">
-          <div class="list">
-            <div class="label-container">
-              <span class="point75-em">
-                Added <span class="color-green">+{{ added.length }}</span>
-              </span>
-            </div>
-          </div>
-          <div class="horizontal-scroller pt-0">
-            <Track
-              v-for="(item, index) in added"
-              :key="index"
-              :is-new="true"
-              :item="item"
-            />
+    <div
+      ref="changesContainer"
+      class="changes-container"
+      :class="{ show: showingChanges }"
+      :style="{ '--changes-height': changesHeightLabel }"
+    >
+      <div v-if="added.length" class="pb-1">
+        <div class="list">
+          <div class="label-container">
+            <span class="point75-em"
+              >Added <span class="color-green">+{{ added.length }}</span></span
+            >
           </div>
         </div>
-
-        <div v-if="removed.length" class="pb-1">
-          <div class="list">
-            <div class="label-container">
-              <span class="point75-em">
-                Removed <span class="color-red">-{{ removed.length }}</span>
-              </span>
-            </div>
-          </div>
-          <div class="horizontal-scroller pt-0">
-            <Track
-              v-for="(item, index) in removed"
-              :key="index"
-              :is-removed="true"
-              :item="item"
-            />
-          </div>
+        <div class="horizontal-scroller pt-0">
+          <Track
+            v-for="item in added"
+            :key="item.id"
+            :is-new="true"
+            :item="item"
+          />
         </div>
       </div>
-
+      <div v-if="removed.length" class="pb-1">
+        <div class="list">
+          <div class="label-container">
+            <span class="point75-em"
+              >Removed
+              <span class="color-red">-{{ removed.length }}</span></span
+            >
+          </div>
+        </div>
+        <div class="horizontal-scroller pt-0">
+          <Track
+            v-for="item in removed"
+            :key="item.id"
+            :is-removed="true"
+            :item="item"
+          />
+        </div>
+      </div>
+    </div>
+    <div class="track-list row hideable-container">
       <div class="list">
-        <Track
-          v-for="(item, index) in iterableItemsFiltered || iterableItems"
-          :key="index"
-          :item="item"
-          @review-track="reviewTrack(item)"
-        />
+        <Track v-for="item in iterableItems" :key="item.id" :item="item" />
       </div>
     </div>
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
+import { routeNames } from '../../../router'
+import { useSongBasketState } from '../../../state'
+import type { Playlist, TrackItem } from '../model'
 import Track from './Track.vue'
 
-export default {
-  components: {
-    Track
-  },
-  props: {
-    currentPlaylist: String
-  },
-  data() {
-    return {
-      conversion: [],
-      showingConversion: [],
-      showingAll: false,
-      changesHeight: null,
-      plId: this.$props.currentPlaylist,
-      listAnimationClass: '',
-      listAnimationTime: 250,
-      iterableItems: [],
-      iterableItemsFiltered: null,
-      showing: {
-        added: false,
-        removed: false
-      },
-      playlist: {},
-      statusObj: {}
-    }
-  },
-  computed: {
-    playlistImage() {
-      return (
-        this.playlist.images &&
-        this.playlist.images[0] &&
-        this.playlist.images[0].url
-      )
-    },
-    isSynced() {
-      if (this.playlist) {
-        return this.$store.getters.PlaylistIsSynced(this.plId)
-      } else {
-        return false
-      }
-    },
-    isPaused() {
-      return (
-        this.statusObj &&
-        this.statusObj.slug &&
-        this.statusObj.slug.includes('pause')
-      )
-    },
-    showingChanges() {
-      return this.isSynced && !this.isPaused
-    },
-    changesHeightFormmated() {
-      return ((this.showingChanges && this.changesHeight) || 0) + 'px'
-    },
-    items() {
-      return this.playlist.tracks && this.playlist.tracks.items
-    },
-    added() {
-      return (
-        (this.playlist && this.playlist.tracks && this.playlist.tracks.added) ||
-        0
-      )
-    },
-    removed() {
-      return (
-        (this.playlist &&
-          this.playlist.tracks &&
-          this.playlist.tracks.removed) ||
-        0
-      )
-    },
-    stateReplaced() {
-      return this.$store.state.Events.STATE_REPLACED
-    },
-    playlistUnsynced() {
-      return this.$store.state.Events.PLAYLIST_UNSYNCED
-    },
-    playlistTracksReComputed() {
-      return this.$store.state.Events.PLAYLIST_TRACKS_RE_COMPUTED
-    },
-    playlistStateChanged() {
-      return this.$store.state.Events.PLAYLIST_STATE_CHANGED
-    },
-    searchInput() {
-      return this.$root.SEARCH_INPUT.value
-    }
-  },
-  watch: {
-    currentPlaylist(val) {
-      if (!val || val === this.plId) return
-      this.plId = val
-      this.refreshAll()
-    },
-    stateReplaced() {
-      this.refreshAll()
-    },
-    playlistTracksReComputed() {
-      this.refreshAll()
-    },
-    playlistStateChanged() {
-      this.refreshPlaylist()
-    },
-    showingChanges() {
-      this.calcChangesHeight()
-    },
-    playlistUnsynced() {
-      this.$root.$sbRouter.push({
-        name: 'home',
-        params: { which: 'playlists-list' }
-      })
-    },
-    searchInput() {
-      if (!this.isMounted()) return
-      this.scheduleFilter()
-    }
-  },
-  mounted() {
-    this.refreshAll()
-    this.calcChangesHeight()
-    this.$root.PlaylistViewInstance = this
-    window.plViewDebug = this
-  },
-  destroyed() {
-    console.log('exitexit')
-  },
-  methods: {
-    refreshAll() {
-      this.refreshPlaylist()
-      this.computeTracks()
-      this.setIterable()
-    },
-    refreshPlaylist() {
-      this.playlist = this.$store.getters.PlaylistById(this.plId) || {}
-      this.statusObj = this.$root.$controllers.playlist.getStatus(this.playlist)
-      this.calcChangesHeight()
-    },
-    computeTracks() {
-      this.conversion =
-        (this.$root.CONVERTED_TRACKS_FORMATTED &&
-          this.$root.CONVERTED_TRACKS_FORMATTED.filter((t) =>
-            t.playlists.some((pl) => pl.id === this.plId)
-          ).sort(this.$root.$controllers.track.sort)) ||
-        []
-    },
-    setIterable() {
-      this.iterableItems = this.isSynced ? this.conversion : this.items
-    },
-    reviewTrack(track) {
-      // this.$root.OPEN_MODAL({
-      //   wich: 'track-review',
-      //   payload: { tracks: this.conversion, index: this.conversion.indexOf(track), playlistId: this.plId }
-      // })
-    },
-    calcChangesHeight() {
-      if (this.changesHeight !== null && !this.showingChanges) return
-      this.$nextTick(() => {
-        let height = 0
-        this.$root
-          .$('.changes-container')
-          .children()
-          .each((i, el) => (height += parseInt(this.$root.$(el).css('height'))))
-        this.changesHeight = height
-      })
-    },
-    // --------
-    isMounted() {
-      const path = this.$root.$sbRouter.giveMeCurrent()
-      return path.name === 'playlist-view'
-    },
-    async transitionTracks(what) {
-      // TODO encapsulate all this logic inside controller
-      this.listAnimationClass = what
-      await this.$root.$sleep(this.listAnimationTime)
-      return !(this.transitioning = false)
-    },
-    async hideTracks() {
-      await this.transitionTracks('hide')
-    },
-    async showTracks() {
-      await this.transitionTracks('show')
-    },
-    async scheduleFilter() {
-      this.lastType = Date.now()
-      await this.hideTracks()
-      if (Date.now() - this.lastType < this.listAnimationTime) return
-      this.filter()
-      this.showTracks()
-    },
-    filter() {
-      const txt = (this.searchInput && this.searchInput.toLowerCase()) || ''
-      let noTracks = false
-      if (!txt.length) {
-        this.iterableItemsFiltered = null
-      } else {
-        noTracks =
-          (this.iterableItemsFiltered = this.iterableItems.filter((track) =>
-            this.filterFn(track, txt)
-          )).length === 0
-      }
-      this.noTracks = noTracks
-    },
-    filterFn(track, txt) {
-      const { name, artists } = track.data || track
-      return [name, ...artists.map(({ name }) => name)].some((token) =>
-        token.toLowerCase().includes(txt)
-      )
-    }
-  }
+const route = useRoute()
+const router = useRouter()
+const { state } = useSongBasketState()
+const changesContainer = ref<HTMLElement | null>(null)
+const changesHeight = ref(0)
+
+const playlistId = computed(() => {
+  const id = route.params['id']
+  if (typeof id === 'string') return id
+  return ''
+})
+const playlist = computed<Playlist | null>(() => {
+  const value = state.value
+  if (value === null) return null
+  return value.playlists.find((item) => item.id === playlistId.value) ?? null
+})
+const convertedItems = computed<readonly TrackItem[]>(() => {
+  const value = state.value
+  if (value === null) return []
+  return value.convertedTracks.filter((track) =>
+    track.playlists.some((membership) => membership.id === playlistId.value)
+  )
+})
+const added = computed<readonly TrackItem[]>(
+  () => playlist.value?.tracks.added ?? []
+)
+const removed = computed<readonly TrackItem[]>(
+  () => playlist.value?.tracks.removed ?? []
+)
+const isSynced = computed(
+  () => state.value?.syncedPlaylists.includes(playlistId.value) ?? false
+)
+const isPaused = computed(() => playlist.value?.isPaused === true)
+const showingChanges = computed(() => isSynced.value && !isPaused.value)
+const iterableItems = computed<readonly TrackItem[]>(() => {
+  if (isSynced.value) return convertedItems.value
+  return playlist.value?.tracks.items ?? []
+})
+const changesHeightLabel = computed(() => {
+  if (!showingChanges.value) return '0px'
+  return `${changesHeight.value}px`
+})
+
+const calculateChangesHeight = (): void => {
+  const element = changesContainer.value
+  if (element === null) return
+  changesHeight.value = Array.from(element.children).reduce(
+    (height, child) => height + child.getBoundingClientRect().height,
+    0
+  )
 }
+
+let resizeObserver: ResizeObserver | undefined
+onMounted(() => {
+  void nextTick(calculateChangesHeight)
+  if (changesContainer.value !== null && 'ResizeObserver' in window) {
+    resizeObserver = new ResizeObserver(calculateChangesHeight)
+    resizeObserver.observe(changesContainer.value)
+  }
+})
+
+watch([playlistId, showingChanges], () => {
+  void nextTick(calculateChangesHeight)
+})
+
+watch(playlist, (value) => {
+  if (value !== null) return
+  void router.push({ name: routeNames.playlistsList })
+})
+
+onBeforeUnmount(() => resizeObserver?.disconnect())
 </script>
 
 <style lang="scss" scoped>
@@ -285,28 +148,22 @@ export default {
 }
 
 .changes-container {
+  --changes-height: 0px;
+  height: var(--changes-height);
+  opacity: 0;
+  transition:
+    opacity var(--hover-n-active-transitions),
+    height var(--ts-g);
+
+  &.show {
+    opacity: 1;
+  }
+
   .label-container {
     font-weight: bold;
     text-transform: uppercase;
     text-align: left;
     padding-left: calc(0.3em + var(--card-padding-x));
-  }
-
-  --changes-height: 0px;
-  height: var(--changes-height);
-  opacity: 0;
-
-  &,
-  * {
-    box-sizing: border-box;
-  }
-
-  transition:
-    var(--hover-n-active-transitions),
-    height var(--ts-g);
-
-  &.show {
-    opacity: 1;
   }
 }
 </style>

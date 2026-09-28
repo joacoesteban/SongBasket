@@ -63,7 +63,6 @@ const onUpdateDownloaded = async () => {
   FLAGS.updateDownloaded = true
   FLAGS.downloadPtg = 100
 
-  // ipcSend('READY_TO_UPDATE', FLAGS)
   const message = `Version ${FLAGS.updateVersion} has been downloaded\nDo you want to install it now?`
   const mainWindow = getMainWindow()
   let res: Electron.MessageBoxReturnValue | null = null

@@ -1,7 +1,7 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import { resolve } from 'path'
 
-import vue from '@vitejs/plugin-vue2'
+import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   main: {
@@ -16,17 +16,9 @@ export default defineConfig({
     root: resolve(__dirname, 'src/renderer'),
     resolve: {
       alias: {
-        '@': resolve(__dirname, 'src/renderer'),
-        electron: resolve(__dirname, 'src/renderer/shims/electron.ts'),
-        '@electron/remote': resolve(
-          __dirname,
-          'src/renderer/shims/electron-remote.ts'
-        )
+        '@': resolve(__dirname, 'src/renderer')
       },
       extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue']
-    },
-    optimizeDeps: {
-      exclude: ['electron', '@electron/remote']
     },
     build: {
       rollupOptions: {
@@ -34,5 +26,15 @@ export default defineConfig({
       }
     },
     plugins: [vue()]
+  },
+  preload: {
+    plugins: [externalizeDepsPlugin()],
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, 'src/preload/index.ts')
+        }
+      }
+    }
   }
 })

@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2024", "DOM"],
+    "types": ["node", "vite/client"]
+  },
+  "include": [
+    "src/preload/**/*.ts",
+    "src/shared/**/*.ts",
+    "src/@types/Spotify.ts",
+    "src/@types/YouTube.ts",
+    "src/@types/window.d.ts"
+  ]
+}

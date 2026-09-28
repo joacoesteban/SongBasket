@@ -1,7 +1,8 @@
 <template>
   <div
     class="tb-container window-drag-recursive"
-    :class="{ 'showing-loading-bar': showingLoadingBar }"
+    :class="{ 'showing-loading-bar': loadingBarVisible }"
+    :data-navigation-direction="navigationDirection"
   >
     <div class="drop-shadow abs-full show-on-scroll" />
     <div class="drop-gradient abs-full hide-on-scroll" />
@@ -9,300 +10,269 @@
     <div class="title-bar-container abs-full">
       <div id="title-bar" class="mac title-section">
         <div v-if="isMac" class="title-bar-buttons-container">
-          <button id="min-btn" class="bar-btn button-minimize">
+          <button
+            id="min-btn"
+            class="bar-btn button-minimize"
+            aria-label="Minimize window"
+            @click="minimizeWindow"
+          >
             <div class="mask" />
           </button>
-          <button id="max-btn" class="bar-btn button-maximize">
+          <button
+            id="max-btn"
+            class="bar-btn button-maximize"
+            aria-label="Maximize window"
+            @click="toggleMaximizeWindow"
+          >
             <div class="mask" />
           </button>
-          <button id="close-btn" class="bar-btn button-close">
+          <button
+            id="close-btn"
+            class="bar-btn button-close"
+            aria-label="Close window"
+            @click="closeWindow"
+          >
             <div class="mask" />
           </button>
         </div>
       </div>
 
       <div class="tb-mid-section title-section df aliic jucc">
-        <div
+        <button
           class="navigation-btn left window-nodrag"
-          :class="{ show: showPrevBtn }"
+          :class="{ show: showPreviousButton }"
+          :disabled="!showPreviousButton"
+          aria-label="Go back"
           @click="navigationBack"
         >
-          <font-awesome-icon size="xs" icon="arrow-left" />
-        </div>
+          <svg-icon
+            path="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+            icon-color="var(--icon-color)"
+            class-name="navigation-icon"
+          />
+        </button>
         <div class="status-container">
-          <span>
-            {{ status }}
-          </span>
+          <span>{{ status }}</span>
         </div>
-        <div
+        <button
           class="navigation-btn right window-nodrag"
-          :class="{ show: showForwBtn }"
-          @click="navigationForw"
+          :class="{ show: showForwardButton }"
+          :disabled="!showForwardButton"
+          aria-label="Go forward"
+          @click="navigationForward"
         >
-          <font-awesome-icon size="xs" icon="arrow-right" />
-        </div>
+          <svg-icon
+            path="m10 6-1.41 1.41L13.17 12l-4.58 4.59L10 18l6-6z"
+            icon-color="var(--icon-color)"
+            class-name="navigation-icon"
+          />
+        </button>
       </div>
 
       <div class="title-section">
         <div id="title-bar" class="windows">
           <div v-if="!isMac" class="title-bar-buttons-container window-nodrag">
-            <div id="min-btn" class="bar-btn button-minimize">
+            <button
+              id="min-btn"
+              class="bar-btn button-minimize"
+              aria-label="Minimize window"
+              @click="minimizeWindow"
+            >
               <div class="mask" />
-            </div>
-            <div id="max-btn" class="bar-btn button-unmaximize">
+            </button>
+            <button
+              id="max-btn"
+              class="bar-btn button-unmaximize"
+              aria-label="Maximize window"
+              @click="toggleMaximizeWindow"
+            >
               <div class="mask" />
-            </div>
-            <div id="close-btn" class="bar-btn button-close">
+            </button>
+            <button
+              id="close-btn"
+              class="bar-btn button-close"
+              aria-label="Close window"
+              @click="closeWindow"
+            >
               <div class="mask" />
-            </div>
+            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <div
-      class="bar-slider-container h-fc rel-full df"
-      :style="{
-        '--position-ptg': sliderPosition + '%',
-        '--animation-duration': loadingBar.animationDuration + 'ms'
-      }"
-    >
+    <div class="bar-slider-container h-fc rel-full df" :style="sliderStyle">
       <div class="df fldc aliend bar-slide h-fc show">
         <div class="section-switcher-container">
           <div class="section-switcher-list">
             <div
-              v-for="(section, index) in sections"
-              :key="index"
+              v-for="section in sections"
+              :key="section.routeName"
               class="section-switch window-nodrag"
-              :class="{ active: activeSection === section.id }"
+              :class="{ active: activeSection === section.routeName }"
             >
-              <span class="section-title semibold" @click="section.cb">
+              <button class="section-title semibold" @click="section.cb">
                 {{ section.title }}
-              </span>
+              </button>
             </div>
           </div>
         </div>
       </div>
       <playlist-view-slide
-        :class="{ show: currentPath === 'playlist-view' }"
+        :class="{ show: currentPath === routeNames.playlistView }"
         class="bar-slide"
         style="--slide-height: 6em"
       />
       <track-review-slide
-        :class="{ show: currentPath === 'track-review' }"
+        :class="{ show: currentPath === routeNames.trackReview }"
         class="bar-slide hidden-of"
         style="--slide-height: 10em"
       />
       <downloads-view-slide
-        :class="{ show: currentPath === 'downloads-view' }"
+        :class="{ show: currentPath === routeNames.downloadsView }"
         class="bar-slide"
       />
     </div>
 
     <div
-      ref="loadingbar"
       class="loading-bar"
-      :style="{ '--ptg': loadingBar.ptg }"
-      :class="loadingBar.classList"
+      :style="loadingBarStyle"
+      :class="loadingBarClasses"
     >
       <div class="actual-loading-bar gradient-background-cycle-less" />
     </div>
   </div>
 </template>
 
-<script lang="ts">
-import { dateFormatter } from '../../../utils.ts'
+<script setup lang="ts">
+import { computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
-import PlaylistViewSlide from './slides/PlaylistViewSlide.vue'
-import TrackReviewSlide from './slides/TrackReviewSlide.vue'
-import DownloadsViewSlide from './slides/DownloadsViewSlide.vue'
+import SvgIcon from '../../../assets/icons/SvgIcon.vue'
+import {
+  navigationDirection,
+  navigationPending,
+  routeNames
+} from '../../../router'
+import { useSongBasketActions, useSongBasketState } from '../../../state'
+import { dateFormatter } from '../../../utils'
+import DownloadsViewSlide from './Slides/DownloadsViewSlide.vue'
+import PlaylistViewSlide from './Slides/PlaylistViewSlide.vue'
+import TrackReviewSlide from './Slides/TrackReviewSlide.vue'
 
-import SyncIcon from '@/assets/icons/sync-icon.vue'
-import CloudSearchIcon from '@/assets/icons/cloud-search-icon.vue'
-import DownloadIcon from '@/assets/icons/download-icon.vue'
-import HomeIcon from '@/assets/icons/home-icon.vue'
-export default {
-  components: {
-    DownloadIcon,
-    SyncIcon,
-    CloudSearchIcon,
-    PlaylistViewSlide,
-    TrackReviewSlide,
-    DownloadsViewSlide,
-    HomeIcon
-  },
-  data() {
-    let sectionId = 0
-    return {
-      user: this.$store.state.CurrentUser.user,
-      isMac: window.CONSTANTS?.PLATFORM === 'mac',
-      sliderPosition: 0,
-      showingLoadingBar: false,
-      loadingBar: {
-        loading: false,
-        staticLoading: false,
-        ptg: '0%',
-        animationDuration: 750,
-        classList: {
-          show: false,
-          static: true
-        }
-      },
-      currentPath: null,
-      activeSection: null,
-      showPrevBtn: this.$root.$sbRouter.pointer,
-      showForwBtn: this.$root.$sbRouter.isLast(),
-      sections: [
-        {
-          id: ++sectionId,
-          title: 'Tracks',
-          slug: 'tracks-list',
-          cb: () => this.goTo('tracks-list')
-        },
-        {
-          id: ++sectionId,
-          title: 'Playlists',
-          slug: 'playlists-list',
-          cb: () => this.goTo('playlists-list')
-        }
-      ]
-    }
-  },
-  computed: {
-    route() {
-      return this.$route.name
-    },
-    now() {
-      const separator = ' / '
-      const thisDate = dateFormatter(
-        this.$store.state.CurrentUser.lastSync || new Date()
-      )
-      const hours = thisDate.time.hours + ':' + thisDate.time.minutes
-      let date = ''
-      if (thisDate.date.today) date = 'Today'
-      else {
-        date =
-          thisDate.date.month +
-          separator +
-          thisDate.date.date +
-          (!thisDate.date.sameYear ? separator + thisDate.date.year : '')
-      }
+const route = useRoute()
+const router = useRouter()
+const state = useSongBasketState()
+const actions = useSongBasketActions()
 
-      return { date, hours }
-    },
-    loadingState() {
-      return this.$store.state.Events.LOADING_STATE
-    },
-    status() {
-      return !this.loadingState.value
-        ? `Last Sync: ${this.now.date} @ ${this.now.hours}`
-        : this.loadingState.message
-    }
+const isMac = /mac/i.test(navigator.platform)
+const currentPath = computed(() => String(route.name ?? ''))
+const activeSection = computed(() => {
+  if (route.name === routeNames.tracksList) return routeNames.tracksList
+  return routeNames.playlistsList
+})
+const sections = [
+  {
+    title: 'Tracks',
+    routeName: routeNames.tracksList,
+    cb: () => goTo(routeNames.tracksList)
   },
-  watch: {
-    loadingState(val) {
-      this.handleLoadingState(val)
-    }
-  },
-  mounted() {
-    window.bar = this
-    // document.documentElement.style.setProperty('--loading-bar-animation-duration', (this.loadingBar.animationDuration / 100) + 's')
-    this.activeSection = this.sections.find((s) => s.title === 'Playlists').id
-
-    this.$root.$sbRouter.beforeTransition(this.handleRouterNavigation)
-    this.$root.$sbRouter.afterTransition(this.checkNavBtns)
-    this.checkNavBtns()
-  },
-  methods: {
-    checkNavBtns() {
-      this.showPrevBtn = !!this.$root.$sbRouter.pointer
-      this.showForwBtn = !this.$root.$sbRouter.isLast()
-    },
-    navigationBack() {
-      this.$root.$sbRouter.goBack()
-    },
-    navigationForw() {
-      this.$root.$sbRouter.goForward()
-    },
-    handleRouterNavigation(to, from) {
-      this.currentPath = to.name
-      switch (to.name) {
-        case 'downloads-view':
-        case 'track-review':
-        case 'playlist-view':
-          this.slideTo(1)
-          break
-        case 'home':
-          this.slideTo(0)
-          const section = this.sections.find((s) => s.slug === to.params.which)
-          section && (this.activeSection = section.id)
-          break
-      }
-    },
-    slideTo(index) {
-      this.sliderPosition = -index * 100
-    },
-    hideLoadingBar() {
-      this.removeBarClass(['static', 'dynamic'])
-      this.addBarClassTemp('hide')
-    },
-    showLoadingBar() {
-      // this.loadingBar.staticLoading = val.target.includes('Getting Playlist')
-      this.addBarClass('static')
-      this.removeBarClass('hide', 'dynamic')
-    },
-    handleLoadingState(val) {
-      this.loadingBar.ptg = (val.ptg * 100).toFixed(2) + '%'
-      const classes = {}
-      this.showingLoadingBar = val.value
-      classes[val.value ? 'show' : 'hide'] = true
-      classes[val.showPtg ? 'dynamic' : 'static'] = true
-      this.loadingBar.classList = classes
-
-      // if (!val.value) {
-      //   this.hideLoadingBar()
-      // } else {
-      //   this.showLoadingBar()
-      // }
-    },
-    addBarClass(className) {
-      if (typeof className === 'string') className = [className]
-      className.forEach((name) => {
-        this.$refs.loadingbar.classList.add(name)
-      })
-    },
-    addBarClassTemp(className) {
-      this.addBarClass(className)
-      setTimeout(() => {
-        this.removeBarClass(className)
-      }, this.loadingBar.animationDuration * 1.5)
-    },
-    removeBarClass(className) {
-      if (typeof className === 'string') className = [className]
-      className.forEach((name) => {
-        this.$refs.loadingbar.classList.remove(name)
-      })
-    },
-    goTo(where) {
-      this.$root.$sbRouter.push({
-        name: 'home',
-        params: {
-          which: where
-        }
-      })
-    }
+  {
+    title: 'Playlists',
+    routeName: routeNames.playlistsList,
+    cb: () => goTo(routeNames.playlistsList)
   }
+]
+
+const loadingBarVisible = computed(() => state.loading.value.value)
+const loadingBarStyle = computed<Record<string, string>>(() => ({
+  '--ptg': `${((state.loading.value.ptg ?? 0) * 100).toFixed(2)}%`
+}))
+const loadingBarClasses = computed<Record<string, boolean>>(() => ({
+  show: loadingBarVisible.value,
+  static: state.loading.value.ptg === undefined,
+  dynamic: state.loading.value.ptg !== undefined
+}))
+const sliderPosition = computed(() => {
+  if (
+    currentPath.value === routeNames.playlistView ||
+    currentPath.value === routeNames.trackReview ||
+    currentPath.value === routeNames.downloadsView
+  ) {
+    return -100
+  }
+  return 0
+})
+const sliderStyle = computed<Record<string, string>>(() => ({
+  '--position-ptg': `${sliderPosition.value}%`
+}))
+const showPreviousButton = computed(
+  () =>
+    router.options.history.state['back'] !== null &&
+    router.options.history.state['back'] !== undefined &&
+    !navigationPending.value
+)
+const showForwardButton = computed(
+  () =>
+    router.options.history.state['forward'] !== null &&
+    router.options.history.state['forward'] !== undefined &&
+    !navigationPending.value
+)
+const status = computed(() => {
+  const loading = state.loading.value
+  if (loading.value) return loading.target ?? 'Loading'
+
+  const formatted = dateFormatter(state.state.value?.lastSync ?? Date.now())
+  if (formatted === null) return 'Last Sync: unavailable'
+  let date = 'Today'
+  if (!formatted.date.today) {
+    date = `${formatted.date.month} / ${formatted.date.date}`
+    if (!formatted.date.sameYear) date += ` / ${formatted.date.year}`
+  }
+  return `Last Sync: ${date} @ ${formatted.time.hours}:${formatted.time.minutes}`
+})
+
+const goTo = (name: string): void => {
+  void router.push({ name })
 }
+const navigationBack = (): void => {
+  if (showPreviousButton.value) router.back()
+}
+const navigationForward = (): void => {
+  if (showForwardButton.value) router.forward()
+}
+const minimizeWindow = (): void => {
+  void actions.minimizeWindow()
+}
+const toggleMaximizeWindow = (): void => {
+  void actions.toggleMaximizeWindow()
+}
+const closeWindow = (): void => {
+  void actions.closeWindow()
+}
+
+watch(
+  state.isConnected,
+  (connected) => {
+    document.documentElement.classList.toggle('disconnected', !connected)
+  },
+  { immediate: true }
+)
+
+onMounted(() => {
+  document.documentElement.classList.toggle(
+    'disconnected',
+    !state.isConnected.value
+  )
+})
 </script>
 
 <style lang="scss" scoped>
-// $tb-height: var(--top-bar-height);
 $tb-title-height: var(--tb-title-height);
 $loading-bar-height: 3px;
 
 .tb-container {
   text-align: left;
-  // min-height: .5em;
   min-height: fit-content;
   width: 100%;
   display: flex;
@@ -312,8 +282,6 @@ $loading-bar-height: 3px;
   z-index: 0;
   justify-content: space-between;
   position: relative;
-
-  // height: $tb-height;
   transition: height var(--ts-g);
   transition-timing-function: var(--bezier-symmetric);
 
@@ -378,7 +346,6 @@ $loading-bar-height: 3px;
 
   .status-container {
     font-size: 0.5em;
-    // pointer-events: none;
   }
 }
 
@@ -388,7 +355,6 @@ $loading-bar-height: 3px;
 }
 
 .bar-slide {
-  // display: inline-block;
   min-width: 100%;
   box-sizing: border-box;
   transition: height var(--top-bar-slider-transition);
@@ -411,20 +377,17 @@ $loading-bar-height: 3px;
   left: 0;
   right: 100%;
   pointer-events: none;
-  // $transition: var(--animation-duration) var(--bezier-chill);
-  $transition: var(--ts-g);
   transition:
-    left $transition,
-    right $transition,
-    width $transition;
+    left var(--ts-g),
+    right var(--ts-g),
+    width var(--ts-g);
+  --ptg: 0%;
+  width: var(--ptg);
 
   .actual-loading-bar {
     height: $loading-bar-height;
     width: 100%;
   }
-
-  --ptg: 0%;
-  width: var(--ptg);
 
   &.show {
     &.static {
@@ -440,19 +403,14 @@ $loading-bar-height: 3px;
     }
   }
 
-  &.hide {
+  &:not(.show) {
     left: 100%;
     width: 100%;
-  }
-
-  &.kill {
-    opacity: 0;
   }
 }
 
 .section-switcher-container {
   margin: 1em var(--container-padding-x);
-  // margin-top: 1em;
 }
 
 .section-switcher-list {
@@ -464,14 +422,18 @@ $loading-bar-height: 3px;
   margin-left: 0.3em;
   cursor: pointer;
   opacity: 0.5;
+  transition: var(--hover-n-active-transitions);
 
-  span.section-title {
+  .section-title {
     font-size: 0.75em;
     line-height: 1;
     transition: font-size var(--ts-g);
+    color: inherit;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
   }
-
-  transition: var(--hover-n-active-transitions);
 
   &:not(.active) {
     &:hover {
@@ -487,7 +449,7 @@ $loading-bar-height: 3px;
   &.active {
     opacity: 1;
 
-    span.section-title {
+    .section-title {
       font-size: 1.25em;
     }
   }
@@ -496,35 +458,37 @@ $loading-bar-height: 3px;
 .navigation-btn {
   cursor: pointer;
   display: flex;
-  $m: 0.5em;
-
-  &.right {
-    margin-left: $m;
-  }
-
-  &.left {
-    margin-right: $m;
-  }
-
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
   transition:
     opacity var(--ts-g),
     transform var(--ts-g);
-
   opacity: 0.1;
   transform: scale(0.8);
+
+  &.right {
+    margin-left: 0.5em;
+  }
+
+  &.left {
+    margin-right: 0.5em;
+  }
 
   &.show {
     opacity: 1;
     transform: scale(1);
   }
+
+  &:disabled {
+    cursor: default;
+  }
 }
 
-.global-search-bar-container {
-  position: absolute;
-  $h: 4em;
-  width: 100%;
-  height: $h;
-  bottom: -$h;
-  outline: 1px solid red;
+.navigation-icon {
+  width: 1em;
+  height: 1em;
 }
 </style>

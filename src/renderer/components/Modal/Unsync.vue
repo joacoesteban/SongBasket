@@ -1,38 +1,42 @@
 <template>
-  <div v-if="playlist" class="container">
+  <div v-if="playlist !== null" class="container">
     <div class="header">
       Are you sure you want to unsync
-      <span class="bold"> {{ playlist.name }} </span>?
+      <span class="bold">{{ playlist.name }}</span
+      >?
     </div>
     <div class="info light">
       {{ playlist.tracks.total }} tracks will be deleted from your Hard Drive
     </div>
     <div class="controls df jucc aliic">
-      <div class="button accept" @click="accept">Yes</div>
-      <div class="button cancel" @click="$emit('close')">No</div>
+      <button class="button accept" @click="accept">Yes</button>
+      <button class="button cancel" @click="emit('close')">No</button>
     </div>
   </div>
 </template>
 
-<script lang="ts">
-export default {
-  computed: {
-    payload() {
-      return this.$store.state.SharedStates.modal.options.payload
-    },
-    id() {
-      return this.payload.id
-    },
-    playlist() {
-      return this.$store.getters.PlaylistById(this.id)
-    }
-  },
-  methods: {
-    async accept() {
-      await this.$root.$controllers.core.unsyncPlaylist(this.id)
-      this.$emit('close')
-    }
-  }
+<script setup lang="ts">
+import { computed } from 'vue'
+
+import type { SpotifyPlaylistId } from '../../../@types/Spotify'
+import { useSongBasketActions } from '../../state/useSongBasketActions'
+import { useSongBasketState } from '../../state/useSongBasketState'
+
+defineOptions({ name: 'UnsyncModal' })
+
+const props = defineProps<{ playlistId: SpotifyPlaylistId }>()
+const emit = defineEmits<{ close: [] }>()
+const actions = useSongBasketActions()
+const state = useSongBasketState()
+const playlist = computed(
+  () =>
+    state.state.value?.playlists.find(({ id }) => id === props.playlistId) ??
+    null
+)
+
+const accept = async (): Promise<void> => {
+  await actions.unsyncPlaylist(props.playlistId)
+  emit('close')
 }
 </script>
 

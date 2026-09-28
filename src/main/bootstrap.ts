@@ -1,7 +1,5 @@
 import * as electron from 'electron'
 
-import * as remoteMain from '@electron/remote/main'
-
 import { Platform } from '../@types/App'
 import { ENV_PROD, PLATFORM } from './Global/constants'
 import { getMainWindow, setFfmpegBinariesDownloaded } from './Global/state'
@@ -35,7 +33,6 @@ export default async () => {
   }
 
   const onReady = async () => {
-    remoteMain.initialize()
     ipcRoutes()
     WindowController.createLoadingWindow()
 
@@ -63,8 +60,9 @@ export default async () => {
     if (getMainWindow() === null) WindowController.onAppInit()
   })
 
-  electron.app.on('will-quit', () => {
-    electron.globalShortcut.unregisterAll()
+  electron.app.on('will-quit', (event) => {
+    event.preventDefault()
+    void core.closePersistence().then(() => electron.app.exit())
   })
 
   await electron.app.whenReady()

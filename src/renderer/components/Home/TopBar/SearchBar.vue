@@ -1,19 +1,15 @@
 <template>
-  <div class="global-search-bar-container" :class="{ hide: hide }">
+  <div class="global-search-bar-container" :class="{ hide: hidden }">
     <div class="filters-container">
       <div class="filters-content">
         <div class="search-bar global-scroll-shadow">
           <div class="filters-background show-on-scroll" />
           <input
-            ref="search-input"
-            v-model.trim="searchInput"
+            v-model.trim="searchInputValue"
             placeholder="Start Typing"
             autofocus
             class="input-light semibold"
             type="text"
-            @focus="searchInputOnFocus"
-            @blur="searchInputOnBlur"
-            @keydown.enter="handleInputConfirm"
           />
         </div>
         <div class="filter-buttons" />
@@ -22,56 +18,47 @@
   </div>
 </template>
 
-<script lang="ts">
-export default {
-  components: {},
-  data() {
-    return {
-      searchInput: '',
-      model: this.$root.SEARCH_INPUT,
-      hideOn: ['track-review', 'downloads-view'],
-      hide: false
-    }
-  },
-  computed: {},
-  watch: {
-    searchInput(val) {
-      this.model.writeEvent = !this.model.writeEvent
-      this.model.value = val
-    }
-  },
-  mounted() {
-    this.searchInputOnBlur()
-    this.$root.$sbRouter.beforeTransition(this.onBeforeTransition)
-  },
-  methods: {
-    onBeforeTransition(to, from) {
-      this.searchInput = ''
-      this.model.value = ''
-      this.checkVisibility(to)
-    },
-    checkVisibility(to) {
-      if (this.hideOn.includes(to.name)) {
-        this.$root.$setRootVar('filters-container-height', '0')
-        this.hide = true
-        return
-      }
-      this.$root.$setRootVar('filters-container-height', '4em')
-      this.hide = false
-    },
-    searchInputOnFocus() {
-      this.$root.searchInputElement = null
-    },
-    searchInputOnBlur() {
-      this.$root.searchInputElement = this.$refs['search-input']
-    },
-    handleInputConfirm() {
-      // if (this.syncedPlaylistsFiltered && this.syncedPlaylistsFiltered.length === 1) {
-      //   const pl = this.$children.find(p => p.playlistId === this.syncedPlaylistsFiltered[0].id)
-      //   pl && pl.handleClick()
-    }
-  }
+<script setup lang="ts">
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+
+import { routeNames } from '../../../router'
+
+const route = useRoute()
+const searchInputValue = ref('')
+const hidden = ref(false)
+
+const setVisibility = (): void => {
+  const isHidden =
+    route.name === routeNames.trackReview ||
+    route.name === routeNames.downloadsView
+  hidden.value = isHidden
+  let height = '4em'
+  if (isHidden) height = '0'
+  document.documentElement.style.setProperty(
+    '--filters-container-height',
+    height
+  )
 }
+const resetSearch = (): void => {
+  searchInputValue.value = ''
+}
+
+watch(
+  () => route.name,
+  () => {
+    resetSearch()
+    setVisibility()
+  }
+)
+
+onMounted(() => {
+  setVisibility()
+})
+
+onBeforeUnmount(() => {
+  document.documentElement.style.removeProperty('--filters-container-height')
+})
 </script>
 
 <style lang="scss" scoped>
@@ -113,7 +100,6 @@ export default {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      // padding: 0 1em;
     }
 
     .search-bar {

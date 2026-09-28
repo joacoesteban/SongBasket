@@ -1,19 +1,14 @@
-import Vue from 'vue'
+import { createApp } from 'vue'
 
 import App from './App.vue'
-import { configureApp, setEnvironment } from './environment'
 import router from './router'
-import store from './store'
+import { createSongBasketState, songBasketStateKey } from './state'
 
-const VueApp = new Vue({
-  router,
-  store,
-  render: (h) => h(App)
-})
+const appState = createSongBasketState()
+const app = createApp(App)
 
-export default VueApp
+app.use(router)
+app.provide(songBasketStateKey, appState)
+app.mount('#app')
 
-setEnvironment()
-configureApp()
-
-VueApp.$mount('#app')
+export default app

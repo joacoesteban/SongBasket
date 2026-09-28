@@ -72,7 +72,12 @@ export const MAIN_WINDOW_CONFIG = {
   backgroundColor: '#151515',
   useContentSize: false,
   resizable: true,
-  webPreferences: { nodeIntegration: true, contextIsolation: false }
+  webPreferences: {
+    nodeIntegration: false,
+    contextIsolation: true,
+    sandbox: true,
+    preload: PATH.join(__dirname, '../preload/index.js')
+  }
 }
 
 export const LOADING_WINDOW_CONFIG = {
@@ -84,11 +89,20 @@ export const LOADING_WINDOW_CONFIG = {
   backgroundColor: '#151515',
   useContentSize: false,
   resizable: false,
-  webPreferences: { nodeIntegration: true, contextIsolation: false }
+  webPreferences: {
+    nodeIntegration: false,
+    contextIsolation: true,
+    sandbox: true,
+    preload: PATH.join(__dirname, '../preload/index.js')
+  }
 }
 
 export const POPUP_WINDOW_CONFIG = {
-  webPreferences: { nodeIntegration: false, contextIsolation: true },
+  webPreferences: {
+    nodeIntegration: false,
+    contextIsolation: true,
+    sandbox: true
+  },
   width: 550,
   height: 830,
   minWidth: 550,

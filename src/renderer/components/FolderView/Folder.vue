@@ -1,86 +1,48 @@
 <template>
-  <!-- <div class="folder-card-wrapper"> -->
-  <Card :item="item" @click="atClick">
-    <template #outside>
-      <div class="floating-controls-container abs-right abs-top df z-1">
-        <button class="button" @click="$emit('editFolder')">edit</button>
-        <button class="button" @click="$emit('deleteFolder')">delete</button>
-      </div>
-    </template>
+  <Card :item="item" @click="emit('clicked')">
     <template #default>
       <div class="folder-container">
         <div class="content">
           <div class="left">
             <div
               class="round-img"
-              :style="{
-                'background-image': 'url(' + item.backgroundImage + ')'
-              }"
+              :style="{ backgroundImage: item.backgroundImage }"
             />
           </div>
           <div class="right" />
           <div class="bottom w100 df global-center">
-            <div class="folder-path">
-              {{ path }}
-            </div>
+            <div class="folder-path">{{ path }}</div>
           </div>
         </div>
       </div>
     </template>
   </Card>
-  <!-- </div> -->
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
+import { computed } from 'vue'
+
 import Card from '../Home/Generic/Card.vue'
-export default {
-  components: {
-    Card
-  },
-  props: {
-    path: String,
-    index: Number
-  },
-  computed: {
-    item() {
-      return {
-        backgroundImage: 'https://picsum.photos/50' + this.index
-      }
-    }
-  },
-  methods: {
-    atClick() {
-      this.$emit('clicked')
-    }
-  }
+
+defineOptions({ name: 'FolderCard' })
+
+type Props = {
+  path: string
+  index: number
 }
+
+const props = defineProps<Props>()
+const emit = defineEmits<{ clicked: [] }>()
+const item = computed(() => ({
+  backgroundImage: `url(https://picsum.photos/50${props.index})`
+}))
 </script>
 
 <style lang="scss" scoped>
-.folder-card-wrapper {
-  position: relative;
-
-  .floating-controls-container {
-    $h: 2em;
-    position: absolute;
-    right: 0;
-    top: 0;
-    display: flex;
-    align-items: center;
-  }
-}
-
 .folder-container {
   box-sizing: border-box;
-  // flex-shrink: 0;
-  // flex-grow: 0;
-  // min-width: 20em;
   padding: 0.5em;
   display: flex;
-
-  &:not(:last-child) {
-    // margin-bottom: 1em;
-  }
 }
 
 .card-container {

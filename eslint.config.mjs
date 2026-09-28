@@ -101,7 +101,7 @@ export default tseslint.config(
   },
   prettier,
   {
-    files: ['**/*.ts', '**/*.tsx'],
+    files: ['**/*.ts', '**/*.tsx', '**/*.vue'],
     plugins: {
       prettier: prettierPlugin
     },

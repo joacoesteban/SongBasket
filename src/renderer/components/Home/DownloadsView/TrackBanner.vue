@@ -1,32 +1,20 @@
 <template>
-  <div
-    class="track-banner-container w100"
-    :class="
-      isDownload
-        ? 'download ' + downloadStatus.state
-        : isConversion
-          ? 'conversion'
-          : ''
-    "
-  >
-    <banner>
+  <div class="track-banner-container w100" :class="containerClass">
+    <Banner>
       <div
         v-if="isDownload"
         class="background-progress"
-        :style="{ '--progress': (downloadStatus.ptg || 0) + '%' }"
+        :style="{ '--progress': `${downloadStatus.ptg}%` }"
         :class="downloadStatus.state"
       >
         <div class="progress-label df alic">
-          <span class="uppercase half-op point5-em semibold">
-            {{ downloadStatus.state + ' ' + downloadStatus.ptg }}%
-          </span>
+          <span class="uppercase half-op point5-em semibold"
+            >{{ downloadStatus.state }} {{ downloadStatus.ptg }}%</span
+          >
         </div>
       </div>
       <div class="track-data w100">
         <div class="track-image">
-          <div v-if="isDownload" class="see-track-link">
-            <span class="sb-link uppercase semibold"> see track </span>
-          </div>
           <Card
             row-classes="w100 h100 p-0imp track-banner-card"
             :item="cardItem"
@@ -34,69 +22,40 @@
           />
         </div>
         <div class="track-info df fldc jucb ellipsis h100">
-          <div class="df alic">
-            <div
-              v-if="isConversion"
-              class="sb-tag mr-1 hidable-item gradient-background-cycle-less"
-              :class="{ hidden: !isSelected }"
-              style="--fz: 0.7em"
-            >
-              <b> Selected </b>
-            </div>
-            <div
-              v-if="isConversion && trackFormatted.issue"
-              class="df alic text-secondary"
-            >
-              <div
-                v-if="trackFormatted.issue.warn"
-                class="svg-icon"
-                style="--size: 0.75em; margin-right: 0.3em"
-              >
-                <warning-icon />
-              </div>
-              <span class="conversion-status df alic">
-                <span
-                  class="bold point75-em color-transition"
-                  :style="{ color: trackFormatted.issue.color || '' }"
-                >
-                  {{ trackFormatted.issue.msg }}
-                </span>
-              </span>
-            </div>
+          <div
+            v-if="isConversion && trackFormatted.issue"
+            class="df alic text-secondary"
+          >
+            <span class="bold point75-em color-transition">{{
+              trackFormatted.issue
+            }}</span>
           </div>
           <div class="ellipsis lh1point5">
-            <span class="name" v-html="trackFormatted.name" />
+            <span class="name">
+              <template
+                v-for="(segment, index) in trackFormatted.nameSegments"
+                :key="`${index}-${segment.text}`"
+              >
+                <span v-if="segment.matched" class="matching-token">{{
+                  segment.text
+                }}</span>
+                <template v-else>{{ segment.text }}</template>
+              </template>
+            </span>
           </div>
           <div class="ellipsis">
-            <span class="artists">
-              {{ trackFormatted.creator }}
-            </span>
+            <span class="artists">{{ trackFormatted.creator }}</span>
           </div>
           <div v-if="isConversion" class="track-controls df mt-1">
-            <button
-              :class="{ hidden: !canSelect }"
-              class="hidable-item link-button m-0"
-              style="margin-right: 0.5em"
-              @click="select"
-            >
-              {{ isSelected && isDoubtly ? 'Apply Selection' : 'Select' }}
+            <button class="link-button m-0" type="button" @click="select">
+              {{ selectLabel }}
             </button>
-            <button class="link-button m-0" @click="openVideo">Open</button>
+            <button class="link-button m-0" type="button" @click="openVideo">
+              Open
+            </button>
           </div>
-          <div v-if="!isConversion" class="ellipsis">
-            <span class="playlists">
-              Inside
-              <b>{{ $root.$controllers.track.getPlaylistsString(track) }}</b>
-            </span>
-          </div>
-          <div v-if="!isConversion && !isDownload" class="df">
-            <span
-              v-if="trackFormatted.status"
-              class="bold uppercase point5-em color-transition"
-              :style="{ color: trackFormatted.status.color }"
-            >
-              {{ trackFormatted.status.str }}
-            </span>
+          <div v-if="!isConversion && !isDownload" class="ellipsis">
+            <span class="playlists">Inside</span>
           </div>
         </div>
         <div v-if="!isDownload" class="duration">
@@ -109,144 +68,142 @@
           </div>
         </div>
       </div>
-    </banner>
+    </Banner>
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
+import { computed } from 'vue'
+
+import {
+  type FormattedTextSegment,
+  formattedTextSegments
+} from '../../../../shared/formatted-text'
+import { useSongBasketActions } from '../../../state'
 import Banner from '../Generic/Banner.vue'
 import Card from '../Generic/Card.vue'
-import WarningIcon from '@/assets/icons/warning-icon'
-export default {
-  components: {
-    Banner,
-    Card,
-    WarningIcon
-  },
-  props: {
-    track: Object,
-    parentRef: Object,
-    isDownload: Boolean,
-    isConversion: Boolean,
-    isSelected: Boolean,
-    downloadStatus: {
-      type: Object,
-      required: false,
-      default: () => ({
-        state: 'awaiting'
-      })
-    }
-  },
-  data() {
+import type { Track, TrackItem, YoutubeResult } from '../model'
+import {
+  formatMinutes,
+  trackImage,
+  trackName,
+  youtubeCreator,
+  youtubeImage
+} from '../model'
+
+type BannerTrack = TrackItem | YoutubeResult
+type DownloadStatus = {
+  state: string
+  ptg: number
+}
+
+const props = withDefaults(
+  defineProps<{
+    track: BannerTrack
+    parentRef?: Track | null
+    isDownload?: boolean
+    isConversion?: boolean
+    isSelected?: boolean
+    downloadStatus?: DownloadStatus
+  }>(),
+  {
+    parentRef: null,
+    isDownload: false,
+    isConversion: false,
+    isSelected: false,
+    downloadStatus: () => ({ state: 'awaiting', ptg: 0 })
+  }
+)
+const emit = defineEmits<{ select: [] }>()
+const { openVideo: openVideoAction } = useSongBasketActions()
+const cardOptions = {}
+const isYoutubeResult = (track: BannerTrack): track is YoutubeResult =>
+  'snippet' in track
+
+const titleSegments = (
+  item: YoutubeResult
+): readonly FormattedTextSegment[] => {
+  if (item.isCustomTrack === true) {
+    return [{ text: item.snippet.title, matched: false }]
+  }
+  return formattedTextSegments(item.nameFormatted)
+}
+
+const trackFormatted = computed(() => {
+  if (props.isConversion && isYoutubeResult(props.track)) {
+    const item = props.track
+    let issue: string | null = null
+    if (!item.isCustomTrack && item.isDoubtlyConversion)
+      issue = 'Does not match'
     return {
-      cardOptions: {}
-    }
-  },
-  computed: {
-    canSelect() {
-      return this.isConversion && (!this.isSelected || this.isDoubtly)
-    },
-    isDoubtly() {
-      return (
-        this.track.isDoubtlyConversion &&
-        !this.parentRef.flags.selectionIsApplied
-      )
-    },
-    trackFormatted() {
-      const itm = this.track
-      const snippet = itm.snippet || {}
-      let image
-      if (!this.isConversion) {
-        const album = itm.album || itm.data.album
-        image = album && album.images && album.images[0] && album.images[0].url
-      } else image = snippet.thumbnails.high.url
-      return (
-        itm && {
-          name: this.isConversion
-            ? itm.isCustomTrack
-              ? snippet.title
-              : itm.nameFormatted
-            : itm.data.name,
-          image,
-          creator: this.isConversion
-            ? snippet.channelTitle
-            : this.$root.$controllers.track.getArtistsString(itm),
-          status: itm.status,
-          issue: (() => {
-            if (!this.isConversion) return null
-            if (!itm.isCustomTrack && itm.isDoubtlyConversion) {
-              return {
-                msg:
-                  (itm.wordScore === 0 || !itm.nameTokensMap[0]
-                    ? 'Name'
-                    : 'Duration') + " doesn't match",
-                warn: true
-              }
-            }
-            if (itm.isCustomTrack) {
-              return {
-                msg: 'Custom',
-                color: 'var(--custom-selection-color)'
-              }
-            }
-          })()
-        }
-      )
-    },
-    duration() {
-      if (this.isDownload) return
-      // if (!this.isConversion) return {str: Math.round(this.track.duration || this.track.data.duration_ms / 1000) + "''", color: this.durationColor()}
-      // return {str: Math.round(this.track.duration || this.track.data.duration_ms / 1000) + "''", color: this.durationColor()}
-      const durationDiff =
-        this.isConversion &&
-        (this.parentRef.duration || this.parentRef.data.duration_ms / 1000) -
-          this.track.duration
-      const obj = {
-        str: this.$root.$controllers.utils.minsFromSecs(
-          Math.round(this.track.duration || this.track.data.duration_ms / 1000)
-        ),
-        color: this.durationColor(durationDiff)
-      }
-      return obj
-    },
-    cardItem() {
-      return {
-        backgroundImage: this.trackFormatted.image
-      }
-    }
-  },
-  methods: {
-    durationColor(durationDiff = 0) {
-      const factor = 150
-      const deg =
-        factor - factor * Math.pow(Math.abs(durationDiff / factor), 0.5)
-      return `hsl(${deg < 0 ? 0 : deg}, 100%, 50%)`
-    },
-    select() {
-      this.$emit('select')
-    },
-    openVideo() {
-      this.$root.$controllers.core.openVideo(
-        this.track.youtube_id || this.track.id
-      )
+      nameSegments: titleSegments(item),
+      image: youtubeImage(item),
+      creator: youtubeCreator(item),
+      issue
     }
   }
+  if (isYoutubeResult(props.track)) {
+    return {
+      nameSegments: titleSegments(props.track),
+      image: youtubeImage(props.track),
+      creator: youtubeCreator(props.track),
+      issue: null
+    }
+  }
+  const name = trackName(props.track)
+  return {
+    nameSegments: [{ text: name, matched: false }],
+    image: trackImage(props.track),
+    creator: name,
+    issue: null
+  }
+})
+const containerClass = computed(() => {
+  if (props.isDownload) return `download ${props.downloadStatus.state}`
+  if (props.isConversion) return 'conversion'
+  return ''
+})
+const cardItem = computed(() => ({
+  backgroundImage: trackFormatted.value.image
+}))
+const selectLabel = computed(() => {
+  if (props.isSelected) return 'Selected'
+  return 'Select'
+})
+const duration = computed(() => {
+  if (props.isDownload) return { str: '', color: '' }
+  let seconds = 0
+  if (isYoutubeResult(props.track)) {
+    seconds = props.track.duration
+  } else if ('data' in props.track) {
+    seconds = props.track.duration ?? props.track.data.duration_ms / 1000
+  } else {
+    seconds = props.track.duration_ms / 1000
+  }
+  return {
+    str: formatMinutes(Math.round(seconds)),
+    color: durationColor(seconds)
+  }
+})
+
+const durationColor = (durationDiff: number): string => {
+  const factor = 150
+  const degree =
+    factor - factor * Math.pow(Math.abs(durationDiff / factor), 0.5)
+  let hue = degree
+  if (degree < 0) hue = 0
+  return `hsl(${hue}, 100%, 50%)`
+}
+
+const select = (): void => emit('select')
+const openVideo = (): void => {
+  let id = props.track.id
+  if ('youtube_id' in props.track) id = props.track.youtube_id
+  void openVideoAction(id)
 }
 </script>
 
 <style lang="scss" scoped>
-$err1: rgba(255, 0, 100, 0.75) 1.53%;
-$err2: rgba(255, 35, 0, 0.75) 100%;
-$error-bg: linear-gradient(258.84deg, $err1, $err2);
-
-$dl1: rgba(36, 255, 0, 0.75) 1.53%;
-$dl2: rgba(0, 255, 136, 0.75) 100%;
-$download-bg: linear-gradient(258.84deg, $dl1, $dl2);
-
-$ex1: rgba(148, 0, 204, 0.75) 1.53%;
-$ex2: rgba(251, 0, 255, 0.75) 100%;
-$extraction-bg: linear-gradient(258.84deg, $ex1, $ex2);
-
 .track-banner-container {
   height: 7em;
   transition:
@@ -254,39 +211,6 @@ $extraction-bg: linear-gradient(258.84deg, $ex1, $ex2);
     background-color var(--ts-g);
   z-index: 0;
   position: relative;
-
-  &.download {
-    &.awaiting,
-    &.finished {
-      opacity: 0.5;
-    }
-
-    &.downloading,
-    &.extracting,
-    &.tags {
-      background-color: var(--global-grey);
-      box-shadow: inset 0px 0 48px 17px #0005;
-    }
-
-    &[class*='end'] {
-      .background-progress {
-        opacity: 0;
-      }
-    }
-
-    &[class*='error'] {
-      .background-progress {
-        --progress: 100% !important;
-        background: $error-bg;
-      }
-    }
-  }
-
-  &.conversion {
-    .track-info .name {
-      font-size: 1em;
-    }
-  }
 }
 
 .track-image {
@@ -316,84 +240,33 @@ $extraction-bg: linear-gradient(258.84deg, $ex1, $ex2);
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
-  box-shadow: inset 0px 0 48px 17px #0004;
+  background: var(--button-purple);
+}
 
-  &.downloading {
-    background: $download-bg;
-  }
-
-  &.extracting {
-    background: $extraction-bg;
-  }
-
-  &.tags {
-    --p: #ffe500 -150%, #ff00ff;
-    animation: background-cycle-less 5s infinite var(--bezier-chill);
-    --progress: 100% !important;
-  }
-
-  .progress-label {
-    padding: 0.2em 0.3em;
-    white-space: nowrap;
-  }
+.progress-label {
+  padding: 0.2em 0.3em;
+  white-space: nowrap;
 }
 
 .track-info {
   padding-left: 0.7em;
-
-  > div > span {
-    line-height: 1;
-  }
-
-  $name-size: 2em;
   text-align: left;
-
-  .name {
-    font-weight: 500;
-    font-size: $name-size;
-  }
-
-  .artists {
-    font-weight: bold;
-    display: flex;
-    margin-top: 0.2em;
-    font-size: $name-size * 0.4;
-  }
-
-  .playlists {
-    font-size: $name-size * 0.3;
-  }
 }
 
-.see-track-link {
-  position: absolute;
-  cursor: pointer;
-  $w: 1.5em;
-  left: -$w;
-  width: $w;
-  top: 0;
-  bottom: 0;
-  writing-mode: tb-rl;
-  transform: rotate(180deg);
-  opacity: 0.7;
-
-  > span {
-    display: inline-block;
-    // padding-bottom: .5em;
-    font-size: 0.4em;
-  }
+.name {
+  font-weight: 500;
+  font-size: 1.5em;
 }
-</style>
-<style lang="scss">
-.card-container.track-banner-card {
-  .card-background {
-    .gradient {
-      --gradient-offset: 0%;
-    }
 
-    .card-img {
-      --card-img-width: 100%;
-    }
-  }
+.matching-token {
+  color: var(--green-accept);
+  font-weight: 500;
+}
+
+.artists {
+  font-weight: bold;
+  display: flex;
+  margin-top: 0.2em;
+  font-size: 0.6em;
 }
 </style>

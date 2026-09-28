@@ -1,40 +1,37 @@
 <template>
-  <div>
-    <unsync v-show="options.wich === 'unsync'" @close="$emit('close')" />
-    <custom-track-url
-      v-show="options.wich === 'custom-track-url'"
-      @close="$emit('close')"
+  <div v-if="modal !== null">
+    <Unsync
+      v-if="unsyncRequest !== null"
+      :playlist-id="unsyncRequest.playlistId"
+      @close="closeModal"
     />
-    <reset-all-playlist-tracks
-      v-show="options.wich === 'reset-all-playlist-tracks'"
-      @close="$emit('close')"
-    />
-    <!-- <track-review @close="$emit('close')" v-show="options.wich === 'track-review'" :options="options.payload" /> -->
-    <delete-folder
-      v-show="options.wich === 'delete-folder'"
-      @close="$emit('close')"
+    <CustomTrackUrl
+      v-else-if="customTrackUrlRequest !== null"
+      :track-id="customTrackUrlRequest.trackId"
+      @close="closeModal"
     />
   </div>
 </template>
 
-<script lang="ts">
-import Unsync from './Unsync.vue'
+<script setup lang="ts">
+import { computed } from 'vue'
+
+import { type ModalRequest, useModal } from '../../state/useModal'
 import CustomTrackUrl from './CustomTrackUrl.vue'
-import ResetAllPlaylistTracks from './ResetAllPlaylistTracks.vue'
-import TrackReview from './TrackReviewOld.vue'
-import DeleteFolder from './DeleteFolder.vue'
-export default {
-  components: {
-    Unsync,
-    CustomTrackUrl,
-    ResetAllPlaylistTracks,
-    TrackReview,
-    DeleteFolder
-  },
-  computed: {
-    options() {
-      return this.$store.state.SharedStates.modal.options
-    }
-  }
-}
+import Unsync from './Unsync.vue'
+
+type UnsyncRequest = Extract<ModalRequest, { kind: 'unsync' }>
+type CustomTrackUrlRequest = Extract<ModalRequest, { kind: 'custom-track-url' }>
+
+const { modal, closeModal } = useModal()
+const unsyncRequest = computed<UnsyncRequest | null>(() => {
+  const request = modal.value
+  if (request?.kind !== 'unsync') return null
+  return request
+})
+const customTrackUrlRequest = computed<CustomTrackUrlRequest | null>(() => {
+  const request = modal.value
+  if (request?.kind !== 'custom-track-url') return null
+  return request
+})
 </script>

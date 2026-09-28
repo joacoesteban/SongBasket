@@ -17,13 +17,21 @@ run = "electron-vite dev"
 description = "Build and run the app as it ships"
 run = "electron-vite preview"
 
+[tasks.test]
+description = "Bundle and run SQLite persistence tests"
+run = "bun build tests/persistence.test.ts --target=node --outfile=temp/persistence.test.mjs && node --test temp/persistence.test.mjs"
+
 [tasks."typecheck:main"]
 description = "Typecheck the main process"
 run = "tsc --noEmit -p tsconfig.main.json"
 
 [tasks.typecheck]
-description = "Typecheck the main process and renderer"
-run = "mise run typecheck:main && mise run typecheck:renderer"
+description = "Typecheck the main process, preload, shared contracts, and renderer"
+run = "mise run typecheck:main && mise run typecheck:preload && mise run typecheck:renderer"
+
+[tasks."typecheck:preload"]
+description = "Typecheck the preload bridge and shared contracts"
+run = "tsc --noEmit -p tsconfig.preload.json"
 
 [tasks."typecheck:renderer"]
 description = "Typecheck the renderer"
@@ -31,11 +39,11 @@ run = "vue-tsc --noEmit -p tsconfig.renderer.json"
 
 [tasks.format]
 description = "Format source and configuration files"
-run = "prettier --write 'src/**/*.ts' 'src/**/*.css' 'src/**/*.scss' electron.vite.config.ts electron-builder.yml tsconfig.base.json tsconfig.main.json tsconfig.renderer.json eslint.config.mjs .prettierrc package.json && prettier --no-config --single-quote --no-semi --trailing-comma none --print-width 80 --write 'src/**/*.vue'"
+run = "prettier --write 'src/**/*.ts' 'src/**/*.vue' 'src/**/*.css' 'src/**/*.scss' electron.vite.config.ts electron-builder.yml tsconfig.base.json tsconfig.main.json tsconfig.renderer.json eslint.config.mjs .prettierrc package.json"
 
 [tasks."format:check"]
 description = "Check source and configuration formatting"
-run = "prettier --check 'src/**/*.ts' 'src/**/*.css' 'src/**/*.scss' electron.vite.config.ts electron-builder.yml tsconfig.base.json tsconfig.main.json tsconfig.renderer.json eslint.config.mjs .prettierrc package.json && prettier --no-config --single-quote --no-semi --trailing-comma none --print-width 80 --check 'src/**/*.vue'"
+run = "prettier --check 'src/**/*.ts' 'src/**/*.vue' 'src/**/*.css' 'src/**/*.scss' electron.vite.config.ts electron-builder.yml tsconfig.base.json tsconfig.main.json tsconfig.renderer.json eslint.config.mjs .prettierrc package.json"
 
 [tasks.lint]
 description = "Lint and check formatting"

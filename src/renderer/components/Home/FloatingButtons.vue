@@ -1,40 +1,31 @@
 <template>
-  <div class="floating-buttons-container" :class="{ show: showComponent }">
+  <div v-if="isHome" class="floating-buttons-container show">
     <div class="gradient" />
     <div class="df jucb">
       <div class="df floater-container">
-        <div v-if="!forceKill.all && !forceKill.dropdown" class="floater rel">
-          <!-- <div class="dropdown"></div> -->
-          <div
-            class="sb-fab"
-            :class="{ show: showDropdown }"
-            @click="toggleDropdown"
-          >
-            <font-awesome-icon size="xs" icon="chevron-up" />
-          </div>
+        <div class="floater">
+          <button class="sb-fab" type="button" @click="logout">⌃</button>
         </div>
       </div>
       <div class="df floater-container">
-        <div v-if="!forceKill.all && !forceKill.refresh" class="floater">
-          <div class="sb-fab" :class="{ show: showRefresh }" @click="refresh">
+        <div v-if="showRefresh" class="floater">
+          <button class="sb-fab" type="button" @click="refresh">
             <sync-icon />
-          </div>
+          </button>
         </div>
-        <div v-if="!forceKill.all && !forceKill.sync" class="floater">
-          <div class="sb-fab" :class="{ show: showSync }" @click="sync">
+        <div v-if="showSync" class="floater">
+          <button class="sb-fab" type="button" @click="convert">
             <cloud-search-icon />
-          </div>
+          </button>
         </div>
-        <div v-if="!forceKill.all && !forceKill.download" class="floater">
-          <div class="sb-fab" :class="{ show: showDl }" @click="download">
+        <div v-if="showDownload" class="floater">
+          <button class="sb-fab" type="button" @click="download">
             <download-icon />
-          </div>
+          </button>
         </div>
-        <div v-if="!errorPill.kill" class="floater error-floater">
-          <div class="sb-fab error-pill-container" :class="{ show: showError }">
-            <span>
-              <span v-html="errorPill.message" />
-            </span>
+        <div v-if="error" class="floater error-floater">
+          <div class="sb-fab error-pill-container show">
+            {{ error.message }}
           </div>
         </div>
       </div>
@@ -42,260 +33,93 @@
   </div>
 </template>
 
-<script lang="ts">
-import SyncIcon from '../../assets/icons/sync-icon.vue'
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
 import CloudSearchIcon from '../../assets/icons/cloud-search-icon.vue'
 import DownloadIcon from '../../assets/icons/download-icon.vue'
-import HomeIcon from '../../assets/icons/home-icon.vue'
-export default {
-  components: {
-    DownloadIcon,
-    SyncIcon,
-    CloudSearchIcon,
-    HomeIcon
-  },
-  data() {
-    this._FEATURES = global.CONSTANTS.FEATURES.FLOAT_MENU
-    return {
-      route: '',
-      errorPill: {
-        show: false,
-        kill: true,
-        message: 'ERROR: dou not detected'
-      },
-      showingDropdown: false,
-      forceHide: {
-        all: false,
-        sync: false,
-        refresh: false,
-        download: false
-      },
-      forceKill: {
-        all: false,
-        sync: false,
-        refresh: false,
-        download: false,
-        dropdown: false
-      }
-    }
-  },
-  computed: {
-    // route () {
-    //   return this.$route.name
-    // },
-    ffmpeg() {
-      return this.$store.state.Events.FFMPEG_BINS_DOWNLOADED
-    },
-    globalError() {
-      return this.$store.state.Events.GLOBAL_ERROR
-    },
-    showComponent() {
-      return this.route === 'home'
-    },
-    loadingState() {
-      return this.$store.state.Events.LOADING_STATE || {}
-    },
-    connectedToInternet() {
-      return this.$store.state.SharedStates.CONNECTED_TO_INTERNET
-    },
-    connectedToApi() {
-      return this.$store.state.SharedStates.CONNECTED_TO_API
-    },
-    fullConnection() {
-      return this.connectedToInternet && this.connectedToApi
-    },
-    loadingTarget() {
-      return this.loadingState.target
-    },
-    loading() {
-      return this.loadingState.value
-    },
-    showRefresh() {
-      return (
-        !this.loading &&
-        this.fullConnection &&
-        !this.forceHide.all &&
-        !this.forceHide.refresh
-      )
-    },
-    showSync() {
-      return (
-        !this.loading &&
-        (!this.queueIsEmpty || this.syncedPls.length) &&
-        this.fullConnection &&
-        !this.forceHide.all &&
-        !this.forceHide.sync
-      )
-    },
-    showError() {
-      return !this.showSync && this.errorPill.show
-    },
-    showDl() {
-      return (
-        (!this.loading || this.loadingTarget === 'DOWNLOAD') &&
-        this.syncedPls.length &&
-        this.connectedToInternet &&
-        !this.forceHide.all &&
-        !this.forceHide.download &&
-        this.ffmpeg
-      )
-    },
-    showDropdown() {
-      return (
-        !this.forceHide.all &&
-        !this.forceHide.dropdown &&
-        this._FEATURES.DROPDOWN
-      )
-    },
-    queue() {
-      return this.$store.state.CurrentUser.queuedPlaylists
-    },
-    queueIsEmpty() {
-      return !this.queue.length
-    },
-    syncedPls() {
-      return this.$store.state.CurrentUser.syncedPlaylists
-    }
-  },
-  watch: {
-    globalError(val) {
-      this.handleError(val)
-    },
-    fullConnection(val) {
-      if (val) return this.hideErrorPill()
-      this.handleError(
-        {
-          message: this.connectedToInternet
-            ? 'SongBasket servers are experiencing connection issues'
-            : 'Check your connection'
-        },
-        {
-          val: true,
-          time: 10000
-        }
-      )
-    }
-  },
-  created() {
-    this.$root.$sbRouter.beforeTransition(this.handleTransition)
-  },
-  async mounted() {
-    await this.$root.$sleep(1000)
-    this.handleTransition()
-  },
-  methods: {
-    handleTransition(to) {
-      this.route = (to && to.name) || this.$root.$sbRouter.path.name
-    },
-    async handleError(
-      val,
-      autoHide = {
-        val: true,
-        time: 4000
-      }
-    ) {
-      this.errorTimeout && clearTimeout(this.errorTimeout)
-      this.errorPill.message = val.message
+import SyncIcon from '../../assets/icons/sync-icon.vue'
+import { routeNames } from '../../router'
+import { useSongBasketActions, useSongBasketState } from '../../state'
 
-      this.forceHide.all = true
-      await this.$root.$sleep(400)
-      this.forceKill.all = true
-      this.errorPill.kill = false
-      await this.$root.$sleep(100)
-      this.errorPill.show = true
+const route = useRoute()
+const { isConnected, ffmpegBinariesDownloaded, loading, error, state } =
+  useSongBasketState()
+const {
+  refresh: refreshAction,
+  convertYoutube,
+  download: downloadTracks,
+  logout: logoutAction
+} = useSongBasketActions()
 
-      if (autoHide.val)
-        this.errorTimeout = setTimeout(this.hideErrorPill, autoHide.time)
-    },
-    async hideErrorPill() {
-      this.errorPill.show = false
-      await this.$root.$sleep(400)
-      this.errorPill.kill = true
-      this.forceKill.all = false
-      await this.$root.$sleep(100)
-      this.forceHide.all = false
-      await this.$root.$sleep(400)
-    },
-    refresh() {
-      this.$root.$controllers.core.refresh()
-    },
-    sync() {
-      this.$emit('youtubeConvert')
-    },
-    download() {
-      this.$root.$controllers.core.download()
-    },
-    toggleDropdown() {
-      // this.showingDropdown = !this.showingDropdown
-      this.$root.$controllers.core.logOut()
-    }
-  }
+const isHome = computed(() => {
+  const name = route.name
+  return (
+    name === routeNames.home ||
+    name === routeNames.playlistsList ||
+    name === routeNames.tracksList ||
+    name === routeNames.playlistView ||
+    name === routeNames.trackReview ||
+    name === routeNames.downloadsView
+  )
+})
+const loadingTarget = computed(() => loading.value.target)
+const showRefresh = computed(() => !loading.value.value && isConnected.value)
+const showSync = computed(
+  () =>
+    !loading.value.value &&
+    isConnected.value &&
+    (state.value?.queuedPlaylists.length ?? 0) > 0
+)
+const showDownload = computed(
+  () =>
+    (!loading.value.value || loadingTarget.value === 'DOWNLOAD') &&
+    ffmpegBinariesDownloaded.value
+)
+
+const refresh = (): void => {
+  void refreshAction()
+}
+const convert = (): void => {
+  void convertYoutube()
+}
+const download = (): void => {
+  void downloadTracks()
+}
+const logout = (): void => {
+  void logoutAction()
 }
 </script>
 
 <style lang="scss" scoped>
-$t: var(--ts-g);
-$offsetY: 0.5em;
-$gradient-height: 5em;
-$whole-height: 5em;
-
 .floating-buttons-container {
   pointer-events: none;
   position: fixed;
-  bottom: -$whole-height;
+  bottom: 0;
   left: 0;
   right: 0;
-  transition: bottom $t;
-
-  .floater-container {
-    padding: $offsetY var(--container-padding-x);
-  }
-
   z-index: 10;
-
-  &.show {
-    bottom: 0;
-  }
 }
 
 .gradient {
   z-index: 0;
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-
-  height: $gradient-height;
-
+  inset: auto 0 0;
+  height: 5em;
   background: linear-gradient(to top, black, transparent);
+}
+
+.floater-container {
+  padding: 0.5em var(--container-padding-x);
 }
 
 .floater {
   z-index: 1;
   display: flex;
   align-items: center;
-  // width: 100%;
-  margin-left: 0.5em;
-  margin-right: 0.5em;
-
-  &:nth-child(1) {
-    justify-content: flex-start;
-  }
-
-  &:nth-child(2),
-  &.error-floater {
-    justify-content: center;
-  }
-
-  &:nth-child(3) {
-    justify-content: flex-end;
-  }
+  margin: 0 0.5em;
 }
-</style>
-
-<style lang="scss">
-$offsetY: 0.5em;
-$t: var(--ts-g);
 
 .sb-fab {
   -webkit-app-region: no-drag;
@@ -307,76 +131,17 @@ $t: var(--ts-g);
   justify-content: center;
   background-color: var(--button-purple);
   color: var(--text-white);
+  border: 0;
   border-radius: 10em;
-  $sh-color: rgba(0, 0, 0, 0.2);
+  padding: 0.5em;
+  width: 2em;
+  height: 2em;
+}
 
-  box-shadow:
-    inset 3px 3px 10px $sh-color,
-    0 4px 7px 2px $sh-color;
-
-  $padding: 0.5em;
-  padding: $padding;
-
-  $size: 2em;
-  width: $size;
-  height: $size;
-
-  min-width: $size;
-  max-width: $size;
-  min-height: $size;
-  max-height: $size;
-
-  position: relative;
-  bottom: -($size + $offsetY + 1em);
-
-  transition:
-    transform $t,
-    opacity $t,
-    bottom $t;
-
-  &.show,
-  &.error-pill-container.show {
-    bottom: 0;
-  }
-
-  &:hover {
-    transform: scale(1.15);
-  }
-
-  &:active {
-    transform: scale(0.95);
-    opacity: 0.7;
-  }
-
-  &.error-pill-container {
-    &:hover {
-      transform: scale(1.03);
-    }
-
-    &:active {
-      transform: scale(0.98);
-      opacity: 0.7;
-    }
-
-    width: initial;
-    height: initial;
-
-    min-width: initial;
-    max-width: initial;
-    min-height: initial;
-    max-height: initial;
-    bottom: -120%;
-
-    background-color: var(--red-cancel);
-
-    font-weight: 500;
-    // white-space: nowrap;
-    padding-left: 1em;
-    padding-right: 1em;
-
-    span {
-      font-size: 0.65;
-    }
-  }
+.error-pill-container {
+  width: initial;
+  height: initial;
+  padding: 0.5em 1em;
+  background-color: var(--red-cancel);
 }
 </style>

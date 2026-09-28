@@ -8,149 +8,110 @@
   >
     <div class="playlist-data">
       <div v-if="showChanges" class="track-changes-container">
-        <div
-          v-if="playlist.tracks.added && playlist.tracks.added.length"
-          class="track-change added"
-        >
+        <div v-if="playlist.tracks.added.length" class="track-change added">
           <span class="bold">+{{ playlist.tracks.added.length }}</span>
         </div>
-        <div
-          v-if="playlist.tracks.removed && playlist.tracks.removed.length"
-          class="track-change removed"
-        >
+        <div v-if="playlist.tracks.removed.length" class="track-change removed">
           <span class="bold">-{{ playlist.tracks.removed.length }}</span>
         </div>
       </div>
-
       <div class="title">
-        <span class="bold">
-          {{ playlistName }}
-        </span>
+        <span class="bold">{{ playlist.name }}</span>
       </div>
       <div class="track-ammount">
-        <span class="regular">
-          {{ trackAmmountStr }}
-        </span>
+        <span class="regular">{{ trackAmountStr }}</span>
       </div>
       <div
         class="playlist-status-indicator"
         :class="status.slug"
         :style="{ '--status-color': status.color }"
       >
-        <span class="bold uppercase">
-          {{ status.msg }}
-        </span>
+        <span class="bold uppercase">{{ status.msg }}</span>
       </div>
+      <button
+        v-if="isSynced"
+        class="link-button"
+        type="button"
+        @click.stop="openUnsync"
+      >
+        Unsync
+      </button>
     </div>
   </Card>
 </template>
 
-<script lang="ts">
-import 'vuex'
+<script setup lang="ts">
+import { computed } from 'vue'
 
+import type { SpotifyPlaylistId } from '../../../@types/Spotify'
+import { useSongBasketActions, useSongBasketState } from '../../state'
+import { useModal } from '../../state/useModal'
 import Card from './Generic/Card.vue'
+import { type Playlist, playlistImage, playlistStatus } from './model'
 
-export default {
-  components: {
-    Card
-  },
-  props: {
-    playlist: Object,
-    status: Object
-  },
-  data() {
+defineOptions({ name: 'PlaylistCard' })
+
+type Status = ReturnType<typeof playlistStatus>
+
+const props = defineProps<{
+  playlist: Playlist
+}>()
+const emit = defineEmits<{ openPlaylist: [id: SpotifyPlaylistId] }>()
+
+const { state } = useSongBasketState()
+const { queuePlaylist } = useSongBasketActions()
+const { openModal } = useModal()
+
+const currentState = computed(() => state.value)
+const status = computed<Status>(() => {
+  const value = currentState.value
+  if (value === null) {
     return {
-      controller: this.$root.$controllers.playlist,
-      statusObj: {}
-    }
-  },
-  computed: {
-    isQueued() {
-      return this.$store.getters.PlaylistIsQueued(this.playlist.id) >= 0
-    },
-    isSynced() {
-      return this.status.baseState === 'synced'
-    },
-    isPaused() {
-      return (
-        this.status && this.status.slug && this.status.slug.includes('pause')
-      )
-    },
-    showChanges() {
-      return this.isSynced && !this.isPaused
-    },
-    playlistName() {
-      return this.playlist.name
-    },
-    playlistImage() {
-      return (
-        this.playlist &&
-        this.playlist.images &&
-        this.playlist.images[0] &&
-        this.playlist.images[0].url
-      )
-    },
-    playlistFormatted() {
-      return (
-        (this.playlist && {
-          ...this.playlist,
-          backgroundImage: this.playlistImage
-        }) ||
-        {}
-      )
-    },
-    trackAmmount() {
-      return (
-        (this.playlist && this.playlist.tracks && this.playlist.tracks.total) ||
-        0
-      )
-    },
-    trackAmmountStr() {
-      return this.trackAmmount + ' Track' + (this.trackAmmount === 1 ? '' : 's')
-    },
-    // -------------
-    cardOptions() {
-      return this.isSynced
-        ? {
-            size: '.8em',
-            height: '3.5em'
-          }
-        : {}
-    },
-    rowClasses() {
-      return this.isPaused ? 'col-lg-3 col-md-5 col-xs-12' : null
-    }
-  },
-  methods: {
-    handleClick() {
-      if (this.isSynced) {
-        this.$emit('openPlaylist')
-      } else {
-        this.addPlaylistToSyncQueue()
-      }
-    },
-    async addPlaylistToSyncQueue() {
-      // if (!this.isQueued) this.restoreTransformation(true)
-      await this.$root.$controllers.core.queuePlaylist(this.playlist.id)
-    },
-    unsync() {
-      this.$root.OPEN_MODAL({
-        wich: 'unsync',
-        payload: { id: this.playlist.id }
-      })
+      baseState: 'idle',
+      color: 'var(--button-purple)',
+      msg: 'Not synced',
+      slug: 'not-synced'
     }
   }
+  return playlistStatus(props.playlist, value)
+})
+const isSynced = computed(() => status.value.baseState === 'synced')
+const isQueued = computed(() => status.value.baseState === 'queued')
+const showChanges = computed(
+  () => isSynced.value && status.value.baseState !== 'paused'
+)
+const trackAmountStr = computed(() => {
+  const count = props.playlist.tracks.total
+  let suffix = ' Tracks'
+  if (count === 1) suffix = ' Track'
+  return `${count}${suffix}`
+})
+const playlistFormatted = computed(() => ({
+  backgroundImage: playlistImage(props.playlist)
+}))
+const cardOptions = computed(() => {
+  if (isSynced.value) return { size: '.8em', height: '3.5em' }
+  return {}
+})
+const rowClasses = computed(() => {
+  if (status.value.baseState === 'paused') return 'col-lg-3 col-md-5 col-xs-12'
+  return 'col-lg-4 col-md-6 col-xs-12'
+})
+
+const handleClick = (): void => {
+  if (isSynced.value) {
+    emit('openPlaylist', props.playlist.id)
+    return
+  }
+  void queuePlaylist(props.playlist.id)
+}
+const openUnsync = (): void => {
+  const id: SpotifyPlaylistId = props.playlist.id
+  openModal({ kind: 'unsync', playlistId: id })
 }
 </script>
 
 <style lang="scss" scoped>
-$q-false-color: #1b1b1b;
-$q-true-color: rgb(103, 214, 0);
-$bezier-tranka: cubic-bezier(0.12, 0.82, 0, 1);
-
-$playlist-height: 4em;
-$title-size: 0.8em;
-
 .playlist-data {
   text-align-last: left;
   position: relative;
@@ -165,16 +126,10 @@ $title-size: 0.8em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-
-    > span {
-      font-size: $title-size;
-    }
   }
 
-  .track-ammount {
-    > span {
-      font-size: $title-size * 0.75;
-    }
+  .track-ammount span {
+    font-size: 0.6em;
   }
 }
 
@@ -185,10 +140,6 @@ $title-size: 0.8em;
   right: 0;
 
   .track-change {
-    // $size: 1.5em;
-    // width: $size;
-    // height: $size;
-    // margin: 0 $size/10;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -210,18 +161,6 @@ $title-size: 0.8em;
     &.removed {
       color: var(--red-cancel);
     }
-  }
-}
-</style>
-
-<style lang="scss">
-$title-size: 0.8em;
-
-.playlist-status-indicator {
-  color: var(--status-color);
-
-  > span {
-    font-size: $title-size * 0.75;
   }
 }
 </style>

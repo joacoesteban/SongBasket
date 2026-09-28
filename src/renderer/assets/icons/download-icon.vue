@@ -2,21 +2,10 @@
   <svg-icon :path="path" :icon-color="iconColor" :class-name="className" />
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 import SvgIcon from './SvgIcon.vue'
 
-export default {
-  components: {
-    SvgIcon
-  },
-  data() {
-    return {
-      path: 'M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z',
-      iconColor: 'var(--icon-color)',
-      className: 'icon download-icon'
-    }
-  }
-}
+const path = 'M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z'
+const iconColor = 'var(--icon-color)'
+const className = 'icon download-icon'
 </script>
-
-<style></style>

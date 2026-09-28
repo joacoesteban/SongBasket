@@ -2,17 +2,13 @@
   <div class="track-review-container">
     <div class="container-fluid text-left pt-2" style="--px: 2em">
       <div class="default-title text-secondary" style="--fz: 1.2em">
-        {{
-          conversions.length
-            ? 'Conversions'
-            : 'No conversions found, try adding a custom url'
-        }}
+        {{ heading }}
       </div>
     </div>
     <div v-if="track" class="conversions-list">
-      <track-banner
-        v-for="(item, index) in conversions"
-        :key="index"
+      <TrackBanner
+        v-for="item in conversions"
+        :key="item.id"
         :track="item"
         :parent-ref="track"
         :is-conversion="true"
@@ -23,70 +19,46 @@
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+import { useSongBasketActions, useSongBasketState } from '../../../state'
 import TrackBanner from '../DownloadsView/TrackBanner.vue'
-export default {
-  components: {
-    TrackBanner
-  },
-  props: {
-    refresh: Boolean
-  },
-  data() {
-    return {
-      track: null
-    }
-  },
-  computed: {
-    conversions() {
-      let convs = this.track && this.track.conversion.yt
-      if (this.track && this.track.custom)
-        convs = [this.track.custom, ...(convs || [])]
-      return convs || []
-    },
-    selection() {
-      return (
-        this.track.selectionObj &&
-        (this.track.selectionObj.youtube_id || this.track.selectionObj.id)
-      )
-    }
-  },
-  watch: {
-    refresh(val) {
-      if (!val) return
-      this.refreshTrack()
-    }
-  },
-  created() {
-    this.$root.$ComponentRefs.TrackReview = this
-  },
-  methods: {
-    refreshTrack() {
-      const track = this.$root.$sbRouter.giveMeCurrent().params.track
-      if (!track) return
-      this.track = this.$root.CONVERTED_TRACKS_FORMATTED.find(
-        (t) => t.id === track.id
-      )
-      this.$root.$ComponentRefs.slides.TrackReview.setTrack(this.track)
-      console.log(this.track)
-    },
-    isSelected(id) {
-      return this.selection === id
-    },
-    async selectVideo(item) {
-      try {
-        const newId = item === null || item === false ? item : item.youtube_id
-        if (newId === undefined || !this.track) throw new Error('NO TRACK')
-        await this.$root.$controllers.core.changeYtTrackSelection({
-          trackId: this.track.id,
-          newId
-        })
-        this.refreshTrack()
-      } catch (error) {
-        throw error
-      }
-    }
-  }
+import type { Track, YoutubeResult } from '../model'
+import { trackSelectionId } from '../model'
+
+const route = useRoute()
+const { state } = useSongBasketState()
+const { changeTrackSelection } = useSongBasketActions()
+
+const trackId = computed(() => {
+  const id = route.params['id']
+  if (typeof id === 'string') return id
+  return ''
+})
+const track = computed<Track | null>(() => {
+  const value = state.value
+  if (value === null) return null
+  return value.convertedTracks.find((item) => item.id === trackId.value) ?? null
+})
+const conversions = computed<readonly YoutubeResult[]>(() => {
+  const value = track.value
+  if (value === null) return []
+  const result = value.conversion?.yt ?? []
+  if (value.custom === null) return result
+  return [value.custom, ...result]
+})
+const heading = computed(() => {
+  if (conversions.value.length > 0) return 'Conversions'
+  return 'No conversions found, try adding a custom url'
+})
+const isSelected = (id: string): boolean => trackSelectionId(track.value) === id
+
+const selectVideo = (item: YoutubeResult): void => {
+  const value = track.value
+  if (value === null) return
+  void changeTrackSelection({ trackId: value.id, newId: item.youtube_id })
 }
 </script>
 
@@ -94,10 +66,5 @@ export default {
 .track-review-container {
   width: 100%;
   max-width: 100vw;
-}
-
-.parent-track-container {
-  position: sticky;
-  top: 0;
 }
 </style>

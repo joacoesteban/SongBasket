@@ -2,109 +2,54 @@
   <div class="whole-container">
     <div class="home-container">
       <div class="rel-full" style="height: initial">
-        <top-bar />
-        <search-bar />
+        <TopBar />
+        <SearchBar />
       </div>
-
-      <component-loader
-        class="home-router"
-        @openPlaylist="openPlaylist($event)"
-        @openYtVideo="openYtVideo($event)"
-      />
-
-      <floating-buttons style="z-index: 1" @youtubeConvert="youtubeConvert" />
+      <div class="home-router">
+        <RouterView v-slot="{ Component }">
+          <Transition :name="navigationDirection">
+            <component :is="Component" :key="route.fullPath" />
+          </Transition>
+        </RouterView>
+      </div>
+      <FloatingButtons style="z-index: 1" />
     </div>
   </div>
 </template>
 
-<script lang="ts">
-import 'vuex'
+<script setup lang="ts">
+import { onMounted, watch } from 'vue'
+import { RouterView, useRoute, useRouter } from 'vue-router'
 
-import TopBar from './TopBar/TopBar.vue'
-import SearchBar from './TopBar/SearchBar.vue'
-import ComponentLoader from './ComponentLoader.vue'
-import PlaylistsList from './PlaylistsList.vue'
-import Playlist from './Playlist.vue'
-import UserData from './UserData.vue'
+import { navigationDirection, routeNames } from '../../router'
+import { useSongBasketState } from '../../state'
 import FloatingButtons from './FloatingButtons.vue'
-import HomeBackground from './HomeBackground.vue'
+import SearchBar from './TopBar/SearchBar.vue'
+import TopBar from './TopBar/TopBar.vue'
 
-export default {
-  components: {
-    TopBar,
-    SearchBar,
-    ComponentLoader,
-    PlaylistsList,
-    Playlist,
-    UserData,
-    FloatingButtons,
-    HomeBackground
-  },
-  data() {
-    return {
-      user: this.$store.state.CurrentUser.user,
-      control: this.$store.state.CurrentUser.control,
-      loading: false,
-      animation: ''
-    }
-  },
-  computed: {
-    allLoaded() {
-      return this.control.total - this.control.offset <= 0
-    },
-    syncedPlaylists() {
-      return this.$store.state.CurrentUser.syncedPlaylists
-    },
-    currentPlaylistSet() {
-      return this.$store.state.Events.CURRENT_PLAYLIST_SET
-    },
-    routerAnimation() {
-      return this.$store.state.Events.ROUTER_ANIMATION
-    }
-  },
-  watch: {
-    currentPlaylistSet() {
-      this.$router.push('/home/playlist-view')
-    }
-  },
-  mounted() {
-    // console.log('USER::::', this.user)
+defineOptions({ name: 'HomeView' })
 
-    if (this.$store.state.CurrentUser.playlists.length === 0) {
-      this.$router.push('/empty')
-    }
+const router = useRouter()
+const route = useRoute()
+const { state } = useSongBasketState()
 
-    this.$root.$IPC.answerMain('done loading', async () => {
-      this.loading = false
+watch(
+  () => state.value?.currentPlaylist,
+  (playlistId) => {
+    if (playlistId === null || playlistId === undefined) return
+    void router.push({
+      name: routeNames.playlistView,
+      params: { id: playlistId }
     })
-  },
-  methods: {
-    loadMore() {
-      if (!this.loading) {
-        this.loading = true
-        this.$root.$IPC.callMain('loadMore')
-      }
-    },
-    openPlaylist(id) {
-      console.log(id, this.syncedPlaylists.length, this.playlistSynced(id))
-      if (this.playlistSynced(id)) return this.setPlaylistNPush(id)
-      this.$root.$IPC.callMain('get tracks from', id)
-    },
-    setPlaylistNPush(id) {
-      this.$root.$sbRouter.push({ name: 'playlist-view', params: { id } })
-    },
-    playlistSynced(id) {
-      return this.syncedPlaylists.some((p) => p === id)
-    },
-    youtubeConvert() {
-      this.$root.$IPC.callMain('Youtube Convert')
-    },
-    openYtVideo(id) {
-      console.log('openYtVideo', id)
-      this.$root.$IPC.callMain('openYtVideo', id)
-    }
   }
-}
+)
+
+onMounted(() => {
+  const playlists = state.value?.playlists
+  if (playlists !== undefined && playlists.length === 0) {
+    void router.push({ name: routeNames.empty })
+  }
+})
 </script>
 
 <style>
@@ -131,33 +76,4 @@ export default {
   box-sizing: border-box;
   overflow: auto;
 }
-</style>
-
-<style lang="scss" scoped>
-// .router-view {
-//   $transition: var(--home-transition);
-//   transition: transform $transition, opacity $transition;
-//   opacity: 1;
-//   transform: scale(1);
-//   transform-origin: bottom;
-
-//   &.fast {
-//     transition: transform 0s
-//   }
-//   &:not(.release) {
-//     transition-timing-function: var(--bezier-out);
-//   }
-//   &.push {
-//     transform: scale(.75);
-//     opacity: 0;
-//   }
-//   &.pull {
-//     transform: scale(1.5);
-//     opacity: 0;
-//   }
-//   &.release {
-//     opacity: 1;
-//     transform: scale(1)
-//   }
-// }
 </style>

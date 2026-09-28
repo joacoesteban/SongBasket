@@ -1,20 +1,16 @@
 <template>
   <div class="folder-view-container window-drag-recursive">
     <div class="setup-header">
-      <span>
-        {{ title }}
-      </span>
+      <span>{{ title }}</span>
     </div>
     <div class="list-wrapper df fldc">
       <div class="folder-list row">
         <Folder
-          v-for="(path, key) in folders"
-          :key="key"
+          v-for="(path, index) in folders"
+          :key="path"
           :path="path"
-          :index="key"
+          :index="index"
           @clicked="openFolder(path)"
-          @editFolder="editFolder(path)"
-          @deleteFolder="deleteFolder(path)"
         />
       </div>
       <div class="pusher w100" />
@@ -23,45 +19,41 @@
       class="w100 df global-center py-2 abs-bot no-click controls-container"
       @click="addFolder"
     >
-      <button class="button all-click">
-        <span> Add a new Folder </span>
-      </button>
+      <button class="button all-click">Add a new Folder</button>
     </div>
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+
+import { routeNames } from '../../router'
+import { useSongBasketActions } from '../../state/useSongBasketActions'
+import { useSongBasketState } from '../../state/useSongBasketState'
 import Folder from './Folder.vue'
-export default {
-  components: {
-    Folder
-  },
-  data() {
-    return {
-      title: 'Your Folders',
-      folders: global.CONSTANTS.APP_STATUS.FOLDERS.paths
-    }
-  },
-  mounted() {
-    // this.deleteFolder(this.folders[0])
-  },
-  methods: {
-    openFolder(path) {
-      this.$root.$controllers.core.setHomeFolder(path)
-    },
-    editFolder(path) {},
-    deleteFolder(path) {
-      this.$root.$controllers.core.askRemoveFolder({ path })
-    },
-    async addFolder() {
-      try {
-        await this.$root.$controllers.setup.setHomeFolder()
-        await this.$root.$controllers.setup.login()
-      } catch (error) {
-        console.error('ERROR setting folder', error)
-      }
-    }
+
+const title = 'Your Folders'
+const router = useRouter()
+const actions = useSongBasketActions()
+const state = useSongBasketState()
+const folders = computed(
+  () => state.status.value?.APP_STATUS.FOLDERS.paths ?? []
+)
+
+const openFolder = async (path: string): Promise<void> => {
+  await actions.setHomeFolder(path)
+  await router.push({ name: routeNames.home })
+}
+
+const addFolder = async (): Promise<void> => {
+  const result = await actions.askHomeFolder()
+  if (result.error !== null) return
+  if (result.isLogged) {
+    await router.push({ name: routeNames.home })
+    return
   }
+  await router.push({ name: routeNames.setup })
 }
 </script>
 
@@ -92,9 +84,6 @@ export default {
   .pusher {
     min-height: var(--controls-height);
   }
-}
-
-.folder-list {
 }
 
 .controls-container {

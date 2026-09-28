@@ -1,232 +1,103 @@
 <template>
-  <div ref="playlists-list" class="pll-container">
-    <div
-      v-if="showList"
-      ref="actual-list"
-      class="actual-list row hideable-container"
-      :class="listAnimationClass"
-    >
-      <div v-if="noPlaylists" class="no-playlists">
-        No Playlists found{{ allLoaded ? '' : ', try loading some more' }}
+  <div ref="listElement" class="pll-container">
+    <div class="actual-list row hideable-container">
+      <div v-if="playlists.length === 0" class="no-playlists">
+        No Playlists found{{ allLoadedLabel }}
       </div>
       <div class="horizontal-scroller">
-        <playlist
-          v-for="pl in syncedPlaylistsFiltered
-            ? syncedPlaylistsFiltered
-            : syncedPlaylists"
-          :key="pl.playlist.id"
-          :playlist="pl.playlist"
-          :status="pl.status"
-          @openPlaylist="$emit('openPlaylist', pl.playlist.id)"
+        <Playlist
+          v-for="playlist in syncedPlaylists"
+          :key="playlist.id"
+          :playlist="playlist"
+          @open-playlist="openPlaylist"
         />
       </div>
       <div class="list">
-        <playlist
-          v-for="pl in unSyncedPlaylistsFiltered
-            ? unSyncedPlaylistsFiltered
-            : unSyncedPlaylists"
-          :key="pl.playlist.id"
-          :playlist="pl.playlist"
-          :status="pl.status"
-          @openPlaylist="$emit('openPlaylist', pl.playlist.id)"
+        <Playlist
+          v-for="playlist in unsyncedPlaylists"
+          :key="playlist.id"
+          :playlist="playlist"
+          @open-playlist="openPlaylist"
         />
       </div>
-
       <div v-if="!allLoaded" class="df aliic jucc col-xs-12 p-0">
-        <button class="button" @click="loadMore">
-          {{ loading ? 'Loading' : 'Load More' }}
+        <button class="button" type="button" @click="loadMore">
+          Load More
         </button>
       </div>
     </div>
-    <!-- <div class="background-container">
-      dalebro
-    </div> -->
   </div>
 </template>
 
-<script lang="ts">
-import Playlist from './Playlist.vue'
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
-export default {
-  components: {
-    Playlist
-  },
-  data() {
-    return {
-      user: this.$store.state.CurrentUser.user,
-      control: this.$store.state.CurrentUser.control,
-      loading: false,
-      transitioning: false,
-      noPlaylists: false,
-      filterBackgroundOpacity: 0,
-      listAnimationTime: 250,
-      listAnimationClass: '',
-      syncedPlaylists: [],
-      syncedPlaylistsFiltered: null,
-      unSyncedPlaylistsFiltered: null,
-      playlists: [],
-      showList: true,
-      scrollOpKey: 'scroll-opacity'
-    }
-  },
-  computed: {
-    searchInput() {
-      return this.$root.SEARCH_INPUT.value
-    },
-    allLoaded() {
-      return this.control.total - this.control.offset <= 0
-    },
-    unSyncedPlaylists() {
-      return this.playlists
-        .filter((pl) => !this.$store.getters.PlaylistIsSynced(pl.id))
-        .map(this.formatPlaylist)
-    },
-    stateReplaced() {
-      return this.$store.state.Events.STATE_REPLACED
-    },
-    playlistTracksReComputed() {
-      return this.$store.state.Events.PLAYLIST_TRACKS_RE_COMPUTED
-    },
-    playlistStateChanged() {
-      return this.$store.state.Events.PLAYLIST_STATE_CHANGED
-    }
-  },
-  watch: {
-    stateReplaced() {
-      this.refreshAll()
-    },
-    playlistTracksReComputed() {
-      this.refreshSynced()
-    },
-    searchInput() {
-      if (!this.isMounted()) return
-      this.scheduleFilter()
-    },
-    playlistStateChanged() {
-      this.refreshAll()
-    }
-  },
-  mounted() {
-    console.log('from pllist rebefo', this.searchInput, this.$root.SEARCH_INPUT)
-    this.$root.$IPC.answerMain('done loading', async () => {
-      this.loading = false
-    })
-    this.refreshAll()
-    this.$refs['actual-list'].style.setProperty(
-      '--list-transition-time',
-      this.listAnimationTime + 'ms'
-    )
-    this.$root.plListEnv = this
-    this.$root.onComponentLoaderMount = function () {
-      console.log('dousinho')
-      const env = this.$root.plListEnv
-      this.$root
-        .$(env.getContainerElement())
-        .on('scroll', env.calcScrollOpacity)
-      env.calcScrollOpacity()
-    }
-  },
-  methods: {
-    isMounted() {
-      const path = this.$root.$sbRouter.giveMeCurrent()
-      return path.name === 'home' && path.params.which === 'playlists-list'
-    },
-    formatPlaylist(playlist) {
-      return {
-        playlist,
-        status: this.$root.$controllers.playlist.getStatus(playlist)
-      }
-    },
-    loadMore() {
-      this.$root.$controllers.core.loadMorePlaylists()
-    },
-    handleInputConfirm() {
-      if (
-        this.syncedPlaylistsFiltered &&
-        this.syncedPlaylistsFiltered.length === 1
-      ) {
-        const pl = this.$children.find(
-          (p) => p.playlistId === this.syncedPlaylistsFiltered[0].id
-        )
-        pl && pl.handleClick()
-      }
-    },
-    transitionPlaylists(what) {
-      return new Promise((resolve, reject) => {
-        this.listAnimationClass = what
-        setTimeout(() => {
-          resolve(!(this.transitioning = false))
-        }, this.listAnimationTime)
-      })
-    },
-    async hidePlaylists() {
-      await this.transitionPlaylists('hide')
-    },
-    async showPlaylists() {
-      await this.transitionPlaylists('show')
-    },
-    refreshAll() {
-      this.playlists = this.$store.state.CurrentUser.playlists
-      this.refreshSynced()
-    },
-    refreshSynced() {
-      this.syncedPlaylists = this.$store.state.CurrentUser.syncedPlaylists
-        .map((id) => this.playlists.find((pl) => pl.id === id))
-        .filter((pl) => pl)
-        .map(this.formatPlaylist)
-        .sort(this.$root.$controllers.playlist.sort)
-      this.scheduleFilter()
-    },
-    calcScrollOpacity() {
-      let ratio = this.getContainerElement().scrollTop / 100
-      if (ratio > 1) ratio = 1
-      this.$root.$setRootVar(
-        this.scrollOpKey,
-        (this.filterBackgroundOpacity = ratio)
-      )
-    },
-    getContainerElement() {
-      return (
-        this.containerElement ||
-        (this.containerElement = this.$root.$refs['home-router'])
-      )
-    },
-    async scheduleFilter() {
-      this.lastType = Date.now()
-      await this.hidePlaylists()
-      if (Date.now() - this.lastType < this.listAnimationTime) return
-      this.filter()
-      this.showPlaylists()
-    },
-    filter() {
-      const txt = (this.searchInput && this.searchInput.toLowerCase()) || ''
-      let noPlaylists = false
-      if (!txt.length) {
-        this.unSyncedPlaylistsFiltered = null
-        this.syncedPlaylistsFiltered = null
-      } else {
-        noPlaylists =
-          (this.syncedPlaylistsFiltered = this.syncedPlaylists.filter(
-            ({ playlist }) => playlist.name.toLowerCase().includes(txt)
-          )).length +
-            (this.unSyncedPlaylistsFiltered = this.unSyncedPlaylists.filter(
-              ({ playlist }) => playlist.name.toLowerCase().includes(txt)
-            )).length ===
-          0
-      }
-      this.noPlaylists = noPlaylists
-    }
-  }
+import { routeNames } from '../../router'
+import { useSongBasketActions, useSongBasketState } from '../../state'
+import Playlist from './Playlist.vue'
+import type { Playlist as PlaylistModel } from './model'
+
+const router = useRouter()
+const { state } = useSongBasketState()
+const { loadMorePlaylists } = useSongBasketActions()
+const listElement = ref<HTMLElement | null>(null)
+
+const playlists = computed<readonly PlaylistModel[]>(
+  () => state.value?.playlists ?? []
+)
+const syncedPlaylists = computed(() => {
+  const value = state.value
+  if (value === null) return []
+  return value.syncedPlaylists
+    .map((id) => playlists.value.find((playlist) => playlist.id === id))
+    .filter((playlist): playlist is PlaylistModel => playlist !== undefined)
+})
+const unsyncedPlaylists = computed(() => {
+  const value = state.value
+  if (value === null) return []
+  return playlists.value.filter(
+    (playlist) => !value.syncedPlaylists.includes(playlist.id)
+  )
+})
+const allLoaded = computed(() => {
+  const control = state.value?.control
+  if (control === undefined) return true
+  return control.total - control.offset <= 0
+})
+const allLoadedLabel = computed(() => {
+  if (allLoaded.value) return ''
+  return ', try loading some more'
+})
+
+const openPlaylist = (id: string): void => {
+  void router.push({ name: routeNames.playlistView, params: { id } })
 }
+
+const loadMore = (): void => {
+  void loadMorePlaylists()
+}
+
+const onScroll = (): void => {
+  const element = listElement.value
+  if (element === null) return
+  const ratio = Math.min(element.scrollTop / 100, 1)
+  element.style.setProperty('--scroll-opacity', String(ratio))
+}
+
+onMounted(() => {
+  listElement.value?.addEventListener('scroll', onScroll)
+})
+
+onBeforeUnmount(() => {
+  listElement.value?.removeEventListener('scroll', onScroll)
+})
 </script>
 
 <style lang="scss" scoped>
-$bezier: cubic-bezier(0, 1, 0, 1);
-$bezier-chill: cubic-bezier(0, 1, 0.5, 1);
-
 .pll-container {
   --padding-x: var(--container-padding-x);
-  /* margin-bottom: 2.4rem; */
+  --scroll-opacity: 0;
   text-align: center;
   height: fit-content;
   width: 100%;
@@ -235,68 +106,11 @@ $bezier-chill: cubic-bezier(0, 1, 0.5, 1);
   padding-top: 0;
 }
 
-.actual-list {
-  // TODO Adapt transition to global trasition scale factor
-  > .list {
-    padding: 0 var(--padding-x);
-  }
-}
-
-.filters-container {
-  pointer-events: none;
-  padding: 0.5em;
-  margin-bottom: 1em;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-
-  .filters-background {
-    background: linear-gradient(
-      180deg,
-      var(--global-grey-secondary),
-      transparent
-    );
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: -1;
-  }
-
-  .filters-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    // padding: 0 1em;
-  }
-
-  .search-bar {
-    pointer-events: all;
-
-    .filters-background {
-      background: var(--global-grey-secondary);
-    }
-
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    border-radius: 10em;
-    padding-left: 1em;
-    padding-right: 0.2em;
-  }
+.actual-list > .list {
+  padding: 0 var(--padding-x);
 }
 
 .no-playlists {
   margin: 4em 0;
-}
-
-.background-container {
-  position: sticky;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
 }
 </style>

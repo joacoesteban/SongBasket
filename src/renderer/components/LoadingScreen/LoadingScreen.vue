@@ -1,20 +1,37 @@
 <template>
   <div class="loading-container">
     <div>Loading</div>
-    <div class="regular point5-em mt-2">Version {{ version }}</div>
+    <div v-if="status !== null">{{ status.appVersion }}</div>
   </div>
 </template>
 
-<script lang="ts">
-export default {
-  data() {
-    return {
-      version: global.CONSTANTS.APP_VERSION_STRING
-    }
-  }
-}
-</script>
+<script setup lang="ts">
+import { watch } from 'vue'
+import { useRouter } from 'vue-router'
 
+import { routeNames } from '../../router'
+import { useSongBasketState } from '../../state'
+
+const router = useRouter()
+const { status } = useSongBasketState()
+
+watch(
+  status,
+  (value) => {
+    if (value === null) return
+    if (value.APP_STATUS.IS_LOGGED) {
+      void router.replace({ name: routeNames.home })
+      return
+    }
+    if (value.APP_STATUS.FOLDERS.paths.length > 0) {
+      void router.replace({ name: routeNames.folderView })
+      return
+    }
+    void router.replace({ name: routeNames.setup })
+  },
+  { immediate: true }
+)
+</script>
 <style scoped lang="scss">
 .loading-container {
   -webkit-app-region: drag;

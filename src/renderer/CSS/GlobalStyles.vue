@@ -1,3 +1,7 @@
+<script setup lang="ts">
+defineOptions({ name: 'GlobalStyles' })
+</script>
+
 <style lang="scss">
 html {
   font-size: 30px;

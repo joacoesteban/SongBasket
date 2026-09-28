@@ -4,20 +4,31 @@
     <div class="info">
       We couldn't find any Playlists associated with this User.
     </div>
-    <router-link to="/setup/guest" tag="button" class="button">
-      Go Back
-    </router-link>
+    <button class="button" type="button" @click="goBack">Go Back</button>
   </div>
 </template>
 
-<script lang="ts">
-export default {
-  mounted() {
-    if (this.$store.state.CurrentUser.playlists.length) {
-      this.$router.push('/home')
-    }
-  }
+<script setup lang="ts">
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+import { routeNames } from '../router'
+import { useSongBasketState } from '../state'
+
+defineOptions({ name: 'EmptyView' })
+
+const router = useRouter()
+const { state } = useSongBasketState()
+
+const goBack = (): void => {
+  void router.push({ name: routeNames.setup })
 }
+
+onMounted(() => {
+  if ((state.value?.playlists.length ?? 0) > 0) {
+    void router.push({ name: routeNames.home })
+  }
+})
 </script>
 
 <style lang="scss" scoped>

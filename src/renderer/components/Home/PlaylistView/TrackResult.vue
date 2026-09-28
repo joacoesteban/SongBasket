@@ -1,11 +1,9 @@
 <template>
   <Card
     :item="itemFormatted"
-    :row-classes="
-      rowClasses + (isSelected ? ' border-green' : ' border-transparent')
-    "
+    :row-classes="rowClasses"
     :options="cardOptions"
-    @click="handleClick"
+    @click="emit('setSelection')"
   >
     <div class="w100 point75-em df alic">
       <div class="ellipsis pr-2">
@@ -16,90 +14,69 @@
           {{ itemFormatted.issue }}
         </div>
         <div class="ellipsis name">
-          <span v-html="itemFormatted.name" />
+          <span>{{ itemFormatted.name }}</span>
         </div>
         <div class="ellipsis">
-          <span class="regular point75-em">
-            <span class="semibold">{{ itemFormatted.uploader }}</span>
-          </span>
+          <span class="regular point75-em"
+            ><span class="semibold">{{ itemFormatted.uploader }}</span></span
+          >
         </div>
       </div>
       <div class="duration-diff">
-        <span class="bold" :style="{ color: durationColor }">
-          {{ itemFormatted.duration }}
-        </span>
+        <span class="bold" :style="{ color: durationColor }">{{
+          itemFormatted.duration
+        }}</span>
       </div>
     </div>
   </Card>
 </template>
 
-<script lang="ts">
-import Card from '../Generic/Card.vue'
+<script setup lang="ts">
+import { computed } from 'vue'
 
-export default {
-  components: {
-    Card
-  },
-  props: {
-    item: {
-      Object,
-      required: true
-    },
-    durationColor: String,
-    isSelected: Boolean
-  },
-  data() {
-    return {
-      cardOptions: {
-        height: '2.5em',
-        xRotationFactor: 0.01,
-        hovScaleFactor: false,
-        paddingY: '.5em',
-        paddingX: 'var(--card-padding-x)'
-      },
-      rowClasses: 'col-sm-12',
-      trackController: this.$root.$controllers.track
-    }
-  },
-  computed: {
-    itemFormatted() {
-      const itm = this.item
-      const snippet = itm.snippet
-      const isCustom = itm.isCustomTrack
-      return (
-        (itm && {
-          ...itm,
-          name: isCustom ? snippet.title : itm.nameFormatted,
-          uploader: snippet.channelTitle,
-          issue:
-            !isCustom && itm.isDoubtlyConversion
-              ? (itm.wordScore === 0 || !itm.nameTokensMap[0]
-                  ? 'Name'
-                  : 'Duration') + " Doesn't match"
-              : null,
-          backgroundImage:
-            snippet && snippet.thumbnails && snippet.thumbnails.high.url,
-          duration: isCustom ? 'CUSTOM' : Math.round(itm.durationDiff) + "''"
-        }) ||
-        {}
-      )
-    }
-  },
-  methods: {
-    // getCallback () {
-    //   const status = this.item.status && this.item.status.slug
-    //   switch (status) {
-    //     case 'review-conversion':
-    //       return this.openReviewModal
-    //     default:
-    //       return null
-    //   }
-    // },
-    handleClick() {
-      this.$emit('setSelection')
-    }
-  }
+import Card from '../Generic/Card.vue'
+import { type YoutubeResult, youtubeImage } from '../model'
+
+defineOptions({ name: 'TrackResultCard' })
+
+const props = defineProps<{
+  item: YoutubeResult
+  durationColor?: string
+  isSelected?: boolean
+}>()
+const emit = defineEmits<{ setSelection: [] }>()
+const HOVER_SCALE_OFF = false
+
+const cardOptions = {
+  height: '2.5em',
+  xRotationFactor: 0.01,
+  hovScaleFactor: HOVER_SCALE_OFF,
+  paddingY: '.5em',
+  paddingX: 'var(--card-padding-x)'
 }
+const rowClasses = computed(() => {
+  if (props.isSelected === true) return 'col-sm-12 border-green'
+  return 'col-sm-12 border-transparent'
+})
+const itemFormatted = computed(() => {
+  const item = props.item
+  let issue: string | null = null
+  if (!item.isCustomTrack && item.isDoubtlyConversion) {
+    issue = 'Does not match'
+  }
+  let name = item.nameFormatted
+  if (item.isCustomTrack === true) name = item.snippet.title
+  let duration = `${Math.round(item.durationDiff)}''`
+  if (item.isCustomTrack === true) duration = 'CUSTOM'
+  return {
+    ...item,
+    name,
+    uploader: item.snippet.channelTitle,
+    issue,
+    backgroundImage: youtubeImage(item),
+    duration
+  }
+})
 </script>
 
 <style lang="scss">
@@ -109,9 +86,7 @@ span.matching-token {
 }
 </style>
 <style lang="scss" scoped>
-.duration-diff {
-  > span {
-    font-size: 3em;
-  }
+.duration-diff > span {
+  font-size: 3em;
 }
 </style>
