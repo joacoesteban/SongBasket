@@ -8,7 +8,12 @@ import { YouTubeResultId } from '../../../@types/YouTube'
 import { Tags } from '../../../@types/globals'
 
 type ExtractionProgress = {
-  percent?: number
+  frames: number
+  currentFps: number
+  currentKbps: number
+  targetSize: number
+  timemark: string
+  percent?: number | undefined
 }
 
 export function extractMp3(
@@ -41,15 +46,17 @@ export async function applyTags(
 ) {
   let imageBuffer: Buffer | null = null
   try {
-    imageBuffer = (await getPhoto(data.album.images[0].url)) || null
-  } catch (error) {
+    const image = data.album.images[0]
+    if (!image) throw new Error('Track has no album artwork')
+    imageBuffer = await getPhoto(image.url)
+  } catch {
     console.error('Error when getting track photo, applying tracks anyway')
   }
 
   const tags: Tags = {
     title: data.name,
     // artist: data.artists.map(a => a.name).join(';'), // TODO Try multiple artists
-    artist: data.artists[0].name,
+    artist: data.artists[0]?.name ?? data.name,
     album: data.album.name,
     userDefinedText: [
       {

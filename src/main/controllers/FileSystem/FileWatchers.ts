@@ -3,7 +3,6 @@ import { FSWatcher } from 'chokidar'
 import * as PATH from 'path'
 
 import {
-  SongbasketCustomMp3Tag,
   SongbasketCustomMp3TagNormalized,
   SongbasketCustomMp3TagsNormalized
 } from '../../../@types/SongBasket'
@@ -11,6 +10,7 @@ import { SpotifyTrackId } from '../../../@types/Spotify'
 import { YouTubeResultId } from '../../../@types/YouTube'
 import * as utils from '../../../MAIN_PROCESS_UTILS'
 import REGEX from '../../Global/REGEX'
+import { getHomeFolder } from '../../Global/state'
 import customGetters from '../../Store/Helpers/customGetters'
 import UserMethods from './UserMethods'
 
@@ -35,11 +35,13 @@ export enum SBWatcherEvent {
   REMOVED = 'removed'
 }
 
-const homeFolderPath = () => global.HOME_FOLDER
+const homeFolderPath = () => getHomeFolder()
 
-let onReadyFns: (() => unknown)[] = []
-let onTrackAddedFns: ((track: TrackFileEntry) => unknown)[] = []
-let onTrackRemovedFns: ((track: TrackFileEntry) => unknown)[] = []
+type WatcherCallback = (track?: TrackFileEntry) => unknown
+
+let onReadyFns: WatcherCallback[] = []
+let onTrackAddedFns: WatcherCallback[] = []
+let onTrackRemovedFns: WatcherCallback[] = []
 
 const resetFns = () => {
   onReadyFns = []
@@ -49,9 +51,7 @@ const resetFns = () => {
 resetFns()
 
 const FileWatchers: {
-  tracks: {
-    [key: string]: NormalizedTagMap
-  }
+  tracks: Record<string, NormalizedTagMap>
   watchers: FSWatcher[]
   createPlaylistWatchers: () => Promise<void>
   clearAll: () => Promise<void>
@@ -60,8 +60,8 @@ const FileWatchers: {
   retrieveTracks: () => TrackList
   addTrack: (path: string, params: NormalizedTagMap) => void
   removeTrack: (path: string) => void
-  handleWatcherEvent: (event: FSWatcherEvent, args?: any) => void
-  on: (event: SBWatcherEvent, fn: (...args: any) => any) => void
+  handleWatcherEvent: (event: FSWatcherEvent, args?: unknown) => Promise<void>
+  on: (event: SBWatcherEvent, fn: WatcherCallback) => void
   trigger: (event: SBWatcherEvent, payload: TrackFileEntry) => void
 } = {
   tracks: {},
@@ -114,24 +114,16 @@ const FileWatchers: {
     })
   },
   async clearAll() {
-    try {
-      for (const watcher of this.watchers) {
-        await watcher.close()
-      }
-      this.watchers = []
-      this.tracks = {}
-      resetFns()
-    } catch (error) {
-      throw error
+    for (const watcher of this.watchers) {
+      await watcher.close()
     }
+    this.watchers = []
+    this.tracks = {}
+    resetFns()
   },
   async rebuildWatchers() {
-    try {
-      await this.clearAll()
-      await this.createPlaylistWatchers()
-    } catch (error) {
-      throw error
-    }
+    await this.clearAll()
+    await this.createPlaylistWatchers()
   },
   async retrieveTags(path) {
     const tags = await UserMethods.retrieveMP3FileTags(path)
@@ -141,12 +133,9 @@ const FileWatchers: {
     }
 
     tags.forEach((tag) => {
-      const normalizedTagName = ((tagName) => {
-        return Object.keys(SongbasketCustomMp3TagNormalized).find(
-          (key) => tagName === key
-        ) as SongbasketCustomMp3TagNormalized
-      })(tag.name.replace('songbasket_', ''))
-
+      const normalizedTagName = normalizeTagName(
+        tag.name.replace('songbasket_', '')
+      )
       if (normalizedTagName) normalized[normalizedTagName] = tag.value
     })
 
@@ -156,13 +145,15 @@ const FileWatchers: {
     const tracksFormatted: TrackList = {}
 
     for (const key in this.tracks) {
-      if (!this.tracks[key]) continue // TODO Remove this (tracks should be deleted and not be null)
-      const { spotify_id, youtube_id } = this.tracks[key]
+      const track = this.tracks[key]
+      if (!track) continue
+      const { spotify_id, youtube_id } = track
 
       if (spotify_id && youtube_id) {
         if (!tracksFormatted[spotify_id]) tracksFormatted[spotify_id] = {}
-        if (!tracksFormatted[spotify_id][youtube_id])
+        if (!tracksFormatted[spotify_id][youtube_id]) {
           tracksFormatted[spotify_id][youtube_id] = { playlists: [] }
+        }
 
         tracksFormatted[spotify_id][youtube_id].playlists.push(
           getNameFromPath(key)
@@ -202,39 +193,34 @@ const FileWatchers: {
   },
 
   async handleWatcherEvent(event, args) {
-    if (event === FSWatcherEvent.RAW) {
-    } else if (event === FSWatcherEvent.READY) {
-      // READY--
-      // this.trigger('ready', this.tracks)
-    } else {
-      const path = args
-      if (!path || !isValidAudioPath(path)) return
-      switch (event) {
-        case FSWatcherEvent.ADD:
-          const tags = await this.retrieveTags(path)
-          if (Object.keys(tags).length) this.addTrack(path, tags)
-          break
-        case FSWatcherEvent.UNLINK:
-          this.removeTrack(path)
-          break
-        case FSWatcherEvent.CHANGE:
-        case FSWatcherEvent.UNLINKDIR:
-          break
-        case FSWatcherEvent.ERROR:
-          console.error(args)
-          break
+    if (event === FSWatcherEvent.RAW || event === FSWatcherEvent.READY) return
+    if (event === FSWatcherEvent.ERROR) {
+      console.error(args)
+      return
+    }
+    if (typeof args !== 'string' || !isValidAudioPath(args)) return
+
+    switch (event) {
+      case FSWatcherEvent.ADD: {
+        const tags = await this.retrieveTags(args)
+        if (Object.keys(tags).length) this.addTrack(args, tags)
+        break
       }
+      case FSWatcherEvent.UNLINK:
+        this.removeTrack(args)
+        break
+      case FSWatcherEvent.CHANGE:
+      case FSWatcherEvent.UNLINKDIR:
+        break
     }
   },
 
-  // ------------EVENTS------------
   on(event, fn) {
     if (typeof fn !== 'function') throw new Error('Callback is not a function')
     const stack = giveMeStack(event)
     if (stack) stack.push(fn)
   },
   trigger(event, params) {
-    // if (READY > 0) return
     const stack = giveMeStack(event)
     if (stack) stack.forEach((fn) => fn(params))
   }
@@ -247,13 +233,20 @@ const getNameFromPath = (path: string) => {
   return path.substring(path.lastIndexOf('/') + 1)
 }
 
-const giveMeStack = (
-  event: SBWatcherEvent
-):
-  | typeof onTrackAddedFns
-  | typeof onTrackAddedFns
-  | typeof onReadyFns
-  | null => {
+const normalizeTagName = (
+  name: string
+): SongbasketCustomMp3TagsNormalized | null => {
+  switch (name) {
+    case SongbasketCustomMp3TagNormalized.spotify_id:
+      return SongbasketCustomMp3TagNormalized.spotify_id
+    case SongbasketCustomMp3TagNormalized.youtube_id:
+      return SongbasketCustomMp3TagNormalized.youtube_id
+    default:
+      return null
+  }
+}
+
+const giveMeStack = (event: SBWatcherEvent): WatcherCallback[] | null => {
   switch (event) {
     case SBWatcherEvent.READY:
       return onReadyFns
@@ -265,5 +258,4 @@ const giveMeStack = (
       return null
   }
 }
-
 export default FileWatchers

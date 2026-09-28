@@ -2,15 +2,23 @@ import { execFile } from 'child_process'
 import ffmpeg from 'fluent-ffmpeg'
 import { promisify } from 'util'
 
+import {
+  FFMPEG_BINARIES_PATH,
+  FFMPEG_VERSION_CONTROL_PATH,
+  YTDL_BINARIES_PATH,
+  YTDL_VERSION_CONTROL_PATH
+} from '../Global/constants'
 import { ensureReleaseBinaries } from './github-release-binaries'
 
 const YT_DLP_REPO = 'yt-dlp/yt-dlp'
 const FFMPEG_REPO = 'eugeneware/ffmpeg-static'
 
 // ffmpeg-static names its release assets after node's own platform/arch pairs.
-const target = `${process.platform}-${process.arch}`
-const executableSuffix =
-  ({ win32: '.exe' } as Record<string, string>)[process.platform] ?? ''
+const TARGET = `${process.platform}-${process.arch}`
+const EXECUTABLE_SUFFIX = (() => {
+  if (process.platform === 'win32') return '.exe'
+  return ''
+})()
 
 const YT_DLP_ASSETS: Record<string, string> = {
   'darwin-arm64': 'yt-dlp_macos',
@@ -33,37 +41,43 @@ export const ytDlp = {
 }
 
 export async function setupYtDlp() {
-  const assetName = YT_DLP_ASSETS[target]
+  const assetName = YT_DLP_ASSETS[TARGET]
   if (!assetName)
-    throw new Error(`yt-dlp does not publish a binary for ${target}`)
+    throw new Error(`yt-dlp does not publish a binary for ${TARGET}`)
 
-  const binaryName = `yt-dlp${executableSuffix}`
+  const binaryName = `yt-dlp${EXECUTABLE_SUFFIX}`
   const paths = await ensureReleaseBinaries({
     repo: YT_DLP_REPO,
-    directory: global.CONSTANTS.YTDL_BINARIES_PATH,
-    versionFilePath: global.CONSTANTS.YTDL_VERSION_CONTROL_PATH,
+    directory: YTDL_BINARIES_PATH,
+    versionFilePath: YTDL_VERSION_CONTROL_PATH,
     binaries: [{ binaryName, assetName, gzipped: false }]
   })
 
-  ytDlp.path = paths[binaryName]
+  const ytDlpPath = paths[binaryName]
+  if (!ytDlpPath) throw new Error('yt-dlp binary path is unavailable')
+  ytDlp.path = ytDlpPath
   console.log('yt-dlp binary is', ytDlp.path)
 }
 
 export async function setupFfmpeg() {
   const binaries = ['ffmpeg', 'ffprobe'].map((name) => ({
-    binaryName: `${name}${executableSuffix}`,
-    assetName: `${name}-${target}.gz`,
+    binaryName: `${name}${EXECUTABLE_SUFFIX}`,
+    assetName: `${name}-${TARGET}.gz`,
     gzipped: true
   }))
 
   const paths = await ensureReleaseBinaries({
     repo: FFMPEG_REPO,
-    directory: global.CONSTANTS.FFMPEG_BINARIES_PATH,
-    versionFilePath: global.CONSTANTS.FFMPEG_VERSION_CONTROL_PATH,
+    directory: FFMPEG_BINARIES_PATH,
+    versionFilePath: FFMPEG_VERSION_CONTROL_PATH,
     binaries
   })
 
-  ffmpeg.setFfmpegPath(paths[`ffmpeg${executableSuffix}`])
-  ffmpeg.setFfprobePath(paths[`ffprobe${executableSuffix}`])
+  const ffmpegPath = paths[`ffmpeg${EXECUTABLE_SUFFIX}`]
+  const ffprobePath = paths[`ffprobe${EXECUTABLE_SUFFIX}`]
+  if (!ffmpegPath || !ffprobePath)
+    throw new Error('ffmpeg binary paths are unavailable')
+  ffmpeg.setFfmpegPath(ffmpegPath)
+  ffmpeg.setFfprobePath(ffprobePath)
   console.log('ffmpeg binaries are', paths)
 }

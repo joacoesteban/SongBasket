@@ -1,9 +1,10 @@
-import { SongBasketSaveFile } from '../../../@types/SongBasket'
+import { SongBasketSaveFile, SongBasketTrack } from '../../../@types/SongBasket'
 import {
   SpotifyPlaylist,
   SpotifyPlaylistId,
   SpotifySnapshotId
 } from '../../../@types/Spotify'
+import { cloneObject } from '../../../MAIN_PROCESS_UTILS'
 import VUEX_MAIN from '../mainProcessStore'
 
 const store = {
@@ -11,19 +12,15 @@ const store = {
     return VUEX_MAIN.STATE()
   },
   get safe(): SongBasketSaveFile {
-    return VUEX_MAIN.STATE_SAFE() as SongBasketSaveFile
+    return cloneObject(VUEX_MAIN.STATE())
   }
 }
 class CustomGetters {
-  constructor() {}
-
   // Gives spotify object
   get playlistsOffset(): number {
-    return (
-      store.state.playlists?.filter(
-        (pl) => !store.state.syncedPlaylists?.some((id) => id === pl.id)
-      ).length || 0
-    ) // Review this
+    return store.state.playlists.filter(
+      (pl) => !store.state.syncedPlaylists.some((id) => id === pl.id)
+    ).length
   }
 
   playlistById(id: SpotifyPlaylistId): SpotifyPlaylist | null {
@@ -31,31 +28,22 @@ class CustomGetters {
   }
 
   SyncedPlaylistsSp(): SpotifyPlaylist[] {
-    const state = store.state
-    let all: SpotifyPlaylist[] = []
-    const pls = [...(state.playlists || [])]
-    for (let i = 0; i < (state.syncedPlaylists?.length || 0); i++) {
-      const syncPl = (state.syncedPlaylists || [])[i]
-      for (let o = 0; o < pls.length; o++) {
-        const pl = pls[o]
-        if (pl.id === syncPl) {
-          all = [...all, pl]
-          pls.splice(o, 1)
-          break
-        }
-      }
+    const all: SpotifyPlaylist[] = []
+    for (const syncPl of store.state.syncedPlaylists) {
+      const playlist = store.state.playlists.find((pl) => pl.id === syncPl)
+      if (playlist) all.push(playlist)
     }
     return all
   }
 
-  SyncedPlaylistsSp_SAFE() {
+  SyncedPlaylistsSp_SAFE(): SpotifyPlaylist[] {
     return this.SyncedPlaylistsSp().filter((pl) => !pl.isPaused)
   }
 
-  get pausedPlaylists() {
+  get pausedPlaylists(): SpotifyPlaylistId[] {
     return store.state.syncedPlaylists.filter((id) => {
-      const pl = this.playlistById(id)
-      return pl && pl.isPaused
+      const playlist = this.playlistById(id)
+      return playlist !== null && playlist.isPaused === true
     })
   }
 
@@ -63,61 +51,60 @@ class CustomGetters {
     id: SpotifyPlaylistId
     snapshot_id: SpotifySnapshotId | undefined
   }[] {
-    const snapshotIdsList = store.state.syncedPlaylists
-      .map((plid) => {
-        const { id, snapshot_id, isPaused } =
-          store.state.playlists.find((pl) => pl.id === plid) || {}
+    const snapshotIdsList: {
+      id: SpotifyPlaylistId
+      snapshot_id: SpotifySnapshotId | undefined
+    }[] = []
 
-        if (!id || isPaused) return null
-
-        return {
-          id,
-          snapshot_id
-        }
+    for (const playlistId of store.state.syncedPlaylists) {
+      const playlist = store.state.playlists.find((pl) => pl.id === playlistId)
+      if (!playlist || playlist.isPaused) continue
+      snapshotIdsList.push({
+        id: playlist.id,
+        snapshot_id: playlist.snapshot_id
       })
-      .filter(function <T>(x: T | null): x is T {
-        return x !== null
-      })
+    }
 
     return snapshotIdsList
   }
 
   giveMePlFolderName(id: SpotifyPlaylistId): string | null {
-    const state = store.state
-    const pl = state.playlists.find((pl) => pl.id === id)
-    return (pl && (pl.folderName || pl.name)) || null // TODO should return only folderName or null
+    const playlist = store.state.playlists.find((pl) => pl.id === id)
+    if (!playlist) return null
+    return playlist.folderName || playlist.name
   }
 
-  currentUserId() {
-    return store.state.user && store.state.user.id
+  currentUserId(): string {
+    return store.state.user.id
   }
 
-  uncachedPlaylists() {
+  uncachedPlaylists(): SpotifyPlaylistId[] {
     return store.state.queuedPlaylists.filter(
-      (q) => !store.state.cachedPlaylists.some((c) => c.id === q)
+      (id) => !store.state.cachedPlaylists.some((c) => c.id === id)
     )
   }
 
-  convertedTracks() {
+  convertedTracks(): SongBasketTrack[] {
     return store.safe.convertedTracks
   }
 
-  convertedTracks_SAFE() {
-    return this.convertedTracks().filter(
-      (track) =>
-        !track.flags.conversionError &&
-        (track.conversion?.yt.length || track.custom) &&
-        track.playlists.length
-    ) // TODO Prevent this filter from ever happening
+  convertedTracks_SAFE(): SongBasketTrack[] {
+    return this.convertedTracks().filter((track) => {
+      if (track.flags.conversionError) return false
+      if (!track.conversion?.yt.length && !track.custom) return false
+      return track.playlists.length > 0
+    })
   }
 
-  anythingToConvert() {}
+  anythingToConvert(): void {}
 
   queuedPlaylistsObj(): SpotifyPlaylist[] {
-    const state = store.state
-    return state.queuedPlaylists
-      .map((id) => state.playlists.find((pl) => pl.id === id)!)
-      .filter(Boolean)
+    const playlists: SpotifyPlaylist[] = []
+    for (const id of store.state.queuedPlaylists) {
+      const playlist = store.state.playlists.find((pl) => pl.id === id)
+      if (playlist) playlists.push(playlist)
+    }
+    return playlists
   }
 }
 

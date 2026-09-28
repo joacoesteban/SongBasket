@@ -25,6 +25,12 @@ type InstalledRelease = {
   tag: string
 }
 
+function isInstalledRelease(value: unknown): value is InstalledRelease {
+  if (value === null || typeof value !== 'object' || Array.isArray(value))
+    return false
+  if (!('releaseId' in value) || !('tag' in value)) return false
+  return typeof value.releaseId === 'number' && typeof value.tag === 'string'
+}
 const isInstalled = (path: string) =>
   fs.access(path).then(
     () => true,
@@ -71,7 +77,11 @@ export async function ensureReleaseBinaries({
   const [installed, latest, present] = await Promise.all([
     fs
       .readFile(versionFilePath, 'utf8')
-      .then((contents) => JSON.parse(contents) as InstalledRelease)
+      .then((contents) => JSON.parse(contents))
+      .then((value) => {
+        if (isInstalledRelease(value)) return value
+        return null
+      })
       .catch(() => null),
     axios
       .get<GithubRelease>(
@@ -102,9 +112,11 @@ export async function ensureReleaseBinaries({
 
   try {
     await Promise.all(
-      binaries.map((spec) =>
-        installBinary(latest, spec, paths[spec.binaryName])
-      )
+      binaries.map((spec) => {
+        const destination = paths[spec.binaryName]
+        if (!destination) throw new Error('Binary destination is unavailable')
+        return installBinary(latest, spec, destination)
+      })
     )
     await fs.writeFile(
       versionFilePath,

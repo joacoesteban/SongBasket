@@ -85,16 +85,21 @@ export enum SongbasketCustomMp3TagNormalized {
   youtube_id = 'youtube_id'
 }
 
+export type LoadingPayload = {
+  value: boolean
+  target: string | undefined
+  ptg?: number
+}
+
 export type LoadingController = {
   target: string[]
   count: number
   set: (target: string, value: number) => void
-  reflect: (payload: any) => void
-  get instance(): { value: boolean; target: string }
+  reflect: (payload: LoadingPayload) => void
+  get instance(): { value: boolean; target: string | undefined }
   get isLoading(): boolean
-  get which(): string
+  get which(): string | undefined
   get canRequest(): boolean
-  // -----------------------
   get on(): (target: string) => void
   get off(): (target: string) => void
   ptg(target: string, ptg: number): void

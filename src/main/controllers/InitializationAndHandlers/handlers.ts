@@ -7,20 +7,33 @@ import {
 } from '../../../@types/SongBasket'
 import { SpotifyPlaylistId, SpotifyTrackId } from '../../../@types/Spotify'
 import { YouTubeResultId } from '../../../@types/YouTube'
+import { CHANGELOG_URL } from '../../Global/constants'
+import {
+  getConnectedToApi,
+  getConnectedToInternet,
+  getFfmpegBinariesDownloaded,
+  getHomeFolder,
+  getMainWindow,
+  getAppStatus as getRuntimeAppStatus
+} from '../../Global/state'
 import VUEX_MAIN from '../../Store/mainProcessStore'
 // import IpcController from './ipc.controller'
 import youtubeDl from '../DownloadPhase/youtube-dl'
 import FileWatchers from '../FileSystem/FileWatchers'
 import FSController from '../FileSystem/index'
 import core from './core.controller'
+import { ipcSend } from './ipc.controller'
 // import customGetters from '../Store/Helpers/customGetters'
 import * as sbFetch from './sbFetch'
 
-const openBrowser = (global.openUrl = shell.openExternal)
+export const openUrl = (url: string): Promise<void> => shell.openExternal(url)
 
-// const ipcOnce = IpcController.once
+type ErrorPayload = {
+  type?: string
+  error?: unknown
+}
 
-console.log('NODE ENV', process.env.NODE_ENV)
+console.log('NODE ENV', process.env['NODE_ENV'])
 
 const loadingController: LoadingController = {
   target: [],
@@ -37,7 +50,7 @@ const loadingController: LoadingController = {
   },
   reflect(payload = loadingController.instance) {
     console.log('current', this.instance)
-    global.ipcSend('LOADING_EVENT', payload)
+    ipcSend('LOADING_EVENT', payload)
   },
   // -----------------------
   get instance() {
@@ -47,10 +60,10 @@ const loadingController: LoadingController = {
     return this.count > 0
   },
   get which() {
-    return this.target.last
+    return this.target.at(-1)
   },
   get canRequest() {
-    return !this.isLoading && global.CONNECTED_TO_INTERNET
+    return !this.isLoading && getConnectedToInternet()
   },
   // -----------------------
   get on() {
@@ -69,24 +82,27 @@ const loadingController: LoadingController = {
   }
 }
 
-export function normalizeError(error: any) {
-  if (error && error.response) {
-    const { status, data } = error.response
-    return { status, data }
+export function normalizeError(error: unknown): unknown {
+  if (typeof error !== 'object' || error === null || !('response' in error)) {
+    return error
   }
-  return error
+  const response = error.response
+  if (typeof response !== 'object' || response === null) return error
+  if (!('status' in response) || !('data' in response)) return error
+  return { status: response.status, data: response.data }
 }
 
-export async function REFLECT_RENDERER() {
-  await global.ipcSend('VUEX:STORE', { state: VUEX_MAIN.STATE_SAFE() })
+export async function reflectRenderer(): Promise<void> {
+  await ipcSend('VUEX:STORE', { state: VUEX_MAIN.STATE_SAFE() })
 }
-export async function REFLECT_RENDERER_KEY(key: keyof SongBasketSaveFile) {
+export async function reflectRendererKey(
+  key: keyof SongBasketSaveFile
+): Promise<void> {
   const value = VUEX_MAIN.STATE_SAFE([key])[key]
-  await global.ipcSend('VUEX:SET', { key, value })
+  await ipcSend('VUEX:SET', { key, value })
 }
-export async function SEND_ERROR(err: any) {
-  const { type, error } = err || {}
-  await global.ipcSend('ERROR:CATCH', { type, error: normalizeError(error) })
+export async function sendError({ type, error }: ErrorPayload): Promise<void> {
+  await ipcSend('ERROR:CATCH', { type, error: normalizeError(error) })
 }
 
 // ------------------------- FLOW -------------------------
@@ -96,21 +112,20 @@ export async function askHomeFolder() {
   let error = null
 
   try {
-    if (!global.CONSTANTS.MAIN_WINDOW)
-      throw new Error('MAIN_WINDOW is not defined')
+    const mainWindow = getMainWindow()
+    if (!mainWindow) throw new Error('MAIN_WINDOW is not defined')
 
-    const { canceled, filePaths } = await dialog.showOpenDialog(
-      global.CONSTANTS.MAIN_WINDOW,
-      {
-        properties: ['openDirectory']
-      }
-    )
+    const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory']
+    })
     if (canceled) throw new Error('CANCELLED')
-    await addHomeFolder({ path: filePaths[0] })
+    const [path] = filePaths
+    if (!path) throw new Error('HOME FOLDER NOT SELECTED')
+    await addHomeFolder({ path })
     if (await core.stateExists()) {
       isLogged = await core.setAppStatus()
       if (isLogged) {
-        global.ipcSend('STATUS:SET')
+        ipcSend('STATUS:SET')
       }
     }
   } catch (err) {
@@ -132,52 +147,57 @@ export async function setHomeFolder(params: { path: string }): Promise<void> {
 }
 
 export async function openHomeFolder() {
-  await shell.openPath(global.HOME_FOLDER)
+  await shell.openPath(getHomeFolder())
 }
 
 export async function login() {
   await core.initializeLogin()
-  await REFLECT_RENDERER()
+  await reflectRenderer()
 }
 
 export async function logout() {
   let error
   try {
-    if (!global.CONSTANTS.APP_STATUS.IS_LOGGED) throw new Error('NOT LOGGED IN')
+    if (!getRuntimeAppStatus().IS_LOGGED) throw new Error('NOT LOGGED IN')
     await core.logout()
   } catch (err) {
     error = err
-    SEND_ERROR(err)
+    await sendError({ error: err })
   }
   const status = getAppStatus()
   if (error instanceof Error) status.error = error
   return status
 }
 
-const getAppStatus = () => {
-  const status = global.CONSTANTS.APP_STATUS
+const getAppStatus = (): AppStatus => {
+  const status = getRuntimeAppStatus()
+  let state: SongBasketSaveFile | null = null
+  let downloadedTracks: AppStatus['downloadedTracks'] = null
+  if (status.IS_LOGGED) {
+    state = VUEX_MAIN.STATE()
+    downloadedTracks = FileWatchers.retrieveTracks()
+  }
   const all: AppStatus = {
     APP_STATUS: status,
-    state: status.IS_LOGGED
-      ? (VUEX_MAIN.STATE_SAFE() as SongBasketSaveFile)
-      : null,
-    downloadedTracks: status.IS_LOGGED ? FileWatchers.retrieveTracks() : null,
-    FFMPEG_BINS_DOWNLOADED: global.CONSTANTS.FFMPEG_BINS_DOWNLOADED,
-    CONNECTED_TO_INTERNET: global.CONNECTED_TO_INTERNET,
-    CONNECTED_TO_API: global.CONNECTED_TO_API,
+    state,
+    downloadedTracks,
+    FFMPEG_BINS_DOWNLOADED: getFfmpegBinariesDownloaded(),
+    CONNECTED_TO_INTERNET: getConnectedToInternet(),
+    CONNECTED_TO_API: getConnectedToApi(),
     error: null
   }
   if (
     loadingController.instance.value &&
     loadingController.instance.target === 'DOWNLOAD'
-  )
+  ) {
     setTimeout(youtubeDl.onDowloadStart)
+  }
   return all
 }
 
 export async function onFfmpegBinaries() {
-  global.ipcSend('FFMPEG_BINS_DOWNLOADED', {
-    value: global.CONSTANTS.FFMPEG_BINS_DOWNLOADED
+  await ipcSend('FFMPEG_BINS_DOWNLOADED', {
+    value: getFfmpegBinariesDownloaded()
   })
 }
 
@@ -193,8 +213,8 @@ export async function refresh() {
     loadingController.on('PLAYLISTS:REFRESH')
     await core.updateAll({
       playlistCompletionCallback: (err, pl, playlists) => {
-        if (err) {
-        }
+        void err
+        void pl
         loadingController.ptg(
           'PLAYLISTS:REFRESH',
           ++completed / playlists.length
@@ -202,11 +222,11 @@ export async function refresh() {
       }
     })
   } catch (error) {
-    SEND_ERROR({ type: 'PLAYLISTS:REFRESH', error })
+    await sendError({ type: 'PLAYLISTS:REFRESH', error })
   } finally {
     console.log('before loadoff')
     loadingController.off('PLAYLISTS:REFRESH')
-    await REFLECT_RENDERER()
+    await reflectRenderer()
   }
 }
 
@@ -216,11 +236,11 @@ export async function loadMorePlaylists() {
     loadingController.on('PLAYLISTS:LOAD_MORE')
     await core.loadMorePlaylists()
   } catch (error) {
-    SEND_ERROR({ type: 'PLAYLISTS:LOAD_MORE', error })
+    await sendError({ type: 'PLAYLISTS:LOAD_MORE', error })
     throw error
   } finally {
     loadingController.off('PLAYLISTS:LOAD_MORE')
-    await REFLECT_RENDERER()
+    await reflectRenderer()
   }
 }
 
@@ -235,11 +255,11 @@ export async function youtubize() {
       }
     })
   } catch (error) {
-    SEND_ERROR({ type: 'YOUTUBIZE', error })
+    await sendError({ type: 'YOUTUBIZE', error })
     throw error
   } finally {
     loadingController.off('YOUTUBIZE')
-    await REFLECT_RENDERER()
+    await reflectRenderer()
   }
 }
 
@@ -257,7 +277,7 @@ export async function download(plFilter?: SpotifyPlaylistId[]) {
 
 export async function queuePlaylist(id: SpotifyPlaylistId) {
   VUEX_MAIN.COMMIT.QUEUE_PLAYLIST(id)
-  await REFLECT_RENDERER_KEY('queuedPlaylists')
+  await reflectRendererKey('queuedPlaylists')
 }
 
 export async function unsyncPlaylist(id: SpotifyPlaylistId) {
@@ -267,11 +287,11 @@ export async function unsyncPlaylist(id: SpotifyPlaylistId) {
     await VUEX_MAIN.COMMIT.UNSYNC_PLAYLIST(id)
   } catch (error) {
     console.error('Error unsyncing @ handlers.unsyncPlaylist', error)
-    SEND_ERROR({ type: 'PLAYLIST:UNSYNC', error })
+    await sendError({ type: 'PLAYLIST:UNSYNC', error })
     throw error
   } finally {
     loadingController.off('PLAYLIST:UNSYNC')
-    await REFLECT_RENDERER()
+    await reflectRenderer()
   }
 }
 
@@ -281,10 +301,10 @@ export async function pausePlaylist(id: SpotifyPlaylistId) {
     VUEX_MAIN.COMMIT.PAUSE_PLAYLIST(id)
   } catch (error) {
     console.error('Error pausing playlist @ handlers.pausePlaylist', error)
-    SEND_ERROR({ type: 'PLAYLIST:PAUSE', error })
+    await sendError({ type: 'PLAYLIST:PAUSE', error })
     throw error
   } finally {
-    await REFLECT_RENDERER_KEY('playlists')
+    await reflectRendererKey('playlists')
   }
 }
 
@@ -294,10 +314,10 @@ export async function pauseTrack(id: SpotifyTrackId) {
     VUEX_MAIN.COMMIT.PAUSE_TRACK(id)
   } catch (error) {
     console.error('Error pausing track @ handlers.pauseTrack', error)
-    SEND_ERROR({ type: 'TRACKS:PAUSE', error })
+    await sendError({ type: 'TRACKS:PAUSE', error })
     throw error
   } finally {
-    await REFLECT_RENDERER_KEY('convertedTracks')
+    await reflectRendererKey('convertedTracks')
   }
 }
 
@@ -313,7 +333,7 @@ export async function changeYtTrackSelection(params: {
     console.error('Error changing track selection', err)
     throw err
   } finally {
-    await REFLECT_RENDERER_KEY('convertedTracks')
+    await reflectRendererKey('convertedTracks')
   }
 }
 
@@ -327,7 +347,7 @@ export async function getYtTrackDetails(params: {
     const details = await sbFetch.ytDetails(url)
     console.log('YT Details retrieved', details)
     VUEX_MAIN.COMMIT.CUSTOM_TRACK_URL({ details, trackId })
-    await REFLECT_RENDERER_KEY('convertedTracks')
+    await reflectRendererKey('convertedTracks')
   } catch (err) {
     console.error('EROR AT YTTRACKDETAILS:: ipc"ytTrackDetails"', err)
     throw err
@@ -336,14 +356,14 @@ export async function getYtTrackDetails(params: {
 
 export async function openYtVideo(id: YouTubeResultId) {
   if (!id) return
-  openBrowser('https://www.youtube.com/watch?v=' + id)
+  await openUrl('https://www.youtube.com/watch?v=' + id)
 }
 
 export async function searchYtVideo(query: string) {
   if (!query) return
-  openBrowser('https://www.youtube.com/results?search_query=' + query)
+  await openUrl('https://www.youtube.com/results?search_query=' + query)
 }
 
 export async function showChangelog() {
-  global.openUrl(global.CONSTANTS.CHANGELOG_URL)
+  await openUrl(CHANGELOG_URL)
 }

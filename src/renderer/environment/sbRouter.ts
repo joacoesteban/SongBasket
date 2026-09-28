@@ -1,3 +1,5 @@
+import { isSameObject } from '../../UTILS'
+
 export type locationEntry = { name: string; params: {} }
 export type transitionCallback = (
   to: locationEntry,
@@ -36,7 +38,7 @@ class SbRouter {
   }
 
   isSamePath(path1: locationEntry, path2 = this.path) {
-    return path1.isSameObject(path2)
+    return isSameObject(path1, path2)
   }
 
   isLast() {

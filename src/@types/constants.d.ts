@@ -18,7 +18,6 @@ type WindowConfig = {
 }
 
 export type Constants = {
-  // STATES
   ENV_PROD: boolean
   IS_DEV: boolean
   APP_STATUS: {
@@ -38,9 +37,6 @@ export type Constants = {
   }
   FFMPEG_BINS_DOWNLOADED: boolean
   CLEAN_CREDS_ON_LOGOUT: boolean
-  // -------------
-
-  // PATHS
   BACKEND: string
   APP_SUPPORT_PATH: string
   APP_CWD: string
@@ -54,22 +50,16 @@ export type Constants = {
   FFMPEG_VERSION_CONTROL_PATH: string
   YTDL_BINARIES_PATH: string
   YTDL_VERSION_CONTROL_PATH: string
-  // -------------
-
-  // INSTANCES
   MAIN_WINDOW: BrowserWindow | null
   LOADING_WINDOW: BrowserWindow | null
   LOGIN_WINDOW: BrowserWindow | null
-  // -------------
   PLATFORM: Platform
   MAIN_WINDOW_CONFIG: WindowConfig
   LOADING_WINDOW_CONFIG: WindowConfig
   POPUP_WINDOW_CONFIG: WindowConfig
-  // MISC
   HEROKU_PING_INTERVAL: number
   APP_VERSION: string
   APP_VERSION_STRING: string
   CHANGELOG_URL: string
-  FEATURES: {}
-  // -------------
+  FEATURES: Record<string, unknown>
 }

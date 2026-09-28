@@ -28,7 +28,7 @@ const CoreController = {
       )
     if (trackFilter) {
       trackFilter.forEach((id) => {
-        rootTracks[rootTracks.indexOfSearch((t) => t.id === id)] = formatTrack(
+        rootTracks[rootTracks.findIndex((t) => t.id === id)] = formatTrack(
           vuexTracks.find((t) => t.id === id)
         )
       })
@@ -37,7 +37,7 @@ const CoreController = {
       vuexTracks
         .filter((t) => t.playlists.some((pl) => plFilter.includes(pl.id)))
         .forEach((track) => {
-          rootTracks[rootTracks.indexOfSearch((t) => t.id === track.id)] =
+          rootTracks[rootTracks.findIndex((t) => t.id === track.id)] =
             formatTrack(track)
         })
     }

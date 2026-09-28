@@ -2,18 +2,13 @@ import type * as electron from 'electron'
 
 import { BrowserWindow, getGlobal } from '@electron/remote'
 
-import '../../main/controllers/Prototype/Array.ts'
-import '../../main/controllers/Prototype/Object.ts'
 import { vueAppConfig, vueProtoConfig } from './vue.renderer.config'
 import WindowRendererConfig from './window.renderer.config'
 
 const GLOBAL = (window.CONSTANTS = getGlobal('CONSTANTS'))
 
 export const setEnvironment = () => {
-  // -----------------PROTOTYPES-----------------
-  // -----------------VUE-----------------
   vueProtoConfig()
-  // -----------------WINDOW-----------------
   WindowRendererConfig()
 
   let electronWindow: electron.BrowserWindow | null

@@ -8,52 +8,52 @@ type NameTokens = TrackConversionResponse['nameTokens']
 
 export default {
   calculateBestMatch(track: SongBasketTrack, force: boolean = false) {
-    // TODO Handle conversion errors
     if (
       (!force && track.flags.processed) ||
       track.flags.conversionError ||
       !track.conversion
     )
       return track
-    track = cloneObject(track)
 
-    track.conversion!.nameTokens = [
-      ...track.data.name
+    const processedTrack = cloneObject(track)
+    const conversion = processedTrack.conversion
+    if (!conversion) return processedTrack
+
+    conversion.nameTokens = [
+      ...processedTrack.data.name
         .split(separators)
         .map((str) => makeValidRegex(str))
         .filter((str) => str.str.length > 2 && !isInvalidWord(str.str)),
-      ...track.data.artists.map((a) => makeValidRegex(a.name))
-    ] // All words from trackname & artist split into array
+      ...processedTrack.data.artists.map((artist) =>
+        makeValidRegex(artist.name)
+      )
+    ]
 
-    let nameTokens = track.conversion!.nameTokens
-    nameTokens = nameTokens.filter((a, index1) => {
-      // Removes dupes
-      nameTokens.forEach((b, index2) => {
-        if (a.str === b.str && index1 !== index2) return false
-      })
-      return true
-    })
+    const nameTokens = conversion.nameTokens.filter(
+      (token, index, tokens) =>
+        tokens.findIndex((candidate) => candidate.str === token.str) === index
+    )
 
-    track.conversion!.yt.forEach((conv) =>
+    conversion.yt.forEach((conv) =>
       exec({
-        track,
+        track: processedTrack,
         conv,
         nameTokens
       })
     )
-    calcBestMatch(track)
-    track.flags.processed = true
-    return track
+    calcBestMatch(processedTrack)
+    processedTrack.flags.processed = true
+    return processedTrack
   }
 }
 const separators = /, | |\(|\)/
 
-const invalidWords = ['the']
+const INVALID_WORDS = ['the']
 
-const isInvalidWord = (str: string) => invalidWords.includes(str.toLowerCase())
+const isInvalidWord = (str: string) => INVALID_WORDS.includes(str.toLowerCase())
 
-const normalizeConversion = (conv: YouTubeResult) => {
-  if (!conv?.youtube_id) conv.youtube_id = conv.id
+const normalizeConversion = (conv: YouTubeResult): void => {
+  if (!conv.youtube_id) conv.youtube_id = conv.id
 }
 
 const exec: (params: {
@@ -61,29 +61,24 @@ const exec: (params: {
   conv: YouTubeResult
   nameTokens: NameTokens
 }) => void = ({ track, conv, nameTokens }) => {
-  if (!track.conversion) return // TODO make ts infer this and delete line
+  const conversion = track.conversion
+  if (!conversion) return
 
   normalizeConversion(conv)
   findTokens(conv, nameTokens)
-  conv.durationDiff = round(
-    conv.duration -
-      (track.duration || (track.duration = track.data.duration_ms / 1000))
-  )
-  conv.durationScore = round(1 / 1.1 ** (Math.abs(conv.durationDiff) / 10)) // 1 === same duration, difference makes it go down
-  conv.wordScore = round(
-    conv.matchedTokensCount / track.conversion.nameTokens.length
-  ) // 1 === all tokens match
-  // Conversion doesn't get enough score to be trusty if:
-  // // - No word matches
-  // // - 1st token not found (first word of trackname)
-  // // - both scores don't add up to 1
+  const duration = track.duration || track.data.duration_ms / 1000
+  track.duration = duration
+  conv.durationDiff = round(conv.duration - duration)
+  conv.durationScore = round(1 / 1.1 ** (Math.abs(conv.durationDiff) / 10))
+  conv.wordScore = round(conv.matchedTokensCount / conversion.nameTokens.length)
+  const firstTokenMatches = conv.nameTokensMap[0] === true
   conv.isDoubtlyConversion =
     conv.wordScore === 0 ||
-    !conv.nameTokensMap[0] ||
+    !firstTokenMatches ||
     conv.wordScore + conv.durationScore < 1
 }
 
-const findTokens = (conv: YouTubeResult, nameTokens: NameTokens) => {
+const findTokens = (conv: YouTubeResult, nameTokens: NameTokens): void => {
   conv.nameFormatted = conv.snippet.title = he.decode(conv.snippet.title)
   conv.nameTokensMap = new Array(nameTokens.length)
   conv.matchedTokensCount = 0
@@ -92,7 +87,7 @@ const findTokens = (conv: YouTubeResult, nameTokens: NameTokens) => {
     conv.nameTokensMap[index] = conv.snippet.title
       .toLowerCase()
       .includes(token.str.toLowerCase())
-    const matches = conv.nameTokensMap[index]
+    const matches = conv.nameTokensMap[index] === true
 
     if (matches) {
       conv.matchedTokensCount++
@@ -105,21 +100,23 @@ const findTokens = (conv: YouTubeResult, nameTokens: NameTokens) => {
 }
 
 const calcBestMatch = (track: SongBasketTrack): void => {
-  if (!track.conversion?.yt.length) return
+  const conversion = track.conversion
+  if (!conversion || !conversion.yt.length) return
 
-  track.conversion.bestMatch = (track.conversion.yt = track.conversion.yt.sort(
-    (a, b) => {
-      if (!a.wordScore && b.wordScore) return 1
-      if (!b.wordScore && a.wordScore) return -1
-      // TODO turn score into a constant
-      return a.durationScore + a.wordScore * 1.5 >
-        b.durationScore + b.wordScore * 1.5
-        ? -1
-        : 1 // Wordscore gets boosted because of priority of name match over duration
-    }
-  ))[0].youtube_id
-
-  track.conversion.yt[0].isBestMatch = true
+  const sorted = conversion.yt.sort((a, b) => {
+    if (!a.wordScore && b.wordScore) return 1
+    if (!b.wordScore && a.wordScore) return -1
+    if (
+      a.durationScore + a.wordScore * 1.5 >
+      b.durationScore + b.wordScore * 1.5
+    )
+      return -1
+    return 1
+  })
+  const bestMatch = sorted[0]
+  if (!bestMatch) return
+  conversion.bestMatch = bestMatch.youtube_id
+  bestMatch.isBestMatch = true
 }
 
 const makeValidRegex = (str: string) => {
@@ -127,7 +124,6 @@ const makeValidRegex = (str: string) => {
   regex = regex.replace(/\*/g, '\\*')
   regex = regex.replace(/\(/g, '\\(')
   regex = regex.replace(/\)/g, '\\)')
-  // TODO Fix this replacing incorrectly
   regex = regex.replace(/\[/g, '\\[')
   regex = regex.replace(/\]/g, '\\]')
   regex = regex.replace(/\?/g, '\\?')

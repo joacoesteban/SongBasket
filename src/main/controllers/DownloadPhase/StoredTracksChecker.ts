@@ -3,14 +3,15 @@ import * as PATH from 'path'
 
 import {
   SongBasketTrack,
-  SongBasketTrackFile,
-  SongbasketCustomMp3Tags
+  SongBasketTrackFile
 } from '../../../@types/SongBasket'
 import { SpotifyPlaylistId } from '../../../@types/Spotify'
 import * as utils from '../../../MAIN_PROCESS_UTILS'
+import { asyncFilter, asyncForEachParallel } from '../../../UTILS'
+import { getHomeFolder } from '../../Global/state'
 import customGetters from '../../Store/Helpers/customGetters'
 
-type _track = SongBasketTrackFile
+type LocalTrack = SongBasketTrackFile & { dontUnlink?: boolean }
 
 export type QueryTrack = SongBasketTrack & {
   downloadFlags: {
@@ -25,11 +26,11 @@ export type QueryTrack = SongBasketTrack & {
 }
 
 export async function downloadLinkRemove(
-  localTracks: _track[],
+  localTracks: SongBasketTrackFile[],
   queryTracks: SongBasketTrack[],
   plFilter: SpotifyPlaylistId[] = []
-) {
-  return VTWO(localTracks, queryTracks, plFilter || [])
+): Promise<QueryTrack[]> {
+  return VTWO(localTracks, queryTracks, plFilter)
 }
 
 export async function unlink(path: string) {
@@ -44,53 +45,56 @@ export async function link(path: string, newPath: string) {
 }
 
 async function VTWO(
-  _localTracks: _track[],
-  _queryTracks: SongBasketTrack[] = [],
+  sourceLocalTracks: SongBasketTrackFile[],
+  sourceQueryTracks: SongBasketTrack[] = [],
   plFilter: SpotifyPlaylistId[] = []
 ): Promise<QueryTrack[]> {
   const pausedPlaylists = customGetters.pausedPlaylists
   const dontUnlinkFrom = [...plFilter, ...pausedPlaylists]
 
-  const localTracks = _localTracks as (_track & { dontUnlink?: boolean })[]
+  const localTracks: LocalTrack[] = sourceLocalTracks.map((track) => ({
+    ...track
+  }))
   if (plFilter.length) {
-    localTracks.forEach(
-      (lTrack) =>
-        (lTrack.dontUnlink = !dontUnlinkFrom.includes(lTrack.playlist))
-    ) // prevents unlinking tracks when filtering playlist
+    localTracks.forEach((lTrack) => {
+      lTrack.dontUnlink = !dontUnlinkFrom.includes(lTrack.playlist)
+    })
   }
 
-  let queryTracks = (_queryTracks as QueryTrack[]).filter((qTrack) => {
-    // const qTrack = _qTrack as QueryTrack
-    if (!qTrack.conversion) return false
+  let queryTracks: QueryTrack[] = []
+  for (const sourceTrack of sourceQueryTracks) {
+    const conversion = sourceTrack.conversion
+    if (!conversion) continue
 
-    if (qTrack.selection === null)
-      qTrack.selection = qTrack.conversion.bestMatch
-    if (qTrack.selection === false) {
-      const id = qTrack.custom?.youtube_id
-      if (id) qTrack.selection = id
+    let selection = sourceTrack.selection
+    if (selection === null) selection = conversion.bestMatch
+    if (selection === false) selection = sourceTrack.custom?.youtube_id ?? false
+    const qTrack: QueryTrack = {
+      ...sourceTrack,
+      playlists: [...sourceTrack.playlists],
+      selection,
+      downloadFlags: {
+        download: !(
+          sourceTrack.flags.paused ||
+          sourceTrack.playlists.every(({ id }) => pausedPlaylists.includes(id))
+        )
+      }
     }
 
-    qTrack.downloadFlags = {
-      download: !(
-        qTrack.flags.paused ||
-        qTrack.playlists.every(({ id }) => pausedPlaylists.includes(id))
+    const isStored = localTracks.some((lTrack, index) => {
+      if (
+        lTrack.songbasket_spotify_id !== qTrack.id ||
+        lTrack.songbasket_youtube_id !== qTrack.selection
       )
-    }
-
-    return !localTracks.some((lTrack, i) => {
-      // some track (full conv) exists and is in every playlist
-      if (!(
-        lTrack.songbasket_spotify_id === qTrack.id &&
-        lTrack.songbasket_youtube_id === qTrack.selection
-      ))
-        return false // skip
+        return false
 
       qTrack.downloadFlags.download = false
-      !qTrack.downloadFlags.linkData &&
-        (qTrack.downloadFlags.linkData = {
+      if (!qTrack.downloadFlags.linkData) {
+        qTrack.downloadFlags.linkData = {
           path: lTrack.path,
           file: lTrack.file
-        })
+        }
+      }
 
       if (qTrack.playlists.some((pl) => pl.id === lTrack.playlist)) {
         lTrack.dontUnlink = true
@@ -100,13 +104,14 @@ async function VTWO(
       }
 
       if (!qTrack.playlists.length) {
-        // TODO prevent linking to paused playlists
-        localTracks.splice(i, 1)
+        localTracks.splice(index, 1)
         return true
       }
       return false
     })
-  })
+
+    if (!isStored || qTrack.downloadFlags.download) queryTracks.push(qTrack)
+  }
 
   console.log(
     'to download',
@@ -115,7 +120,10 @@ async function VTWO(
   console.log(
     'to link',
     queryTracks
-      .filter((t) => !t.downloadFlags.download && t.downloadFlags.linkData)
+      .filter((t) => {
+        if (t.downloadFlags.download) return false
+        return t.downloadFlags.linkData !== undefined
+      })
       .map((t) => t.data.name)
   )
   console.log(
@@ -123,7 +131,7 @@ async function VTWO(
     localTracks.filter((t) => !t.dontUnlink).map((t) => t.path)
   )
 
-  queryTracks = await queryTracks.asyncFilter(async (qTrack) => {
+  queryTracks = await asyncFilter(queryTracks, async (qTrack) => {
     if (qTrack.downloadFlags.download) return true
     if (qTrack.downloadFlags.linkData) await linkTrackToPlaylists(qTrack)
     return false
@@ -138,23 +146,24 @@ async function VTWO(
 }
 
 const linkTrackToPlaylists = async (track: QueryTrack) => {
-  if (!track.downloadFlags.linkData) return
+  const linkData = track.downloadFlags.linkData
+  if (!linkData) return
 
-  track.playlists.asyncForEachParallel(async (pl) => {
+  await asyncForEachParallel(track.playlists, async (pl) => {
     let plPath = customGetters.giveMePlFolderName(pl.id)
     console.log(plPath)
     if (!plPath) return
-    plPath = PATH.join(global.HOME_FOLDER, utils.encodeIntoFilename(plPath))
-    const fileName = track.downloadFlags.linkData!.file.replace('.mp3', '')
+    plPath = PATH.join(getHomeFolder(), utils.encodeIntoFilename(plPath))
+    const fileName = linkData.file.replace('.mp3', '')
     let didLink = false
 
     for (let i = 0; !didLink && i < 10; i++) {
-      // TODO Rethink this
-      let suffix = i === 0 ? '' : ' - ' + uuid()
+      let suffix = ''
+      if (i > 0) suffix = ' - ' + uuid()
       if (i > 1) suffix += ' - ' + i
       try {
         didLink = await link(
-          track.downloadFlags.linkData!.path,
+          linkData.path,
           PATH.join(plPath, fileName + suffix + '.mp3')
         )
         if (didLink) return

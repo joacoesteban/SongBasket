@@ -1,14 +1,11 @@
 import { dialog } from 'electron'
-import {
-  ProgressInfo,
-  UpdateDownloadedEvent,
-  UpdateInfo,
-  autoUpdater
-} from 'electron-updater'
+import { ProgressInfo, UpdateInfo, autoUpdater } from 'electron-updater'
 
+import { ENV_PROD } from '../../Global/constants'
+import { getAppStatus, getMainWindow } from '../../Global/state'
 import * as handlers from './handlers'
 
-const FLAGS = global.CONSTANTS.APP_STATUS.UPDATES
+const FLAGS = getAppStatus().UPDATES
 
 function init() {
   setEventListeners()
@@ -61,20 +58,21 @@ const onDownloadProgress = (progressObj: ProgressInfo) => {
   FLAGS.downloadInProgress = true
   FLAGS.downloadPtg = progressObj.percent
 }
-const onUpdateDownloaded = async (info: UpdateDownloadedEvent) => {
+const onUpdateDownloaded = async () => {
   FLAGS.downloadInProgress = false
   FLAGS.updateDownloaded = true
   FLAGS.downloadPtg = 100
 
   // ipcSend('READY_TO_UPDATE', FLAGS)
   const message = `Version ${FLAGS.updateVersion} has been downloaded\nDo you want to install it now?`
-  const res =
-    global.CONSTANTS.MAIN_WINDOW &&
-    (await dialog.showMessageBox(global.CONSTANTS.MAIN_WINDOW, {
+  const mainWindow = getMainWindow()
+  let res: Electron.MessageBoxReturnValue | null = null
+  if (mainWindow) {
+    res = await dialog.showMessageBox(mainWindow, {
       message,
       buttons: ['Yes', 'No', 'See changelog']
-    }))
-  console.log(res)
+    })
+  }
   switch (res && res.response) {
     case 0:
       // Yes
@@ -94,12 +92,14 @@ const onUpdateDownloaded = async (info: UpdateDownloadedEvent) => {
 }
 
 const onUserUpdateConfirmation = () => {
-  if (global.CONSTANTS.IS_DEV) return console.log('Not updating on dev')
-  FLAGS.updateAvailable &&
-    FLAGS.updateDownloaded &&
+  if (ENV_PROD) {
+    console.log('Not updating on dev')
+    return
+  }
+  if (FLAGS.updateAvailable && FLAGS.updateDownloaded) {
     autoUpdater.quitAndInstall()
+  }
 }
-
 const updateHandlers = {
   onUserUpdateConfirmation
 }

@@ -5,11 +5,11 @@ const makeUrl = (...paths: string[]) => paths.join('/')
 const PATHS = {
   makeUrl,
   get BASE() {
-    return process.env.BACKEND
+    return process.env['BACKEND']
   },
-  USER: (user_id: SpotifyUserId) => makeUrl('user', user_id), // back/user/:id
+  USER: (user_id: SpotifyUserId) => makeUrl('user', user_id),
   USER_PLAYLISTS: (user_id: SpotifyUserId) =>
-    makeUrl(PATHS.USER(user_id), 'playlists'), // back/user/:id/playlists
+    makeUrl(PATHS.USER(user_id), 'playlists'),
   PLAYLIST: (playlist_id: SpotifyPlaylistId) =>
     makeUrl('playlists', playlist_id),
   YOUTUBIZE: makeUrl('youtubize'),

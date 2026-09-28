@@ -2,29 +2,27 @@ import { SongBasketTrack, SongBasketTrackQuery } from '../@types/SongBasket'
 import { SpotifyPlaylist } from '../@types/Spotify'
 import customGetters from './Store/Helpers/customGetters'
 
-type _Playlist = SpotifyPlaylist & { synced: boolean }
-let ALL_PLAYLISTS: _Playlist[] = []
+type PlaylistWithSyncState = SpotifyPlaylist & { synced: boolean }
+let ALL_PLAYLISTS: PlaylistWithSyncState[] = []
 let ALL_TRACKS: SongBasketTrack[] = []
 
 export function makeConversionQueries(): SongBasketTrack[] {
-  const syncedPlaylists: _Playlist[] = customGetters
+  const syncedPlaylists: PlaylistWithSyncState[] = customGetters
     .SyncedPlaylistsSp()
-    .map((pl) => {
-      if (pl.isPaused) return null
+    .map((playlist) => {
+      if (playlist.isPaused) return null
       return {
-        ...pl,
+        ...playlist,
         synced: true
       }
     })
-    .filter(Boolean) as _Playlist[]
-  const queuedPlaylists: _Playlist[] = customGetters
+    .filter((playlist): playlist is PlaylistWithSyncState => playlist !== null)
+  const queuedPlaylists: PlaylistWithSyncState[] = customGetters
     .queuedPlaylistsObj()
-    .map((pl) => {
-      return {
-        ...pl,
-        synced: false
-      }
-    })
+    .map((playlist) => ({
+      ...playlist,
+      synced: false
+    }))
   if (!(queuedPlaylists.length + syncedPlaylists.length)) return []
 
   ALL_PLAYLISTS = [...syncedPlaylists, ...queuedPlaylists]
@@ -40,97 +38,86 @@ export function makeConversionQueries(): SongBasketTrack[] {
   return ALL_TRACKS
 }
 
-function findDuplicatedTracks() {
-  console.log('DUPLICCC')
-
-  // Accumulating tracks to fetch
-  const pls = []
+function findDuplicatedTracks(): boolean {
+  const playlistsToFetch: {
+    id: string
+    tracks: SpotifyPlaylist['tracks']['items']
+  }[] = []
   for (let i = 0; i < ALL_PLAYLISTS.length; i++) {
-    const pl = ALL_PLAYLISTS[i]
-    const tracks = pl.tracks[pl.synced ? 'added' : 'items']
+    const playlist = ALL_PLAYLISTS[i]
+    if (!playlist) continue
+    let tracks = playlist.tracks.items
+    if (playlist.synced) tracks = playlist.tracks.added
     if (tracks.length === 0) {
-      ALL_PLAYLISTS.splice(i--, 1)
+      ALL_PLAYLISTS.splice(i, 1)
+      i -= 1
       continue
     }
-    pls.push({ id: pl.id, tracks })
+    playlistsToFetch.push({ id: playlist.id, tracks })
   }
-  // No new tracks
-  if (pls.length === 0) return false
+  if (playlistsToFetch.length === 0) return false
 
-  // Computing duplicated tracks
-  console.log('checkin', pls)
-  for (let i = 0; i < pls.length; i++) {
-    const playlist = pls[i]
-    // TODO Turn into for...of array.entries()
-    for (let o = 0; o < playlist.tracks.length; o++) {
-      const dirtyTrack = playlist.tracks[o]
-      let found: boolean | number = false
-      for (let u = 0; u < ALL_TRACKS.length; u++) {
-        const cleanTrack = ALL_TRACKS[u]
+  for (const playlist of playlistsToFetch) {
+    for (const dirtyTrack of playlist.tracks) {
+      let found: number | undefined
+      for (let i = 0; i < ALL_TRACKS.length; i++) {
+        const cleanTrack = ALL_TRACKS[i]
+        if (!cleanTrack) continue
         if (dirtyTrack.id === cleanTrack.id) {
-          // Foud duplicated
-          console.log('found dou')
-          found = u
+          found = i
           break
         }
       }
 
-      const plTrackModel = {
-        id: playlist.id
+      const playlistTrack = { id: playlist.id }
+      if (found !== undefined) {
+        const existingTrack = ALL_TRACKS[found]
+        if (!existingTrack) continue
+        if (!existingTrack.playlists.some(({ id }) => id === playlistTrack.id))
+          existingTrack.playlists.push(playlistTrack)
+        continue
       }
-      // Pushing to playlist register if found
-      if (found !== false) {
-        if (
-          !ALL_TRACKS[found].playlists.some((pl) => pl.id === plTrackModel.id)
-        )
-          ALL_TRACKS[found].playlists.push(plTrackModel) // Adding new added playlists to local conversion of track
-      } else {
-        console.log('new track', dirtyTrack.name, dirtyTrack.id)
-        // Create new track entry if not found
-        ALL_TRACKS.push({
-          id: dirtyTrack.id,
-          data: dirtyTrack,
-          playlists: [plTrackModel],
-          conversion: null,
-          selection: null,
-          custom: null,
-          query: null,
-          flags: {
-            converted: false,
-            conversionError: false,
-            processed: false,
-            paused: false,
-            selectionIsApplied: false
-          },
-          duration: null
-        })
-      }
+
+      ALL_TRACKS.push({
+        id: dirtyTrack.id,
+        data: dirtyTrack,
+        playlists: [playlistTrack],
+        conversion: null,
+        selection: null,
+        custom: null,
+        query: null,
+        flags: {
+          converted: false,
+          conversionError: false,
+          processed: false,
+          paused: false,
+          selectionIsApplied: false
+        },
+        duration: null
+      })
     }
   }
   return true
 }
 
-function makeQueries() {
-  console.log('queries', ALL_TRACKS.length)
-  for (let o = 0; o < ALL_TRACKS.length; o++) {
-    if (ALL_TRACKS[o].query) {
-      continue
-    }
-    console.log('queries', o)
-    const track = ALL_TRACKS[o].data
+function makeQueries(): void {
+  for (let i = 0; i < ALL_TRACKS.length; i++) {
+    const songTrack = ALL_TRACKS[i]
+    if (!songTrack || songTrack.query) continue
+    const artist = songTrack.data.artists[0]
+    if (!artist) continue
 
-    const query = `${track.name} ${track.artists[0].name}`
-    const duration: SongBasketTrackQuery['duration'] = ((dur) => {
-      if (dur > 20) return 'long'
-      if (dur <= 20 && dur >= 4) return 'medium'
-      return 'short'
-    })(track.duration_ms / 1000 / 60)
+    const query = `${songTrack.data.name} ${artist.name}`
+    const durationInMinutes = songTrack.data.duration_ms / 1000 / 60
+    let duration: SongBasketTrackQuery['duration'] = 'short'
+    if (durationInMinutes > 20) duration = 'long'
+    if (durationInMinutes <= 20 && durationInMinutes >= 4) duration = 'medium'
 
-    ALL_TRACKS[o].query = {
+    songTrack.query = {
       query,
       duration,
-      duration_s: track.duration_ms / 1000,
-      id: track.id
+      duration_s: songTrack.data.duration_ms / 1000,
+      id: songTrack.data.id
     }
   }
 }

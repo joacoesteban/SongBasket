@@ -47,7 +47,7 @@ export type YouTubeResult = {
   }
   youtube_id: string
   nameFormatted: string
-  nameTokensMap: Boolean[]
+  nameTokensMap: boolean[]
   matchedTokensCount: number
   durationDiff: number
   durationScore: number

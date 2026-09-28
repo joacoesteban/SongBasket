@@ -1,86 +1,72 @@
 import * as electron from 'electron'
 
-type UrlDecomposed = {
+import { PROTOCOL_PATHS } from '../../Global/constants'
+
+export type UrlDecomposed = {
   full: string
-  base: string // TODO rename to path
-  payload: any
+  base: string
+  payload: unknown
 }
+type ProtocolCallback = (path: UrlDecomposed) => void | Promise<void>
 
-const paths = global.CONSTANTS.PROTOCOL_PATHS
-
-const CBS: {
-  [key: string]: Function[]
-} = {}
+const paths = PROTOCOL_PATHS
+const callbacks: Record<string, ProtocolCallback[]> = {}
 
 const getUrl = (url: string): UrlDecomposed => {
-  url = decodeURI(url)
-  const full = decodeURI(url.replace(new RegExp(paths.BASE + '://', 'g'), ''))
-  const base =
-    (full.indexOf('?') !== -1 && full.slice(0, full.indexOf('?'))) || full
-
-  const arg = '?payload='
-  const payload =
-    full.indexOf(arg) !== -1 &&
-    JSON.parse(full.substring(full.indexOf(arg) + arg.length))
-
-  return {
-    full,
-    base,
-    payload
+  const decodedUrl = decodeURI(url)
+  const full = decodeURI(
+    decodedUrl.replace(new RegExp(paths.BASE + '://', 'g'), '')
+  )
+  const queryStart = full.indexOf('?')
+  let base = full
+  if (queryStart !== -1) base = full.slice(0, queryStart)
+  const payloadStart = '?payload='
+  let payload: unknown = null
+  const payloadIndex = full.indexOf(payloadStart)
+  if (payloadIndex !== -1) {
+    payload = JSON.parse(full.substring(payloadIndex + payloadStart.length))
   }
+
+  return { full, base, payload }
 }
 
-const getCb = (path: UrlDecomposed) => {
-  const cbs = {
-    cbs: CBS[path.base] || [],
-    callAll(...args: any[]) {
-      this.cbs.forEach((fn) => fn(...args))
-    }
-  }
-  if (!Array.isArray(cbs.cbs)) cbs.cbs = [cbs.cbs]
-  if (!cbs.cbs.length) return null
+function startProtocols(): void {
+  electron.protocol.registerHttpProtocol(paths.BASE, onRequest)
+}
 
-  return cbs
+function onRequest(request: electron.ProtocolRequest): void {
+  const parsed = getUrl(request.url)
+  console.log('----> ' + parsed.base)
+  const pathCallbacks = callbacks[parsed.base] ?? []
+  pathCallbacks.forEach((callback) => {
+    void callback(parsed)
+  })
+}
+
+function on(path: string, callback: ProtocolCallback): boolean {
+  if (!path) throw new Error('PATH NOT SPECIFIED')
+  const stack = callbacks[path] ?? []
+  if (stack.includes(callback)) {
+    console.error('CALLBACK ALREADY ATTACHED')
+    return false
+  }
+  callbacks[path] = [...stack, callback]
+  return true
+}
+
+function off(path: string, callback: ProtocolCallback): boolean {
+  if (!path) throw new Error('PATH NOT SPECIFIED')
+  const stack = callbacks[path]
+  if (!stack || !stack.length) {
+    console.error('CALLBACK STACK IS EMPTY')
+    return false
+  }
+  callbacks[path] = stack.filter((current) => current !== callback)
+  return true
 }
 
 export default {
   startProtocols,
   on,
   off
-}
-
-function startProtocols() {
-  const protocol = electron.protocol
-  protocol.registerHttpProtocol(paths.BASE, onRequest)
-}
-
-function onRequest(req: electron.ProtocolRequest) {
-  const parsed = getUrl(req.url)
-  console.log('----> ' + parsed.base)
-  const actualCb = getCb(parsed)
-  actualCb && actualCb.callAll(parsed)
-}
-
-function on(path: string, cb: Function) {
-  if (!path) throw new Error('PATH NOT SPECIFIED')
-  if (typeof cb !== 'function') throw new Error('INVALID CALLBACK')
-
-  let stack = CBS[path]
-  if (!stack) stack = CBS[path] = []
-  else if (stack.some((fn) => fn === cb))
-    return console.error('CALLBACK ALREADY ATTACHED')
-  stack.push(cb)
-
-  return true
-}
-
-function off(path: string, cb: Function) {
-  if (!path) throw new Error('PATH NOT SPECIFIED')
-  if (typeof cb !== 'function') throw new Error('INVALID CALLBACK')
-
-  const stack = CBS[path]
-  if (!stack || !stack.length) return console.error('CALLBACK STACK IS EMPTY')
-  CBS[path] = stack.filter((fn) => fn !== cb)
-
-  return true
 }

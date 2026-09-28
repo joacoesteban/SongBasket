@@ -4,12 +4,11 @@ import { YouTubeResultId } from '../../../@types/YouTube'
 import FileWatchers, { SBWatcherEvent } from '../FileSystem/FileWatchers'
 import * as handlers from './handlers'
 import IpcController from './ipc.controller'
-import * as sbFetch from './sbFetch'
 import WindowController from './window.controller'
 
 // :::::::::::::::::::::::::::::::::IPC:::::::::::::::::::::::::::::::::
 export default function () {
-  const ipcSend = global.ipcSend
+  const ipcSend = IpcController.send
   const on = IpcController.answerRenderer
 
   on('GET_STATUS', handlers.sendStatus)
@@ -40,8 +39,7 @@ export default function () {
     await handlers.loadMorePlaylists()
   })
 
-  on('get tracks from', function (id) {
-    // TODO deprecate
+  on('get tracks from', () => {
     console.log('wtf')
   })
 

@@ -1,5 +1,7 @@
 import Vue from 'vue'
 
+import { asyncForEach } from '../../../UTILS'
+
 const getDefaultState = () => {
   return {
     user: {}, // Includes name, number of playlists, image url
@@ -30,7 +32,7 @@ const dispatchAppropiateEvent = {
   async send(env, key) {
     const events = this.getEvent(key)
     if (events.length)
-      events.asyncForEach(async (event) =>
+      void asyncForEach(events, async (event) =>
         env.dispatch(event, {}, { root: true })
       )
   }

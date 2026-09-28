@@ -1,46 +1,58 @@
 import axios from 'axios'
 import * as dns from 'dns'
 
-let CB: (connected: boolean) => void
-let API_CB: (connected: boolean) => void
+import { BACKEND, HEROKU_PING_INTERVAL } from '../../Global/constants'
+import {
+  getConnectedToApi,
+  getConnectedToInternet,
+  setConnectedToApi,
+  setConnectedToInternet
+} from '../../Global/state'
+
+type ConnectionCallback = (connected: boolean) => void
+
+let connectionCallback: ConnectionCallback = () => {}
+let apiConnectionCallback: ConnectionCallback = () => {}
 
 export default {
   init(params: {
-    connectionChangeCallback: typeof CB
-    apiConnectionChangeCallback: typeof API_CB
-  }) {
-    const { connectionChangeCallback, apiConnectionChangeCallback } = params
-    CB = connectionChangeCallback || (() => {})
-    API_CB = apiConnectionChangeCallback || (() => {})
+    connectionChangeCallback: ConnectionCallback
+    apiConnectionChangeCallback: ConnectionCallback
+  }): void {
+    connectionCallback = params.connectionChangeCallback
+    apiConnectionCallback = params.apiConnectionChangeCallback
     checkInternet()
-    pingApi()
+    void pingApi()
   }
 }
-const checkInternet = () => {
-  dns.lookup('youtube.com', (err) => {
-    const connected = !(err && err.code === 'ENOTFOUND')
-    if (connected !== global.CONNECTED_TO_INTERNET) {
-      global.CONNECTED_TO_INTERNET = connected
-      CB(connected)
+
+const checkInternet = (): void => {
+  dns.lookup('youtube.com', (error) => {
+    const connected = !(error && error.code === 'ENOTFOUND')
+    if (connected !== getConnectedToInternet()) {
+      setConnectedToInternet(connected)
+      connectionCallback(connected)
     }
-    // TODO set api as disconnected
-    setTimeout(checkInternet, connected ? 10000 : 5000)
+    let retryInterval = 5000
+    if (connected) retryInterval = 10000
+    setTimeout(checkInternet, retryInterval)
   })
 }
-const pingApi = async () => {
-  let connected
+
+const pingApi = async (): Promise<void> => {
+  let connected = false
   try {
-    await axios.get(process.env.BACKEND + '/ping')
+    if (!BACKEND) throw new Error('BACKEND is not configured')
+    await axios.get(BACKEND + '/ping')
     connected = true
-  } catch (err) {
+  } catch {
     connected = false
   }
-  if (global.CONNECTED_TO_API !== connected) {
-    global.CONNECTED_TO_API = connected
-    API_CB(connected)
+  if (getConnectedToApi() !== connected) {
+    setConnectedToApi(connected)
+    apiConnectionCallback(connected)
   }
-  const time: number = global.CONNECTED_TO_API
-    ? global.CONSTANTS.HEROKU_PING_INTERVAL
-    : 5000
+  let time = 5000
+  if (getConnectedToApi()) time = HEROKU_PING_INTERVAL
   setTimeout(pingApi, time)
 }

@@ -1,5 +1,4 @@
 import {
-  SongBasketCachedPlaylistEntry,
   SongBasketSaveFile,
   SongBasketTrack,
   SongBasketTrackConversionSelection
@@ -13,8 +12,9 @@ import {
   SpotifyTrackId,
   SpotifyUser
 } from '../../@types/Spotify'
-import { YouTubeResult, YouTubeResultId } from '../../@types/YouTube'
+import { YouTubeResult } from '../../@types/YouTube'
 import * as UTILS from '../../MAIN_PROCESS_UTILS'
+import { getHomeFolder } from '../Global/state'
 import FileWatchers from '../controllers/FileSystem/FileWatchers'
 import UserMethods from '../controllers/FileSystem/UserMethods'
 import trackUtils from './Helpers/Tracks'
@@ -26,12 +26,12 @@ const FSController = {
 
 let saveQueue = 0
 
-const block = false
-function SAVE_TO_DISK(check: boolean = false): void {
-  if (block) return
+const BLOCK = false
+function saveToDisk(check: boolean = false): void {
+  if (BLOCK) return
   if (!check) {
     saveQueue++
-    setTimeout(() => SAVE_TO_DISK(true), 1000)
+    setTimeout(() => saveToDisk(true), 1000)
     return
   }
 
@@ -39,7 +39,7 @@ function SAVE_TO_DISK(check: boolean = false): void {
   console.log(
     '::::::::::::::::::::::::::::SAVING::::::::::::::::::::::::::::::::'
   )
-  FSController.UserMethods.saveState({ state, path: global.HOME_FOLDER })
+  FSController.UserMethods.saveState({ state, path: getHomeFolder() })
 }
 
 const getDefaultState: () => SongBasketSaveFile = () => {
@@ -79,11 +79,10 @@ const getDefaultState: () => SongBasketSaveFile = () => {
 
 const getters = {
   get syncedPlaylists_safe(): SpotifyPlaylistId[] {
-    let aux
-    return state.syncedPlaylists.filter(
-      (id) =>
-        (aux = state.playlists.find((pl) => pl.id === id)) && !aux.isPaused
-    )
+    return state.syncedPlaylists.filter((id) => {
+      const playlist = state.playlists.find((pl) => pl.id === id)
+      return playlist !== undefined && !playlist.isPaused
+    })
   }
 }
 
@@ -139,15 +138,14 @@ const mutations = {
       // If it's cached I want to compare the version with the currently stored one.
       // If they match I will keep the tracks (currently stored version)
       // If they don't I will keep the new version without tracks and the playlist will be uncached
-      const c = ((cacheEntry) => {
-        if (cacheEntry >= 0)
-          return state.cachedPlaylists[cacheEntry].snapshot_id
-        return false
-      })(findById(id, state.cachedPlaylists))
+      const cacheEntry = findById(id, state.cachedPlaylists)
+      let c: SpotifySnapshotId | boolean = false
+      if (cacheEntry >= 0) {
+        const cache = state.cachedPlaylists[cacheEntry]
+        if (cache) c = cache.snapshot_id
+      }
 
-      // I dont care about the version controlling synced ones in here because version control has been handled elsewhere
       const s = findById(id, state.syncedPlaylists) >= 0
-
       return { c, s }
     }
     function normalizePlaylist(pl: SpotifyPlaylist): SpotifyPlaylist {
@@ -164,28 +162,30 @@ const mutations = {
       ) {
         for (let i = 0; i < playlists.items.length; i++) {
           const currentPlaylist = playlists.items[i]
+          if (!currentPlaylist) continue
           const cachedOrSynced = isCachedOrSynced(currentPlaylist.id)
           if (!cachedOrSynced.c && !cachedOrSynced.s) {
-            normalizePlaylist(playlists.items[i])
+            normalizePlaylist(currentPlaylist)
           }
 
           if (cachedOrSynced.c !== false) {
-            // console.log('IS CACHED::')
             if (cachedOrSynced.c === currentPlaylist.snapshot_id) {
-              playlists.items.splice(
-                i,
-                1,
-                state.playlists[findById(currentPlaylist.id, state.playlists)]
-              )
+              const currentIndex = findById(currentPlaylist.id, state.playlists)
+              const storedPlaylist = state.playlists[currentIndex]
+              if (storedPlaylist) {
+                playlists.items.splice(i, 1, storedPlaylist)
+              }
             } else {
               this.FIND_AND_UNCACHE({ id: currentPlaylist.id })
             }
             continue
           }
           if (cachedOrSynced.s) {
-            // If playlist is synced, it will have already been processed, so im just replacing it
             const index = findById(currentPlaylist.id, state.playlists)
-            playlists.items.splice(i, 1, state.playlists[index])
+            const storedPlaylist = state.playlists[index]
+            if (storedPlaylist) {
+              playlists.items.splice(i, 1, storedPlaylist)
+            }
             continue
           }
         }
@@ -199,11 +199,14 @@ const mutations = {
       // TODO so if the playlist is not in the response it is assumed to have been deleted wrongly
       // TODO if there's need to implement this logic, it should also unlink the playlist from every track in convertedTracks which contains the playlist
       for (let i = 0; i < state.syncedPlaylists.length; i++) {
-        const pl = state.syncedPlaylists[i]
-        const index = findById(pl, playlists.items)
+        const playlistId = state.syncedPlaylists[i]
+        if (!playlistId) continue
+        const index = findById(playlistId, playlists.items)
         if (index === -1) {
-          const deletedPlaylist = state.playlists[findById(pl, state.playlists)]
-          state.deletedPlaylists.push(deletedPlaylist)
+          const deletedPlaylist = state.playlists.find(
+            (playlist) => playlist.id === playlistId
+          )
+          if (deletedPlaylist) state.deletedPlaylists.push(deletedPlaylist)
           state.syncedPlaylists.splice(i--, 1)
         }
       }
@@ -223,7 +226,7 @@ const mutations = {
     }
 
     if (!params.isLoadMore) state.lastSync = new Date()
-    SAVE_TO_DISK()
+    saveToDisk()
   },
 
   LOGOUT() {
@@ -233,66 +236,56 @@ const mutations = {
 
   PLAYLIST_STORE_TRACKS(playlist: SpotifyPlaylist): void {
     const index = findById(playlist.id, state.playlists)
-    // If there are changes with local version, overwrite
     if (index === -1)
       throw new Error(
         'PLAYLIST NOT FOUND WHEN SETTING TRACKS INSIDE STATE (VUEX)'
       )
 
     const statePl = state.playlists[index]
-    // If playlist is synced, then I will compute differences with previous local version
+    if (!statePl)
+      throw new Error(
+        'PLAYLIST NOT FOUND WHEN SETTING TRACKS INSIDE STATE (VUEX)'
+      )
+
     if (state.syncedPlaylists.some((p) => p === playlist.id)) {
-      const cbs = []
       if (statePl.name !== playlist.name) {
-        const oldName: string = statePl.folderName || statePl.name
+        const oldName = statePl.folderName || statePl.name
         statePl.folderName = null
-        cbs.push(
-          () =>
-            playlist.folderName &&
-            FSController.UserMethods.renameFolder({
-              oldName,
-              newName: playlist.folderName
-            })
-        ) // Rename Folder
+        if (playlist.folderName) {
+          void FSController.UserMethods.renameFolder({
+            oldName,
+            newName: playlist.folderName
+          })
+        }
       }
 
-      if (
-        (statePl.images && statePl.images[0] && statePl.images[0].url) !==
-        (playlist.images && playlist.images[0] && playlist.images[0].url)
-      ) {
-        console.log(
-          'new folder image',
-          statePl.name,
-          statePl.images[0].url,
-          playlist.images[0].url
-        )
-        cbs.push(() =>
-          FSController.UserMethods.setFolderIcons(playlist.id, { force: true })
-        )
+      const stateImage = statePl.images[0]?.url
+      const playlistImage = playlist.images[0]?.url
+      if (stateImage !== playlistImage) {
+        console.log('new folder image', statePl.name, stateImage, playlistImage)
+        void FSController.UserMethods.setFolderIcons(playlist.id, {
+          force: true
+        })
       }
 
-      playlist.folderName =
-        statePl.folderName ||
-        (() => {
-          let name = playlist.name
-          if (
-            state.playlists.some(
-              (p) => p.name === playlist.name && p.id !== playlist.id
-            )
+      if (statePl.folderName) {
+        playlist.folderName = statePl.folderName
+      } else {
+        let name = playlist.name
+        if (
+          state.playlists.some(
+            (p) => p.name === playlist.name && p.id !== playlist.id
           )
-            name += ' - ' + playlist.id
-          return name
-        })()
-      cbs.forEach((cb) => cb())
+        )
+          name += ' - ' + playlist.id
+        playlist.folderName = name
+      }
 
       const oldPl = [...statePl.tracks.items, ...statePl.tracks.removed]
-      // Compute track changes
-      // Using just removed and items. Im not using added because they will pop up in the new data.
       const { items, removed, added } = playlistComputeChanges(
         oldPl,
         playlist.tracks.items
       )
-      // console.log('CHANGES', items.map(i => i.name), added.map(i => i.name), removed.map(i => i.name))
       playlist.tracks.items = items
       playlist.tracks.added = added
       playlist.tracks.removed = removed
@@ -302,7 +295,6 @@ const mutations = {
         playlist.tracks.removed.map((i) => i.name)
       )
     } else {
-      // Playlist was not synced before so I dont care about computing changes
       playlist.tracks = {
         ...playlist.tracks,
         added: [],
@@ -310,11 +302,11 @@ const mutations = {
       }
       const { id, snapshot_id } = playlist
       this.PLAYLIST_UPDATE_CACHED({ id, snapshot_id })
-      FSController.UserMethods.setFolderIcons(playlist.id, { force: true }) // creates folder and sets icon
+      void FSController.UserMethods.setFolderIcons(playlist.id, { force: true })
     }
     state.playlists[index] = playlist
 
-    SAVE_TO_DISK()
+    saveToDisk()
   },
 
   PLAYLIST_UPDATE_CACHED(params: {
@@ -324,19 +316,18 @@ const mutations = {
     const { id, snapshot_id } = params
     let found = false
     for (let i = 0; i < state.cachedPlaylists.length; i++) {
-      let p = state.cachedPlaylists[i]
-      if (p.id === id) {
-        p = { id, time: Date.now(), snapshot_id }
-        // console.log('UPDATING CACHE LOG FOR PLAYLIST WITH ID ' + id)
-        found = true
-      }
+      const cachedPlaylist = state.cachedPlaylists[i]
+      if (!cachedPlaylist || cachedPlaylist.id !== id) continue
+      state.cachedPlaylists[i] = { id, time: Date.now(), snapshot_id }
+      found = true
+      break
     }
     if (!found)
       state.cachedPlaylists = [
         ...state.cachedPlaylists,
         { id, time: Date.now(), snapshot_id }
       ]
-    SAVE_TO_DISK()
+    saveToDisk()
   },
   SET_CURRENT_PLAYLIST(id: SpotifyPlaylistId): void {
     state.currentPlaylist = id
@@ -373,48 +364,28 @@ const mutations = {
     if (index >= 0) {
       state.cachedPlaylists.splice(index, 1)
     }
-    SAVE_TO_DISK()
+    saveToDisk()
   },
   REMOVE_CONVERSION_DUPLICATES(): void {
-    const cloned = [...state.convertedTracks]
-    console.log(cloned[0].id)
-
-    for (const key in cloned) {
-      const itm1 = cloned[key]
-      for (const key2 in cloned) {
-        const itm2 = cloned[key2]
-        if (itm1 === itm2) continue
-        if (itm1.id === itm2.id) {
-          cloned.splice(parseInt(key), 1)
-          break
-        }
-      }
-    }
-
-    // cloned = cloned.filter((a, index1) => { // Removes dupes
-    //   return !cloned.some((b, index2) => {
-    //     if (a.id === b.id && index1 !== index2) {
-    //       console.log(a.data, b.data)
-    //       return true
-    //     }
-    //   })
-    // })
-    console.log(cloned)
-    state.convertedTracks = cloned
+    const seen = new Set<string>()
+    state.convertedTracks = state.convertedTracks.filter((track) => {
+      if (seen.has(track.id)) return false
+      seen.add(track.id)
+      return true
+    })
   },
   CLEAN_TRACKS(): void {
-    const playlists = state.syncedPlaylists.map((id) =>
-      state.playlists.find((pl) => pl.id === id)
-    )
+    const playlists = state.syncedPlaylists
+      .map((id) => state.playlists.find((pl) => pl.id === id))
+      .filter((playlist): playlist is SpotifyPlaylist => playlist !== undefined)
     state.convertedTracks = UTILS.cloneObject(state.convertedTracks).filter(
       (track) => {
         track.playlists = track.playlists.filter((pl) => {
-          const playlist = playlists.find((p) => p && p.id === pl.id)
-          return (
-            playlist && playlist.tracks.items.some((t) => t.id === track.id)
-          )
+          const playlist = playlists.find((p) => p.id === pl.id)
+          if (!playlist) return false
+          return playlist.tracks.items.some((t) => t.id === track.id)
         })
-        return track.playlists.length
+        return track.playlists.length > 0
       }
     )
   },
@@ -424,58 +395,38 @@ const mutations = {
       forceCustom: false
     }
   ): void {
-    state.convertedTracks = state.convertedTracks
-      .map((convertedTrack) => {
-        if (params.resetSelection) convertedTrack.selection = null
-        if (convertedTrack.custom) {
-          convertedTrack.custom.isCustomTrack = true
-          if (params.forceCustom) convertedTrack.selection = false
-          if (!convertedTrack.custom.youtube_id)
-            convertedTrack.custom.youtube_id = convertedTrack.custom.id
-        }
-        if (convertedTrack.conversion) {
-          convertedTrack.conversion.yt.forEach((t) => {
-            if (!t.youtube_id) t.youtube_id = t.id
-          })
-        }
-        if (!convertedTrack.flags) {
-          convertedTrack.flags = {
-            converted: !!convertedTrack.conversion,
-            conversionError: !convertedTrack.conversion,
-            processed: false,
-            paused: false,
-            selectionIsApplied: false
-          }
-        }
-        return trackUtils.calculateBestMatch(convertedTrack, true)
-      })
-      .filter((t) => t)
+    state.convertedTracks = state.convertedTracks.map((convertedTrack) => {
+      if (params.resetSelection) convertedTrack.selection = null
+      if (convertedTrack.custom) {
+        convertedTrack.custom.isCustomTrack = true
+        if (params.forceCustom) convertedTrack.selection = false
+        if (!convertedTrack.custom.youtube_id)
+          convertedTrack.custom.youtube_id = convertedTrack.custom.id
+      }
+      if (convertedTrack.conversion) {
+        convertedTrack.conversion.yt.forEach((t) => {
+          if (!t.youtube_id) t.youtube_id = t.id
+        })
+      }
+      return trackUtils.calculateBestMatch(convertedTrack, true)
+    })
     console.log('all tracks reprocessed')
   },
   async YOUTUBIZE_RESULT(convertedTracks: SongBasketTrack[]): Promise<void> {
-    try {
-      state.convertedTracks = convertedTracks
-        .map((convertedTrack) => trackUtils.calculateBestMatch(convertedTrack))
-        .filter((t) => t)
-      ;[...state.queuedPlaylists].forEach((pl) => {
-        state.syncedPlaylists.push(pl)
-        state.queuedPlaylists = state.queuedPlaylists.filter((p) => p !== pl)
-        state.cachedPlaylists = state.cachedPlaylists.filter((p) => p.id !== pl)
-      })
-      console.log('Total converted tracks', state.convertedTracks.length)
-
-      // console.log(state.convertedTracks.some(t => t) && state.convertedTracks.some(t => t.flags))
-      // setTimeout(((env) => {
-      //   return () => env.dispatch('setConvertedTracksProcessedFlag')
-      // })(this), 100)
-      SAVE_TO_DISK()
-    } catch (error) {
-      throw error
-    }
+    state.convertedTracks = convertedTracks.map((convertedTrack) =>
+      trackUtils.calculateBestMatch(convertedTrack)
+    )
+    ;[...state.queuedPlaylists].forEach((pl) => {
+      state.syncedPlaylists.push(pl)
+      state.queuedPlaylists = state.queuedPlaylists.filter((p) => p !== pl)
+      state.cachedPlaylists = state.cachedPlaylists.filter((p) => p.id !== pl)
+    })
+    console.log('Total converted tracks', state.convertedTracks.length)
+    saveToDisk()
   },
   COMMIT_ALL_CHANGES(): void {
     getters.syncedPlaylists_safe.forEach((pl) => this.COMMIT_TRACK_CHANGES(pl))
-    SAVE_TO_DISK()
+    saveToDisk()
   },
   INVALIDATE_SYNCED_SNAPSHOT_IDS(): void {
     getters.syncedPlaylists_safe
@@ -494,25 +445,23 @@ const mutations = {
       console.error('PLAYLIST NOT FOUND WHEN COMMITING CHANGES')
       return
     }
-    const tracks = state.playlists[index].tracks
+    const playlist = state.playlists[index]
+    if (!playlist) return
+    const tracks = playlist.tracks
 
-    // Remove playlist from converted tracks registries
-    if (tracks.removed && tracks.removed.length) {
-      tracks.removed.forEach((rem) => {
-        for (let o = 0; o < state.convertedTracks.length; o++) {
-          const track = state.convertedTracks[o]
-          if (rem.id === track.id) {
-            track.playlists = track.playlists.filter((pl) => pl.id !== id)
-            if (!track.playlists.length) state.convertedTracks.splice(o, 1) // Track not being used by any playlist. Removing track
-            break
-          }
-        }
-      })
-    } else if (!tracks.added || !tracks.added.length) return
+    tracks.removed.forEach((rem) => {
+      for (let o = 0; o < state.convertedTracks.length; o++) {
+        const track = state.convertedTracks[o]
+        if (!track || rem.id !== track.id) continue
+        track.playlists = track.playlists.filter((pl) => pl.id !== id)
+        if (!track.playlists.length) state.convertedTracks.splice(o, 1)
+        break
+      }
+    })
 
-    state.playlists[index].tracks.items.push(...(tracks.added || []))
-    state.playlists[index].tracks.added = []
-    state.playlists[index].tracks.removed = []
+    playlist.tracks.items.push(...tracks.added)
+    playlist.tracks.added = []
+    playlist.tracks.removed = []
   },
   CHANGE_YT_TRACK_SELECTION(params: {
     trackId: SpotifyTrackId
@@ -539,16 +488,14 @@ const mutations = {
     track.selection = newId
     track.flags.selectionIsApplied = newId !== null
 
-    SAVE_TO_DISK()
+    saveToDisk()
   },
   async UNSYNC_PLAYLIST(id: SpotifyPlaylistId): Promise<void> {
     console.log('UNSYNCING ', id)
-    if (!state.syncedPlaylists.find((pl) => pl && pl === id))
+    if (!state.syncedPlaylists.some((pl) => pl === id))
       throw new Error('Playlist not found inside SyncedPlaylists list')
-    state.syncedPlaylists = state.syncedPlaylists.filter(
-      (pl) => pl && pl !== id
-    )
-    const playlist = state.playlists.find((pl) => pl && pl.id === id)
+    state.syncedPlaylists = state.syncedPlaylists.filter((pl) => pl !== id)
+    const playlist = state.playlists.find((pl) => pl.id === id)
     if (!playlist) throw new Error('Playlists not found inside playlists list')
 
     playlist.tracks.removed = playlist.tracks.items
@@ -560,18 +507,18 @@ const mutations = {
     await FSController.UserMethods.deletePlaylist(
       playlist.folderName || playlist.name
     )
-    SAVE_TO_DISK()
+    saveToDisk()
   },
   PAUSE_PLAYLIST(id: SpotifyPlaylistId): void {
     console.log('PAUSING ', id)
-    if (!state.syncedPlaylists.find((pl) => pl && pl === id))
+    if (!state.syncedPlaylists.some((pl) => pl === id))
       throw new Error('Playlist not found inside SyncedPlaylists list')
-    const playlist = state.playlists.find((pl) => pl && pl.id === id)
+    const playlist = state.playlists.find((pl) => pl.id === id)
     if (!playlist) throw new Error('Playlists not found inside playlists list')
 
     playlist.isPaused = !playlist.isPaused
 
-    SAVE_TO_DISK()
+    saveToDisk()
   },
   PAUSE_TRACK(id: SpotifyTrackId): void {
     if (!id)
@@ -587,7 +534,7 @@ const mutations = {
 
     track.flags.paused = !track.flags.paused
 
-    SAVE_TO_DISK()
+    saveToDisk()
   },
   CUSTOM_TRACK_URL(params: {
     details: YouTubeResult
@@ -604,36 +551,48 @@ const mutations = {
     details.isCustomTrack = true
     track.custom = details
     track.selection = false
-    SAVE_TO_DISK()
+    saveToDisk()
   }
 }
 
+const STATE_KEYS: (keyof SongBasketSaveFile)[] = [
+  'user',
+  'playlists',
+  'syncedPlaylists',
+  'queuedPlaylists',
+  'cachedPlaylists',
+  'deletedPlaylists',
+  'convertedTracks',
+  'currentPlaylist',
+  'control',
+  'lastSync'
+]
 const controller = {
   COMMIT: mutations,
   STATE: () => state,
   STATE_SAFE: (
     filter?: (keyof SongBasketSaveFile)[]
   ): SongBasketSaveFile | Partial<SongBasketSaveFile> => {
-    const _state = UTILS.cloneObject(controller.STATE())
-
-    filter?.length &&
-      (Object.keys(_state) as Array<keyof SongBasketSaveFile>)
-        .filter((k) => !filter.includes(k))
-        .forEach((key) => {
-          delete _state[key]
-        })
-
-    return _state
+    const safeState = UTILS.cloneObject(controller.STATE())
+    if (filter && filter.length > 0) {
+      const partialState: Partial<SongBasketSaveFile> = safeState
+      for (const key of STATE_KEYS) {
+        if (!filter.includes(key)) delete partialState[key]
+      }
+    }
+    return safeState
   }
 }
 
 function findById(id: string, obj: (string | { id: string })[]): number {
   for (let i = 0; i < obj.length; i++) {
-    const _obj = obj[i]
-    const pl = (typeof _obj !== 'string' && _obj.id) || _obj
-    if (pl === id) {
-      return i
+    const entry = obj[i]
+    if (!entry) continue
+    if (typeof entry === 'string') {
+      if (entry === id) return i
+      continue
     }
+    if (entry.id === id) return i
   }
   return -1
 }
@@ -648,24 +607,24 @@ function playlistComputeChanges(
 
   const added = [...newPlaylistTracks]
   let removed = [...oldPlaylistTracks]
-  let items: SpotifyTrack[] = [] // Tracks that are preserved between versions
+  const items: SpotifyTrack[] = []
 
   if (removed.length > 0) {
     // This checks if the synced playlist has not been added to DB yet, if so, then every song will be 'new'
     let i = 0
     while (i < added.length) {
-      const a = added[i]
+      const addedTrack = added[i]
+      if (!addedTrack) break
       let found = false
 
       for (let o = 0; o < removed.length; o++) {
-        const r = removed[o]
+        const removedTrack = removed[o]
+        if (!removedTrack) continue
 
-        if (a.id === r.id) {
-          // No changes to track
+        if (addedTrack.id === removedTrack.id) {
           found = true
           removed.splice(o, 1)
-          // Preserved track is stored
-          items = [...items, ...added.splice(i, 1)]
+          items.push(...added.splice(i, 1))
           break
         }
       }

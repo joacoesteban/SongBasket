@@ -4,18 +4,26 @@ import * as PATH from 'path'
 
 import { SongBasketId } from '../../@types/SongBasket'
 import { SpotifyUserId } from '../../@types/Spotify'
+import { APP_SUPPORT_PATH } from '../Global/constants'
 
 type CredentialStore = Record<SpotifyUserId, string>
 
-const storePath = () =>
-  PATH.join(global.CONSTANTS.APP_SUPPORT_PATH, 'credentials.json')
+const storePath = () => PATH.join(APP_SUPPORT_PATH, 'credentials.json')
+
+function isCredentialStore(value: unknown): value is CredentialStore {
+  if (value === null || typeof value !== 'object' || Array.isArray(value))
+    return false
+  return Object.values(value).every((entry) => typeof entry === 'string')
+}
 
 async function readStore(): Promise<CredentialStore> {
   try {
-    return JSON.parse(await fs.readFile(storePath(), 'utf8')) as CredentialStore
-  } catch (error) {
+    const value: unknown = JSON.parse(await fs.readFile(storePath(), 'utf8'))
+    if (isCredentialStore(value)) return value
+  } catch {
     return {}
   }
+  return {}
 }
 
 async function writeStore(store: CredentialStore) {

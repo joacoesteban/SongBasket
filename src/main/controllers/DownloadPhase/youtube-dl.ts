@@ -1,12 +1,12 @@
 import * as PATH from 'path'
 
-import {
-  SongBasketTrackConversionSelection,
-  SongBasketTrackFile
-} from '../../../@types/SongBasket'
+import { SongBasketTrackFile } from '../../../@types/SongBasket'
 import { SpotifyPlaylistId, SpotifyTrack } from '../../../@types/Spotify'
 import * as utils from '../../../MAIN_PROCESS_UTILS'
+import { APP_SUPPORT_PATH } from '../../Global/constants'
+import { getConnectedToInternet, getHomeFolder } from '../../Global/state'
 import customGetters from '../../Store/Helpers/customGetters'
+import { ytDlp } from '../../utils/binaries'
 import ipc from '../InitializationAndHandlers/ipc.controller'
 import { applyTags, extractMp3 } from './FfmpegController'
 import { QueryTrack, downloadLinkRemove } from './StoredTracksChecker'
@@ -38,8 +38,10 @@ type DownloadEvent = {
   ptg?: number
 }
 
-type RendererDownloadEvent = DownloadEvent & {
+type RendererDownloadEvent = {
   type: string
+  id: string
+  ptg?: number
 }
 
 type DownloaderInstance = {
@@ -103,24 +105,41 @@ type DownloadInstance = {
   download: DownloaderInstance | null
   extraction: ExtractorInstance | null
 }
+function toError(value: unknown): Error {
+  if (value instanceof Error) return value
+  return new Error(String(value))
+}
+
+function selectedYoutubeId(track: QueryTrack): string {
+  switch (track.selection) {
+    case null:
+      if (!track.conversion) throw new Error('NO TRACK CONVERSION')
+      return track.conversion.bestMatch
+    case false:
+      if (!track.custom) throw new Error('NO CUSTOM TRACK')
+      return track.custom.id
+    default:
+      return track.selection
+  }
+}
 
 const tempDownloadsFolderPath = () =>
-  PATH.join(global.CONSTANTS.APP_SUPPORT_PATH, 'temp', 'downloads')
+  PATH.join(APP_SUPPORT_PATH, 'temp', 'downloads')
 
+let lastEvent: RendererDownloadEvent | null = null
 const emitEvent = {
   send: ipc.send,
-  lastEvent: null as RendererDownloadEvent | null,
   timeoutInProgress: false,
   makeTimeout: (params: DownloadEvent, key: string) => {
-    emitEvent.lastEvent = {
+    lastEvent = {
       ...params,
       type: key + ':' + params.type
-    } as RendererDownloadEvent
+    }
 
     if (emitEvent.timeoutInProgress) return
     emitEvent.timeoutInProgress = true
     setTimeout(() => {
-      emitEvent.send('DOWNLOAD:EVENT', emitEvent.lastEvent)
+      emitEvent.send('DOWNLOAD:EVENT', lastEvent)
       emitEvent.timeoutInProgress = false
     }, 300)
   },
@@ -148,7 +167,7 @@ let ALL_TRACKS: DownloadInstance[] = []
 export default {
   async onDowloadStart() {
     console.log('--------------DOWNLOAD STARTED--------------')
-    ALL_TRACKS.length && emitEvent.downloadStarted(ALL_TRACKS)
+    if (ALL_TRACKS.length) emitEvent.downloadStarted(ALL_TRACKS)
   },
   async downloadSyncedPlaylists(
     localTracks: SongBasketTrackFile[],
@@ -173,9 +192,9 @@ export default {
     for (const track of ALL_TRACKS) {
       try {
         await track.controller.execute()
-      } catch (error) {
-        if (global.CONNECTED_TO_INTERNET) {
-          await global.flushYtDlCache()
+      } catch {
+        if (getConnectedToInternet()) {
+          await ytDlp.flushCache()
           continue
         } else {
           hasErrors = true
@@ -192,11 +211,11 @@ export default {
 }
 
 function constructDownloads(tracks: QueryTrack[]) {
-  const exec = () => tracks.map(generateDownloadObject).filter((track) => track)
+  const exec = () => tracks.map(generateDownloadObject)
 
   // CONSTRUCTOR FUNCTIONS
   const generateDownloadObject = (track: QueryTrack): DownloadInstance => {
-    const { id, playlists, data, selection } = track
+    const { id, playlists, data } = track
     const instance: DownloadInstance = {
       id,
       info: {
@@ -220,12 +239,7 @@ function constructDownloads(tracks: QueryTrack[]) {
         ptg: 0,
         finished: false
       },
-      yt: (() => {
-        // TODO centralize this logic somewhere else
-        if (selection === null) return track.conversion?.bestMatch!
-        if (selection === false) return track.custom?.id!
-        return selection
-      })(),
+      yt: selectedYoutubeId(track),
       data,
       playlists: playlists.map(({ id }) => ({
         id,
@@ -250,27 +264,25 @@ function constructDownloads(tracks: QueryTrack[]) {
     }
 
     const paths = instance.paths
-    const fileName = (paths.fileName = utils.encodeIntoFilename(data.name)) // colons turnt into hyphens & etc
+    const fileName = (paths.fileName = utils.encodeIntoFilename(data.name))
     const fileNameAlt = (paths.fileNameAlt = `${fileName} - ${id}`)
-    if (!instance.playlists.length) global.log(instance, 'passed?')
-    paths.downloadCWD = PATH.join(
-      tempDownloadsFolderPath(),
-      instance.playlists[0].id
-    )
+    const firstPlaylist = instance.playlists[0]
+    if (!firstPlaylist) throw new Error('NO PLAYLIST')
+    paths.downloadCWD = PATH.join(tempDownloadsFolderPath(), firstPlaylist.id)
     paths.mp4FilePath = PATH.join(
       paths.downloadCWD,
       id + '.songbasket_preprocessed_file'
     )
     paths.mp3FilePath = PATH.join(paths.downloadCWD, id + '.mp3')
-    if (instance.playlists[0].folderName) {
+    if (firstPlaylist.folderName) {
       paths.mp3FilePathFinal = PATH.join(
-        global.HOME_FOLDER,
-        utils.encodeIntoFilename(instance.playlists[0].folderName),
+        getHomeFolder(),
+        utils.encodeIntoFilename(firstPlaylist.folderName),
         fileName + '.mp3'
       )
       paths.mp3FilePathFinalAlt = PATH.join(
-        global.HOME_FOLDER,
-        utils.encodeIntoFilename(instance.playlists[0].folderName),
+        getHomeFolder(),
+        utils.encodeIntoFilename(firstPlaylist.folderName),
         fileNameAlt + '.mp3'
       )
     }
@@ -311,7 +323,7 @@ function constructDownloads(tracks: QueryTrack[]) {
           })
         } catch (error) {
           console.error('Error when downloading video::::', error)
-          instance.info.download.error = error as Error
+          instance.info.download.error = toError(error)
           instance.info.currentStatus = DownloadStatus.DownloadError
           emitEvent.download({ type: LifeCycle.Error, id: instance.id })
           throw error
@@ -348,15 +360,16 @@ function constructDownloads(tracks: QueryTrack[]) {
               }
             )
           } catch (err) {
-            if (err instanceof Error) instance.info.extraction.error = err
+            instance.info.extraction.error = toError(err)
             instance.info.currentStatus = DownloadStatus.ExtractionError
             emitEvent.extraction({ type: LifeCycle.Error, id: instance.id })
             throw err
           } finally {
             instance.info.extraction.finished = true
-            !instance.info.extraction.error &&
-              (instance.info.extraction.ptg = 100) +
-                (instance.info.currentStatus = DownloadStatus.ExtractionEnd)
+            if (!instance.info.extraction.error) {
+              instance.info.extraction.ptg = 100
+              instance.info.currentStatus = DownloadStatus.ExtractionEnd
+            }
             emitEvent.extraction({ type: LifeCycle.End, id: instance.id })
           }
 
@@ -371,13 +384,13 @@ function constructDownloads(tracks: QueryTrack[]) {
             console.log('finished tags')
             emitEvent.tags({ type: LifeCycle.End, id: instance.id })
           } catch (err) {
-            if (err instanceof Error) instance.info.tags.error = err
+            instance.info.tags.error = toError(err)
             instance.info.currentStatus = DownloadStatus.TagsError
             emitEvent.tags({ type: LifeCycle.Error, id: instance.id })
             throw err
           } finally {
-            !instance.info.tags.error &&
-              (instance.info.currentStatus = DownloadStatus.TagsEnd)
+            if (!instance.info.tags.error)
+              instance.info.currentStatus = DownloadStatus.TagsEnd
             instance.info.tags.finished = true
             instance.info.finished = true
           }
@@ -445,7 +458,7 @@ function constructDownloads(tracks: QueryTrack[]) {
     instance.playlists.forEach(async (pl) => {
       // TODO: make this async
       if (!pl.folderName) throw new Error('NO FOLDER NAME')
-      const folderPath = PATH.join(global.HOME_FOLDER, pl.folderName)
+      const folderPath = PATH.join(getHomeFolder(), pl.folderName)
 
       let fullPath = PATH.join(folderPath, instance.paths.fileName + '.mp3')
       if (await utils.pathDoesExist(fullPath))

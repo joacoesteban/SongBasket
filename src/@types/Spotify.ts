@@ -89,7 +89,6 @@ export type SpotifyPlaylist = {
   folderName?: string | null
 }
 
-// API Responses
 export type SpotifyApiPlaylistsResponse = {
   href: string
   items: SpotifyPlaylist[]
