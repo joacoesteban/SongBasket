@@ -90,7 +90,7 @@ const playlistFormatted = computed(() => ({
   backgroundImage: playlistImage(props.playlist)
 }))
 const cardOptions = computed(() => {
-  if (isSynced.value) return { size: '.8em', height: '3.5em' }
+  if (isSynced.value) return { size: '.8em', height: '4.5em' }
   return {}
 })
 const rowClasses = computed(() => {

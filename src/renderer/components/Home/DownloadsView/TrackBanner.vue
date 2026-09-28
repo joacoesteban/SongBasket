@@ -269,4 +269,7 @@ const openVideo = (): void => {
   margin-top: 0.2em;
   font-size: 0.6em;
 }
+.track-controls {
+  gap: 0.5em;
+}
 </style>
