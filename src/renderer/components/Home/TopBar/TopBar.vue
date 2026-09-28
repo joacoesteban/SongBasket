@@ -7,6 +7,50 @@
     <div class="drop-shadow abs-full show-on-scroll" />
     <div class="drop-gradient abs-full hide-on-scroll" />
 
+    <div class="bar-slider-container h-fc rel-full df" :style="sliderStyle">
+      <div class="df fldc aliend bar-slide h-fc show">
+        <div class="section-switcher-container">
+          <div class="section-switcher-list">
+            <div
+              v-for="section in sections"
+              :key="section.routeName"
+              class="section-switch window-nodrag"
+              :class="{ active: activeSection === section.routeName }"
+            >
+              <button
+                class="section-title semibold"
+                :disabled="navigationPending"
+                @click="section.cb"
+              >
+                {{ section.title }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <playlist-view-slide
+        :class="{ show: currentPath === routeNames.playlistView }"
+        class="bar-slide"
+        style="--slide-height: 6em"
+      />
+      <track-review-slide
+        :class="{ show: currentPath === routeNames.trackReview }"
+        class="bar-slide hidden-of"
+        style="--slide-height: 10em"
+      />
+      <downloads-view-slide
+        :class="{ show: currentPath === routeNames.downloadsView }"
+        class="bar-slide"
+      />
+    </div>
+
+    <div
+      class="loading-bar"
+      :style="loadingBarStyle"
+      :class="loadingBarClasses"
+    >
+      <div class="actual-loading-bar gradient-background-cycle-less" />
+    </div>
     <div class="title-bar-container abs-full">
       <div id="title-bar" class="mac title-section">
         <div v-if="isMac" class="title-bar-buttons-container">
@@ -99,51 +143,6 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <div class="bar-slider-container h-fc rel-full df" :style="sliderStyle">
-      <div class="df fldc aliend bar-slide h-fc show">
-        <div class="section-switcher-container">
-          <div class="section-switcher-list">
-            <div
-              v-for="section in sections"
-              :key="section.routeName"
-              class="section-switch window-nodrag"
-              :class="{ active: activeSection === section.routeName }"
-            >
-              <button
-                class="section-title semibold"
-                :disabled="navigationPending"
-                @click="section.cb"
-              >
-                {{ section.title }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <playlist-view-slide
-        :class="{ show: currentPath === routeNames.playlistView }"
-        class="bar-slide"
-        style="--slide-height: 6em"
-      />
-      <track-review-slide
-        :class="{ show: currentPath === routeNames.trackReview }"
-        class="bar-slide hidden-of"
-        style="--slide-height: 10em"
-      />
-      <downloads-view-slide
-        :class="{ show: currentPath === routeNames.downloadsView }"
-        class="bar-slide"
-      />
-    </div>
-
-    <div
-      class="loading-bar"
-      :style="loadingBarStyle"
-      :class="loadingBarClasses"
-    >
-      <div class="actual-loading-bar gradient-background-cycle-less" />
     </div>
   </div>
 </template>
