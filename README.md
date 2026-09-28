@@ -2,8 +2,8 @@
 
 > Download your Spotify Playlists as MP3
 
-Electron desktop app. The main process talks to the SongBasket backend
-(`https://api.songbasket.com`), which owns the Spotify OAuth flow and the
+SongBasket is an Electron desktop app. The main process talks to the SongBasket
+backend (`https://api.songbasket.com`), which owns the Spotify OAuth flow and
 YouTube matching. Downloads run locally through `yt-dlp` and `ffmpeg`.
 
 The API source is included as a Git submodule in `backend/`. Initialize it
@@ -15,8 +15,8 @@ git submodule update --init --recursive
 
 ## Requirements
 
-[mise](https://mise.jdx.dev) provides Node and Bun. Everything else installs
-into the project.
+[mise](https://mise.jdx.dev) provides Node 24 and Bun 1. Bun manages the root
+dependencies through `bun.lock`.
 
 ```bash
 mise install
@@ -26,58 +26,83 @@ mise run install
 `yt-dlp` and `ffmpeg` are not project dependencies. The app downloads the
 binary for the current platform on first boot, from the latest GitHub release
 of `yt-dlp/yt-dlp` and `eugeneware/ffmpeg-static`, into the app support
-directory. It compares release ids on every boot and re-downloads on change.
+directory. It compares release IDs on every boot and downloads a new binary
+when the ID changes.
 
 ## Tasks
 
+Run the development app with hot reload:
+
 ```bash
-mise run dev          # vite dev server + electron, hot reload
-mise run build        # bundle main and renderer into out/
-mise run pack         # unsigned .app in release/, for local testing
-mise run dist         # distributables for the current platform
-mise run typecheck    # main process
-mise run lint         # eslint across the repo
+mise run dev
 ```
 
+Use these tasks for local checks and builds:
+
+```bash
+mise run preview       # build and run the app as it ships
+mise run test          # bundle and run SQLite persistence tests
+mise run typecheck     # main, preload, shared contracts, and renderer
+mise run lint          # ESLint and the formatting check
+mise run format        # format source and configuration files
+mise run format:check  # check source and configuration formatting
+mise run build         # bundle main and renderer into out/
+mise run pack          # unsigned local app in release/
+mise run dist          # distributables for the current platform
+```
+
+`mise run lint:fix` runs ESLint fixes and formats source files. Use
+`mise run typecheck:main`, `mise run typecheck:preload`, and
+`mise run typecheck:renderer` to run one typecheck project.
+
 `REMOTE_DEBUGGING_PORT=9333 mise run dev` exposes the renderer over the Chrome
-DevTools Protocol, which is how the window can be inspected without attaching
-a debugger by hand.
+DevTools Protocol. Use this endpoint to inspect the window without attaching a
+debugger by hand.
 
 ## Layout
 
 | Path | What |
 | --- | --- |
-| `src/main` | Main process: boot, IPC routes, store, download pipeline, filesystem watchers |
-| `src/renderer` | Vue 2.7 app: router, Vuex store, components |
-| `src/@types` | Shared types and global declarations |
-| `backend` | API source (Git submodule) |
-| `electron.vite.config.ts` | Build config for both bundles |
+| `src/main` | Main process: boot, controllers, API calls, persistence, downloads, and filesystem watchers |
+| `src/preload` | Sandboxed typed IPC bridge |
+| `src/shared` | Typed IPC and domain contracts shared by process bundles |
+| `src/renderer` | Vue 3 app: Vue Router 4 hash routes, composable state service, and components |
+| `src/main/persistence` | SQLite state, migrations, targeted writes, file links, and legacy import |
+| `src/@types` | Domain types and renderer declarations |
+| `backend` | Legacy API source (Git submodule) |
+| `electron.vite.config.ts` | Build config for main, preload, and renderer bundles |
 | `electron-builder.yml` | Packaging and publishing |
 
-State lives in two places: a `.songbasket` file inside the selected home
-folder, and `.songbasket-folders` plus the downloaded binaries in the app
-support directory (`app.getPath('userData')` when packaged, `APPLICATION_SUPPORT/`
-in development).
+## Desktop state
 
-## Renderer node integration
+The main process stores the current desktop state in SQLite at
+`<selected library folder>/.songbasket.db`. SQLite uses WAL mode and
+versioned migrations. Targeted writes use transactions.
 
-Both windows still run with `nodeIntegration: true` and
-`contextIsolation: false`. Vite would try to bundle `electron` and
-`@electron/remote` for the browser, so both are aliased to shims in
-`src/renderer/shims` that reach the real modules through `window.require`.
+When the database does not exist, the app imports the legacy JSON file at
+`<selected library folder>/.songbasket`. The importer writes
+`.songbasket.db.importing`, reads the database back, and compares the result
+before it renames the temporary database to `.songbasket.db`. It keeps the
+legacy file untouched.
 
-Moving the renderer behind a preload bridge removes the shims, the alias
-entries and `@electron/remote` in one go.
+The app support directory stores `.songbasket-folders`, encrypted session
+credentials, downloaded binaries, version metadata, temporary files, and logs.
+Packaged builds use Electron's `app.getPath('userData')`. Development uses
+`APPLICATION_SUPPORT/`.
+
+## Process boundary
+
+The main and loading windows use a sandboxed preload with
+`nodeIntegration: false` and `contextIsolation: true`. The preload exposes
+`window.songbasket`, which provides typed IPC invoke and event functions.
+The renderer does not use Node access, `@electron/remote`, jQuery, or Font
+Awesome.
 
 ## Known debt
 
-- The renderer was mid-TypeScript-migration when work stopped.
-  `vue-tsc --noEmit -p tsconfig.renderer.json` reports roughly 745 errors,
-  almost all missing annotations in `.vue` files. The renderer builds and runs;
-  only `mise run typecheck` (main process) is enforced.
-- `eslint` reports ~74 errors in legacy code, mostly `no-return-assign`,
-  `no-useless-catch` and unused Vue components.
-- Sessions were stored with `keytar`, which is archived. Credentials now use
-  Electron's `safeStorage` in `credentials.json`, so existing installs need to
-  log in once more.
-- `fluent-ffmpeg` is unmaintained upstream but still drives extraction progress.
+- The API rewrite is not complete. The backend remains the legacy Express API.
+- No replacement API framework or deployment platform is agreed yet.
+- The backend still uses PostgreSQL. Its database design, driver, schema, and
+  final migration plan are not agreed.
+- `fluent-ffmpeg` is unmaintained upstream but still drives extraction
+  progress.
