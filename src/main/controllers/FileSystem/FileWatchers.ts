@@ -60,8 +60,6 @@ const FileWatchers: {
   tracks: {},
   watchers: [],
   async createPlaylistWatchers() {
-    // TODO Create watchers anyway
-    if (!(await UserMethods.retrieveLocalTracks()).length) return
     const syncedPlaylists = customGetters.SyncedPlaylistsSp()
     syncedPlaylists.forEach((pl) => {
       const path =
