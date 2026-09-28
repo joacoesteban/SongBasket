@@ -11,7 +11,7 @@
     "preview": "electron-vite preview",
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.main.json && vue-tsc --noEmit -p tsconfig.renderer.json",
-    "test": "bun build tests/persistence.test.ts --target=node --outfile=temp/persistence.test.mjs && bun build tests/animation.test.ts --target=node --outfile=temp/animation.test.mjs && node --test temp/persistence.test.mjs temp/animation.test.mjs",
+    "test": "bun build tests/persistence.test.ts --target=node --outfile=temp/persistence.test.mjs && bun build tests/animation.test.ts --target=node --outfile=temp/animation.test.mjs && bun build tests/shortcuts.test.ts --target=node --outfile=temp/shortcuts.test.mjs && node --test temp/persistence.test.mjs temp/animation.test.mjs temp/shortcuts.test.mjs",
     "lint": "eslint . && bun run format:check",
     "lint:fix": "eslint . --fix && bun run format",
     "format": "prettier --write 'src/**/*.ts' 'src/**/*.vue' 'src/**/*.css' 'src/**/*.scss' electron.vite.config.ts electron-builder.yml tsconfig.base.json tsconfig.main.json tsconfig.renderer.json eslint.config.mjs .prettierrc package.json",

@@ -3,11 +3,13 @@ import type {
   EventPayload,
   InvokeArgs,
   InvokeChannel,
-  InvokeResponse
+  InvokeResponse,
+  RuntimePlatform
 } from '../shared/ipc'
 
 declare global {
   interface SongBasketWindowApi {
+    platform: RuntimePlatform
     invoke<Channel extends InvokeChannel>(
       channel: Channel,
       ...args: InvokeArgs<Channel>

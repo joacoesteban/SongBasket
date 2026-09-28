@@ -6,7 +6,8 @@ import type {
   EventPayload,
   InvokeArgs,
   InvokeChannel,
-  InvokeResponse
+  InvokeResponse,
+  RuntimePlatform
 } from '../shared/ipc'
 
 export function typedInvoke<Channel extends InvokeChannel>(
@@ -38,7 +39,10 @@ export function typedOn(
   }
 }
 
+const RUNTIME_PLATFORM: RuntimePlatform = process.platform
+
 contextBridge.exposeInMainWorld('songbasket', {
+  platform: RUNTIME_PLATFORM,
   invoke: typedInvoke,
   on: typedOn
 })

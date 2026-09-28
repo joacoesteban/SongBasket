@@ -16,6 +16,9 @@ import { RouterView } from 'vue-router'
 import './CSS/styles-loader'
 import Modal from './components/Modal/Modal.vue'
 import { navigationDirection, navigationFast, navigationScope } from './router'
+import useShortcuts from './shortcuts'
+
+useShortcuts()
 
 const routerClasses = computed<Record<string, boolean>>(() => ({
   [navigationDirection.value]: navigationScope.value === 'root',

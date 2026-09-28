@@ -11,6 +11,19 @@ import type {
   SongBasketTrackQuery
 } from './songbasket'
 
+export type RuntimePlatform =
+  | 'aix'
+  | 'android'
+  | 'cygwin'
+  | 'darwin'
+  | 'freebsd'
+  | 'haiku'
+  | 'linux'
+  | 'netbsd'
+  | 'openbsd'
+  | 'sunos'
+  | 'win32'
+
 export type JsonPrimitive = string | number | boolean | null
 export type JsonValue =
   JsonPrimitive | JsonValue[] | { [key: string]: JsonValue }
