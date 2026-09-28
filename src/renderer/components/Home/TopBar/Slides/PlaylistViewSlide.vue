@@ -56,7 +56,7 @@
         class="playlist-status-indicator"
         :style="{ '--status-color': status.color }"
       >
-        <span class="bold uppercase">{{ status.message }}</span>
+        <span class="bold uppercase">{{ status.label }}</span>
       </div>
     </div>
   </div>
@@ -73,12 +73,7 @@ import PlayIcon from '../../../../assets/icons/play-icon.vue'
 import { navigate, routeNames } from '../../../../router'
 import { useSongBasketActions, useSongBasketState } from '../../../../state'
 import { useModal } from '../../../../state/useModal'
-
-type PlaylistStatus = {
-  slug: 'unsynced' | 'paused' | 'synced' | 'error' | 'review' | 'convert'
-  message: string
-  color: string
-}
+import { playlistStatus } from '../../playlist-status'
 
 const route = useRoute()
 const state = useSongBasketState()
@@ -90,47 +85,11 @@ const playlist = computed(() => {
   if (typeof id !== 'string') return null
   return state.state.value?.playlists.find((item) => item.id === id) ?? null
 })
-const playlistTrackIds = computed(() => {
+const status = computed(() => {
   const current = playlist.value
-  if (current === null) return new Set<string>()
-  return new Set(current.tracks.items.map((track) => track.id))
-})
-const status = computed<PlaylistStatus | null>(() => {
-  const current = playlist.value
-  if (current === null) return null
-  if (!state.state.value?.syncedPlaylists.includes(current.id)) {
-    return {
-      slug: 'unsynced',
-      message: 'Click to sync',
-      color: 'var(--button-purple)'
-    }
-  }
-  if (current.isPaused) {
-    return { slug: 'paused', message: 'Paused', color: 'var(--global-grey)' }
-  }
-
-  const tracks = state.state.value?.convertedTracks.filter((track) =>
-    playlistTrackIds.value.has(track.id)
-  )
-  const errorCount =
-    tracks?.filter((track) => track.flags.conversionError).length ?? 0
-  if (errorCount > 0) {
-    return {
-      slug: 'error',
-      message: `${errorCount} conversion error${pluralSuffix(errorCount)}`,
-      color: 'var(--red-cancel)'
-    }
-  }
-  const conversionCount =
-    tracks?.filter((track) => !track.flags.converted).length ?? 0
-  if (conversionCount > 0) {
-    return {
-      slug: 'convert',
-      message: `${conversionCount} track${pluralSuffix(conversionCount)} to convert`,
-      color: 'var(--button-purple)'
-    }
-  }
-  return { slug: 'synced', message: 'Synced', color: 'var(--green-accept)' }
+  const value = state.state.value
+  if (current === null || value === null) return null
+  return playlistStatus(current, value, state.downloadedTracks.value)
 })
 const trackAmountText = computed(() => {
   const amount = playlist.value?.tracks.total ?? 0

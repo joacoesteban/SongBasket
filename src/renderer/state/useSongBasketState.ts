@@ -1,3 +1,4 @@
+import { match } from 'ts-pattern'
 import {
   type ComputedRef,
   type DeepReadonly,
@@ -9,11 +10,16 @@ import {
   shallowRef
 } from 'vue'
 
+import {
+  withDownloadedFile,
+  withoutDownloadedFile
+} from '../../shared/downloaded-tracks'
 import type {
   AppErrorDto,
   AppStatusDto,
   DownloadEvent,
   DownloadStartItem,
+  DownloadedFileDto,
   LoadingSnapshot,
   SongBasketStateDto,
   StatePatchEvent,
@@ -34,6 +40,48 @@ const ffmpegBinariesDownloadedRef = shallowRef(false)
 const downloadItemsRef = shallowRef<DownloadStartItem[]>([])
 const downloadEventRef = shallowRef<DownloadEvent | null>(null)
 const downloadActiveRef = shallowRef(false)
+type DownloadedFileChange = {
+  type: 'added' | 'removed'
+  file: DownloadedFileDto
+}
+
+const PENDING_DOWNLOADED_FILE_CHANGES: DownloadedFileChange[] = []
+let downloadedFileTimer: ReturnType<typeof setTimeout> | undefined
+
+const applyDownloadedFileChanges = (
+  tracks: TrackListDto,
+  changes: readonly DownloadedFileChange[]
+): TrackListDto =>
+  changes.reduce(
+    (current, change) =>
+      match(change.type)
+        .with('added', () => withDownloadedFile(current, change.file))
+        .with('removed', () => withoutDownloadedFile(current, change.file))
+        .exhaustive(),
+    tracks
+  )
+
+const consumeDownloadedFileChanges = (
+  tracks: TrackListDto | null
+): TrackListDto | null => {
+  const changes = PENDING_DOWNLOADED_FILE_CHANGES.splice(0)
+  if (downloadedFileTimer !== undefined) {
+    clearTimeout(downloadedFileTimer)
+    downloadedFileTimer = undefined
+  }
+  if (changes.length === 0) return tracks
+  return applyDownloadedFileChanges(tracks ?? {}, changes)
+}
+
+const queueDownloadedFileChange = (change: DownloadedFileChange): void => {
+  PENDING_DOWNLOADED_FILE_CHANGES.push(change)
+  if (downloadedFileTimer !== undefined) clearTimeout(downloadedFileTimer)
+  downloadedFileTimer = setTimeout(() => {
+    downloadedTracksRef.value = consumeDownloadedFileChanges(
+      downloadedTracksRef.value
+    )
+  }, 200)
+}
 
 const errorFromUnknown = (value: unknown): AppErrorDto => {
   if (value instanceof Error) {
@@ -62,7 +110,9 @@ const errorFromUnknown = (value: unknown): AppErrorDto => {
 const applyStatus = (status: AppStatusDto): void => {
   statusRef.value = status
   stateRef.value = status.state
-  downloadedTracksRef.value = status.downloadedTracks
+  downloadedTracksRef.value = consumeDownloadedFileChanges(
+    status.downloadedTracks
+  )
   connectedToInternetRef.value = status.CONNECTED_TO_INTERNET
   connectedToApiRef.value = status.CONNECTED_TO_API
   ffmpegBinariesDownloadedRef.value = status.FFMPEG_BINS_DOWNLOADED
@@ -154,6 +204,12 @@ export const createSongBasketState = (): SongBasketStateService => {
     window.songbasket.on('API_CONNECTION:CHANGE', (value) => {
       connectedToApiRef.value = value
     }),
+    window.songbasket.on('DOWNLOADED_FILE:ADDED', (file) => {
+      queueDownloadedFileChange({ type: 'added', file })
+    }),
+    window.songbasket.on('DOWNLOADED_FILE:REMOVED', (file) => {
+      queueDownloadedFileChange({ type: 'removed', file })
+    }),
     window.songbasket.on('STATE:SNAPSHOT', ({ state }) => {
       stateRef.value = state
     }),
@@ -190,6 +246,9 @@ export const createSongBasketState = (): SongBasketStateService => {
     refreshStatus,
     dispose: () => {
       unsubs.forEach((unsubscribe) => unsubscribe())
+      clearTimeout(downloadedFileTimer)
+      downloadedFileTimer = undefined
+      PENDING_DOWNLOADED_FILE_CHANGES.splice(0)
     }
   }
 }

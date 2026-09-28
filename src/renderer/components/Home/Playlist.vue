@@ -26,7 +26,7 @@
         :class="status.slug"
         :style="{ '--status-color': status.color }"
       >
-        <span class="bold uppercase">{{ status.msg }}</span>
+        <span class="bold uppercase">{{ status.label }}</span>
       </div>
     </div>
   </Card>
@@ -38,38 +38,35 @@ import { computed } from 'vue'
 import type { SpotifyPlaylistId } from '../../../@types/Spotify'
 import { useSongBasketActions, useSongBasketState } from '../../state'
 import Card from './Generic/Card.vue'
-import { type Playlist, playlistImage, playlistStatus } from './model'
+import type { Playlist } from './model'
+import { playlistImage } from './model'
+import { type PlaylistStatus, playlistStatus } from './playlist-status'
 
 defineOptions({ name: 'PlaylistCard' })
-
-type Status = ReturnType<typeof playlistStatus>
 
 const props = defineProps<{
   playlist: Playlist
 }>()
 const emit = defineEmits<{ openPlaylist: [id: SpotifyPlaylistId] }>()
 
-const { state } = useSongBasketState()
+const { state, downloadedTracks } = useSongBasketState()
 const { queuePlaylist } = useSongBasketActions()
 
-const currentState = computed(() => state.value)
-const status = computed<Status>(() => {
-  const value = currentState.value
-  if (value === null) {
-    return {
-      baseState: 'idle',
-      color: 'var(--button-purple)',
-      msg: 'Not synced',
-      slug: 'not-synced'
-    }
-  }
-  return playlistStatus(props.playlist, value)
-})
-const isSynced = computed(() => status.value.baseState === 'synced')
-const isQueued = computed(() => status.value.baseState === 'queued')
-const showChanges = computed(
-  () => isSynced.value && status.value.baseState !== 'paused'
+const status = computed<PlaylistStatus>(() =>
+  playlistStatus(
+    props.playlist,
+    state.value ?? { syncedPlaylists: [], convertedTracks: [] },
+    downloadedTracks.value
+  )
 )
+const isSynced = computed(() => status.value.slug !== 'unsynced')
+const isQueued = computed(() => {
+  const value = state.value
+  if (value === null) return false
+  return value.queuedPlaylists.includes(props.playlist.id)
+})
+const isPaused = computed(() => status.value.slug === 'paused')
+const showChanges = computed(() => isSynced.value && !isPaused.value)
 const trackAmountStr = computed(() => {
   const count = props.playlist.tracks.total
   let suffix = ' Tracks'
@@ -84,7 +81,7 @@ const cardOptions = computed(() => {
   return {}
 })
 const rowClasses = computed(() => {
-  if (status.value.baseState === 'paused') return 'col-lg-3 col-md-5 col-xs-12'
+  if (isPaused.value) return 'col-lg-3 col-md-5 col-xs-12'
   return 'col-lg-4 col-md-6 col-xs-12'
 })
 

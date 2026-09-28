@@ -105,6 +105,12 @@ export type SongBasketStateDto = {
   lastSync: string | null
 }
 
+export type DownloadedFileDto = {
+  spotify_id: string | null
+  youtube_id: string | null
+  playlist: string
+}
+
 export type TrackListDto = Record<
   SpotifyTrackId,
   Record<string, { playlists: string[] }>
@@ -256,6 +262,8 @@ export type RendererEventContract = {
   'API_CONNECTION:CHANGE': boolean
   'STATE:SNAPSHOT': { state: SongBasketStateDto; dontFormat?: boolean }
   'STATE:PATCH': StatePatchEvent
+  'DOWNLOADED_FILE:ADDED': DownloadedFileDto
+  'DOWNLOADED_FILE:REMOVED': DownloadedFileDto
   'DOWNLOAD:START': DownloadStartItem[]
   'DOWNLOAD:EVENT': DownloadEvent
   'DOWNLOAD:END': undefined

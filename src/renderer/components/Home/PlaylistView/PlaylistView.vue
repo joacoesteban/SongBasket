@@ -62,10 +62,11 @@ import { useRoute } from 'vue-router'
 import { navigate, navigationPending, routeNames } from '../../../router'
 import { useSongBasketState } from '../../../state'
 import type { Playlist, TrackItem } from '../model'
+import { sortTracksByStatus } from '../track-status'
 import Track from './Track.vue'
 
 const route = useRoute()
-const { state } = useSongBasketState()
+const { state, downloadedTracks } = useSongBasketState()
 const changesContainer = ref<HTMLElement | null>(null)
 const changesHeight = ref(0)
 
@@ -82,9 +83,10 @@ const playlist = computed<Playlist | null>(() => {
 const convertedItems = computed<readonly TrackItem[]>(() => {
   const value = state.value
   if (value === null) return []
-  return value.convertedTracks.filter((track) =>
+  const tracks = value.convertedTracks.filter((track) =>
     track.playlists.some((membership) => membership.id === playlistId.value)
   )
+  return sortTracksByStatus(tracks, downloadedTracks.value)
 })
 const added = computed<readonly TrackItem[]>(
   () => playlist.value?.tracks.added ?? []

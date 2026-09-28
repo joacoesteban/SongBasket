@@ -19,9 +19,13 @@
         <span v-if="isRemoved" class="bold uppercase point75-em color-red"
           >removed</span
         >
-        <span v-if="statusLabel" class="bold uppercase point75-em">{{
-          statusLabel
-        }}</span>
+        <span
+          v-if="status !== null"
+          class="bold uppercase point75-em"
+          :style="{ color: status.color }"
+        >
+          {{ status.label }}
+        </span>
       </div>
     </div>
   </Card>
@@ -31,9 +35,11 @@
 import { computed } from 'vue'
 
 import { navigate, routeNames } from '../../../router'
+import { useSongBasketState } from '../../../state'
 import Card from '../Generic/Card.vue'
-import type { TrackItem } from '../model'
 import { artistsString, trackImage, trackName } from '../model'
+import type { TrackItem } from '../model'
+import { canReviewTrack, trackStatus } from '../track-status'
 
 defineOptions({ name: 'TrackCard' })
 
@@ -50,6 +56,8 @@ const props = withDefaults(
     isReviewing: false
   }
 )
+
+const { downloadedTracks } = useSongBasketState()
 
 const HOVER_SCALE_OFF = false
 const cardOptions = computed(() => {
@@ -71,15 +79,14 @@ const rowClasses = computed(() => {
 const itemFormatted = computed(() => ({
   backgroundImage: trackImage(props.item)
 }))
-const statusLabel = computed(() => {
-  if (!('flags' in props.item)) return ''
-  if (props.item.flags.paused) return 'Paused'
-  if (props.item.flags.conversionError) return 'Error'
-  if (props.item.flags.selectionIsApplied) return 'Ready'
-  return ''
+const status = computed(() => {
+  if (!('flags' in props.item)) return null
+  return trackStatus(props.item, downloadedTracks.value)
 })
 
 const handleClick = (): void => {
+  const currentStatus = status.value
+  if (currentStatus === null || !canReviewTrack(currentStatus.slug)) return
   void navigate({
     name: routeNames.trackReview,
     params: { id: props.item.id }

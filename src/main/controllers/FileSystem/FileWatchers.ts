@@ -39,16 +39,9 @@ const homeFolderPath = () => getHomeFolder()
 
 type WatcherCallback = (track?: TrackFileEntry) => unknown
 
-let onReadyFns: WatcherCallback[] = []
-let onTrackAddedFns: WatcherCallback[] = []
-let onTrackRemovedFns: WatcherCallback[] = []
-
-const resetFns = () => {
-  onReadyFns = []
-  onTrackAddedFns = []
-  onTrackRemovedFns = []
-}
-resetFns()
+const ON_READY_FNS: WatcherCallback[] = []
+const ON_TRACK_ADDED_FNS: WatcherCallback[] = []
+const ON_TRACK_REMOVED_FNS: WatcherCallback[] = []
 
 const FileWatchers: {
   tracks: Record<string, NormalizedTagMap>
@@ -119,7 +112,6 @@ const FileWatchers: {
     }
     this.watchers = []
     this.tracks = {}
-    resetFns()
   },
   async rebuildWatchers() {
     await this.clearAll()
@@ -249,11 +241,11 @@ const normalizeTagName = (
 const giveMeStack = (event: SBWatcherEvent): WatcherCallback[] | null => {
   switch (event) {
     case SBWatcherEvent.READY:
-      return onReadyFns
+      return ON_READY_FNS
     case SBWatcherEvent.ADDED:
-      return onTrackAddedFns
+      return ON_TRACK_ADDED_FNS
     case SBWatcherEvent.REMOVED:
-      return onTrackRemovedFns
+      return ON_TRACK_REMOVED_FNS
     default:
       return null
   }

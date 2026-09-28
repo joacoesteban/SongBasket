@@ -1,7 +1,8 @@
 import type { SpotifyPlaylistId, SpotifyTrackId } from '../../../@types/Spotify'
 import type { YouTubeResultId } from '../../../@types/YouTube'
+import FileWatchers, { SBWatcherEvent } from '../FileSystem/FileWatchers'
 import * as handlers from './handlers'
-import { registerInvokeHandler } from './ipc.controller'
+import { ipcSend, registerInvokeHandler } from './ipc.controller'
 import WindowController from './window.controller'
 
 export default function registerIpcRoutes(): void {
@@ -65,4 +66,13 @@ export default function registerIpcRoutes(): void {
       await handlers.changeYtTrackSelection({ trackId, newId })
     }
   )
+
+  FileWatchers.on(SBWatcherEvent.ADDED, (track) => {
+    if (track === undefined) return
+    void ipcSend('DOWNLOADED_FILE:ADDED', track)
+  })
+  FileWatchers.on(SBWatcherEvent.REMOVED, (track) => {
+    if (track === undefined) return
+    void ipcSend('DOWNLOADED_FILE:REMOVED', track)
+  })
 }

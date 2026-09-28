@@ -40,8 +40,9 @@ import { navigate, navigationPending, routeNames } from '../../router'
 import { useSongBasketActions, useSongBasketState } from '../../state'
 import Playlist from './Playlist.vue'
 import type { Playlist as PlaylistModel } from './model'
+import { sortPlaylistsByStatus } from './playlist-status'
 
-const { state } = useSongBasketState()
+const { state, downloadedTracks } = useSongBasketState()
 const { loadMorePlaylists } = useSongBasketActions()
 const listElement = ref<HTMLElement | null>(null)
 
@@ -51,9 +52,10 @@ const playlists = computed<readonly PlaylistModel[]>(
 const syncedPlaylists = computed(() => {
   const value = state.value
   if (value === null) return []
-  return value.syncedPlaylists
+  const synced = value.syncedPlaylists
     .map((id) => playlists.value.find((playlist) => playlist.id === id))
     .filter((playlist): playlist is PlaylistModel => playlist !== undefined)
+  return sortPlaylistsByStatus(synced, value, downloadedTracks.value)
 })
 const unsyncedPlaylists = computed(() => {
   const value = state.value

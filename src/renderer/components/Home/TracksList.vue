@@ -21,12 +21,15 @@ import { navigationPending } from '../../router'
 import { useSongBasketState } from '../../state'
 import Track from './PlaylistView/Track.vue'
 import type { Track as TrackModel } from './model'
+import { sortTracksByStatus } from './track-status'
 
-const { state } = useSongBasketState()
+const { state, downloadedTracks } = useSongBasketState()
 const listElement = ref<HTMLElement | null>(null)
-const tracks = computed<readonly TrackModel[]>(
-  () => state.value?.convertedTracks ?? []
-)
+const tracks = computed<readonly TrackModel[]>(() => {
+  const value = state.value
+  if (value === null) return []
+  return sortTracksByStatus(value.convertedTracks, downloadedTracks.value)
+})
 
 const onScroll = (): void => {
   const element = listElement.value
