@@ -1,48 +1,49 @@
 <template>
   <div class="plv-container w100">
-    <div
-      ref="changesContainer"
-      class="changes-container"
-      :class="{ show: showingChanges }"
-      :style="{ '--changes-height': changesHeightLabel }"
-    >
-      <div v-if="added.length" class="pb-1">
-        <div class="list">
-          <div class="label-container">
-            <span class="point75-em"
-              >Added <span class="color-green">+{{ added.length }}</span></span
-            >
-          </div>
-        </div>
-        <div class="horizontal-scroller pt-0">
-          <Track
-            v-for="item in added"
-            :key="item.id"
-            :is-new="true"
-            :item="item"
-          />
-        </div>
-      </div>
-      <div v-if="removed.length" class="pb-1">
-        <div class="list">
-          <div class="label-container">
-            <span class="point75-em"
-              >Removed
-              <span class="color-red">-{{ removed.length }}</span></span
-            >
-          </div>
-        </div>
-        <div class="horizontal-scroller pt-0">
-          <Track
-            v-for="item in removed"
-            :key="item.id"
-            :is-removed="true"
-            :item="item"
-          />
-        </div>
-      </div>
-    </div>
     <div class="track-list row hideable-container">
+      <div
+        ref="changesContainer"
+        class="changes-container"
+        :class="{ show: showingChanges }"
+        :style="{ '--changes-height': changesHeightLabel }"
+      >
+        <div v-if="added.length" class="pb-1">
+          <div class="list">
+            <div class="label-container">
+              <span class="point75-em"
+                >Added
+                <span class="color-green">+{{ added.length }}</span></span
+              >
+            </div>
+          </div>
+          <div class="horizontal-scroller pt-0">
+            <Track
+              v-for="item in added"
+              :key="item.id"
+              :is-new="true"
+              :item="item"
+            />
+          </div>
+        </div>
+        <div v-if="removed.length" class="pb-1">
+          <div class="list">
+            <div class="label-container">
+              <span class="point75-em"
+                >Removed
+                <span class="color-red">-{{ removed.length }}</span></span
+              >
+            </div>
+          </div>
+          <div class="horizontal-scroller pt-0">
+            <Track
+              v-for="item in removed"
+              :key="item.id"
+              :is-removed="true"
+              :item="item"
+            />
+          </div>
+        </div>
+      </div>
       <div class="list">
         <Track v-for="item in iterableItems" :key="item.id" :item="item" />
       </div>
@@ -148,22 +149,28 @@ onBeforeUnmount(() => resizeObserver?.disconnect())
 }
 
 .changes-container {
-  --changes-height: 0px;
-  height: var(--changes-height);
-  opacity: 0;
-  transition:
-    opacity var(--hover-n-active-transitions),
-    height var(--ts-g);
-
-  &.show {
-    opacity: 1;
-  }
-
   .label-container {
     font-weight: bold;
     text-transform: uppercase;
     text-align: left;
     padding-left: calc(0.3em + var(--card-padding-x));
+  }
+
+  --changes-height: 0px;
+  height: var(--changes-height);
+  opacity: 0;
+
+  &,
+  * {
+    box-sizing: border-box;
+  }
+
+  transition:
+    var(--hover-n-active-transitions),
+    height var(--ts-g);
+
+  &.show {
+    opacity: 1;
   }
 }
 </style>

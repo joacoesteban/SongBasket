@@ -1,9 +1,9 @@
 <template>
   <div class="tracklist-container">
     <Card
-      v-for="track in items"
-      :key="track.id"
-      :item="{ backgroundImage: undefined }"
+      v-for="(track, index) in items"
+      :key="index"
+      :item="{ backgroundImage: track.data.album.images[0]?.url }"
     />
   </div>
 </template>

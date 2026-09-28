@@ -1,6 +1,10 @@
 <template>
   <div ref="listElement" class="tkl-container">
-    <div class="actual-list row hideable-container">
+    <div
+      ref="actual-list"
+      class="actual-list row hideable-container"
+      style="--list-transition-time: 250ms"
+    >
       <div v-if="tracks.length === 0" class="no-tracks">No Tracks found</div>
       <div class="list row">
         <Track v-for="track in tracks" :key="track.id" :item="track" />
@@ -39,10 +43,13 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
+$bezier: cubic-bezier(0, 1, 0, 1);
+$bezier-chill: cubic-bezier(0, 1, 0.5, 1);
+
 .tkl-container {
   --padding-x: var(--container-padding-x);
   --card-padding-x: 0.5em;
-  --scroll-opacity: 0;
+  /* margin-bottom: 2.4rem; */
   text-align: center;
   height: fit-content;
   width: 100%;
@@ -51,11 +58,67 @@ onBeforeUnmount(() => {
   padding-top: 0;
 }
 
-.actual-list > .list {
-  padding: 0 var(--padding-x);
+.actual-list {
+  > .list {
+    padding: 0 var(--padding-x);
+  }
 }
 
-.no-tracks {
+.filters-container {
+  pointer-events: none;
+  padding: 0.5em;
+  margin-bottom: 1em;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+
+  .filters-background {
+    background: linear-gradient(
+      180deg,
+      var(--global-grey-secondary),
+      transparent
+    );
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+  }
+
+  .filters-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    // padding: 0 1em;
+  }
+
+  .search-bar {
+    pointer-events: all;
+
+    .filters-background {
+      background: var(--global-grey-secondary);
+    }
+
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    border-radius: 10em;
+    padding-left: 1em;
+    padding-right: 0.2em;
+  }
+}
+
+.no-playlists {
   margin: 4em 0;
+}
+
+.background-container {
+  position: sticky;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 </style>

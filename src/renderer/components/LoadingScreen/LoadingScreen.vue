@@ -1,7 +1,9 @@
 <template>
   <div class="loading-container">
     <div>Loading</div>
-    <div v-if="status !== null">{{ status.appVersion }}</div>
+    <div v-if="status !== null" class="regular point5-em mt-2">
+      Version {{ status.appVersion }}
+    </div>
   </div>
 </template>
 

@@ -86,7 +86,9 @@ span.matching-token {
 }
 </style>
 <style lang="scss" scoped>
-.duration-diff > span {
-  font-size: 3em;
+.duration-diff {
+  > span {
+    font-size: 3em;
+  }
 }
 </style>

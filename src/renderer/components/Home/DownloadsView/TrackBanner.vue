@@ -8,13 +8,16 @@
         :class="downloadStatus.state"
       >
         <div class="progress-label df alic">
-          <span class="uppercase half-op point5-em semibold"
-            >{{ downloadStatus.state }} {{ downloadStatus.ptg }}%</span
-          >
+          <span class="uppercase half-op point5-em semibold">
+            {{ downloadStatus.state }} {{ downloadStatus.ptg }}%
+          </span>
         </div>
       </div>
       <div class="track-data w100">
         <div class="track-image">
+          <div v-if="isDownload" class="see-track-link">
+            <span class="sb-link uppercase semibold">see track</span>
+          </div>
           <Card
             row-classes="w100 h100 p-0imp track-banner-card"
             :item="cardItem"
@@ -22,13 +25,25 @@
           />
         </div>
         <div class="track-info df fldc jucb ellipsis h100">
-          <div
-            v-if="isConversion && trackFormatted.issue"
-            class="df alic text-secondary"
-          >
-            <span class="bold point75-em color-transition">{{
-              trackFormatted.issue
-            }}</span>
+          <div class="df alic">
+            <div
+              v-if="isConversion"
+              class="sb-tag mr-1 hidable-item gradient-background-cycle-less"
+              :class="{ hidden: !isSelected }"
+              style="--fz: 0.7em"
+            >
+              <b>Selected</b>
+            </div>
+            <div
+              v-if="isConversion && trackFormatted.issue"
+              class="df alic text-secondary"
+            >
+              <span class="conversion-status df alic">
+                <span class="bold point75-em color-transition">
+                  {{ trackFormatted.issue }}
+                </span>
+              </span>
+            </div>
           </div>
           <div class="ellipsis lh1point5">
             <span class="name">
@@ -36,9 +51,9 @@
                 v-for="(segment, index) in trackFormatted.nameSegments"
                 :key="`${index}-${segment.text}`"
               >
-                <span v-if="segment.matched" class="matching-token">{{
-                  segment.text
-                }}</span>
+                <span v-if="segment.matched" class="matching-token">
+                  {{ segment.text }}
+                </span>
                 <template v-else>{{ segment.text }}</template>
               </template>
             </span>
@@ -55,7 +70,9 @@
             </button>
           </div>
           <div v-if="!isConversion && !isDownload" class="ellipsis">
-            <span class="playlists">Inside</span>
+            <span class="playlists">
+              Inside <b>{{ trackFormatted.creator }}</b>
+            </span>
           </div>
         </div>
         <div v-if="!isDownload" class="duration">
@@ -204,6 +221,18 @@ const openVideo = (): void => {
 </script>
 
 <style lang="scss" scoped>
+$err1: rgba(255, 0, 100, 0.75) 1.53%;
+$err2: rgba(255, 35, 0, 0.75) 100%;
+$error-bg: linear-gradient(258.84deg, $err1, $err2);
+
+$dl1: rgba(36, 255, 0, 0.75) 1.53%;
+$dl2: rgba(0, 255, 136, 0.75) 100%;
+$download-bg: linear-gradient(258.84deg, $dl1, $dl2);
+
+$ex1: rgba(148, 0, 204, 0.75) 1.53%;
+$ex2: rgba(251, 0, 255, 0.75) 100%;
+$extraction-bg: linear-gradient(258.84deg, $ex1, $ex2);
+
 .track-banner-container {
   height: 7em;
   transition:
@@ -211,6 +240,39 @@ const openVideo = (): void => {
     background-color var(--ts-g);
   z-index: 0;
   position: relative;
+
+  &.download {
+    &.awaiting,
+    &.finished {
+      opacity: 0.5;
+    }
+
+    &.downloading,
+    &.extracting,
+    &.tags {
+      background-color: var(--global-grey);
+      box-shadow: inset 0 0 48px 17px #0005;
+    }
+
+    &[class*='end'] {
+      .background-progress {
+        opacity: 0;
+      }
+    }
+
+    &[class*='error'] {
+      .background-progress {
+        --progress: 100% !important;
+        background: $error-bg;
+      }
+    }
+  }
+
+  &.conversion {
+    .track-info .name {
+      font-size: 1em;
+    }
+  }
 }
 
 .track-image {
@@ -240,22 +302,72 @@ const openVideo = (): void => {
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
-  background: var(--button-purple);
-}
+  box-shadow: inset 0 0 48px 17px #0004;
 
-.progress-label {
-  padding: 0.2em 0.3em;
-  white-space: nowrap;
+  &.downloading {
+    background: $download-bg;
+  }
+
+  &.extracting {
+    background: $extraction-bg;
+  }
+
+  &.tags {
+    --p: #ffe500 -150%, #ff00ff;
+    animation: background-cycle-less 5s infinite var(--bezier-chill);
+    --progress: 100% !important;
+  }
+
+  .progress-label {
+    padding: 0.2em 0.3em;
+    white-space: nowrap;
+  }
 }
 
 .track-info {
   padding-left: 0.7em;
+
+  > div > span {
+    line-height: 1;
+  }
+
+  $name-size: 2em;
   text-align: left;
+
+  .name {
+    font-weight: 500;
+    font-size: $name-size;
+  }
+
+  .artists {
+    font-weight: bold;
+    display: flex;
+    margin-top: 0.2em;
+    font-size: $name-size * 0.4;
+  }
+
+  .playlists {
+    font-size: $name-size * 0.3;
+  }
 }
 
-.name {
-  font-weight: 500;
-  font-size: 1.5em;
+.see-track-link {
+  position: absolute;
+  cursor: pointer;
+  $w: 1.5em;
+  left: -$w;
+  width: $w;
+  top: 0;
+  bottom: 0;
+  writing-mode: tb-rl;
+  transform: rotate(180deg);
+  opacity: 0.7;
+
+  > span {
+    display: inline-block;
+    // padding-bottom: 0.5em;
+    font-size: 0.4em;
+  }
 }
 
 .matching-token {
@@ -263,13 +375,20 @@ const openVideo = (): void => {
   font-weight: 500;
 }
 
-.artists {
-  font-weight: bold;
-  display: flex;
-  margin-top: 0.2em;
-  font-size: 0.6em;
-}
 .track-controls {
   gap: 0.5em;
+}
+</style>
+<style lang="scss">
+.card-container.track-banner-card {
+  .card-background {
+    .gradient {
+      --gradient-offset: 0%;
+    }
+
+    .card-img {
+      --card-img-width: 100%;
+    }
+  }
 }
 </style>

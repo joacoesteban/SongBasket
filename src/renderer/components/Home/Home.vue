@@ -77,3 +77,31 @@ onMounted(() => {
   overflow: auto;
 }
 </style>
+<style lang="scss" scoped>
+// .router-view {
+//   $transition: var(--home-transition);
+//   transition: transform $transition, opacity $transition;
+//   opacity: 1;
+//   transform: scale(1);
+//   transform-origin: bottom;
+
+//   &.fast {
+//     transition: transform 0s
+//   }
+//   &:not(.release) {
+//     transition-timing-function: var(--bezier-out);
+//   }
+//   &.push {
+//     transform: scale(.75);
+//     opacity: 0;
+//   }
+//   &.pull {
+//     transform: scale(1.5);
+//     opacity: 0;
+//   }
+//   &.release {
+//     opacity: 1;
+//     transform: scale(1)
+//   }
+// }
+</style>

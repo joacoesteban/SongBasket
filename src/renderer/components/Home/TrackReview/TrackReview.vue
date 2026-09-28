@@ -67,4 +67,9 @@ const selectVideo = (item: YoutubeResult): void => {
   width: 100%;
   max-width: 100vw;
 }
+
+.parent-track-container {
+  position: sticky;
+  top: 0;
+}
 </style>

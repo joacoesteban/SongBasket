@@ -1,14 +1,54 @@
 <template>
   <div v-if="playlist" class="pl-view-slide-container">
     <div class="image" :style="imageStyle">
-      <div class="gradient abs-full" />
-      <div class="gradient-y abs-full" />
-    </div>
-    <div class="data">
-      <div class="title">
-        <span class="bold">{{ playlist.name }}</span>
+      <div class="rel-full">
+        <div class="gradient abs-full" />
       </div>
-      <div class="track-count">
+    </div>
+
+    <div class="data">
+      <div class="title df alic bold window-nodrag">
+        <span>{{ playlist.name }}</span>
+        <div class="controls-container">
+          <div class="icon-wrapper" :class="{ show: showPause }">
+            <button
+              class="icon window-nodrag"
+              aria-label="Download playlist"
+              @click="downloadPlaylist"
+            >
+              <download-icon />
+            </button>
+          </div>
+          <div class="icon-wrapper show">
+            <button
+              class="icon window-nodrag"
+              aria-label="Unsync playlist"
+              @click="unsyncPlaylist"
+            >
+              <close-icon />
+            </button>
+          </div>
+          <div v-if="showPause" class="icon-wrapper show">
+            <button
+              class="icon window-nodrag"
+              aria-label="Pause playlist"
+              @click="pausePlaylist"
+            >
+              <pause-icon />
+            </button>
+          </div>
+          <div v-if="showUnpause" class="icon-wrapper show">
+            <button
+              class="icon window-nodrag"
+              aria-label="Resume playlist"
+              @click="pausePlaylist"
+            >
+              <play-icon />
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="track-count regular">
         <span>{{ trackAmountText }}</span>
       </div>
       <div
@@ -17,44 +57,6 @@
         :style="{ '--status-color': status.color }"
       >
         <span class="bold uppercase">{{ status.message }}</span>
-      </div>
-      <div class="controls-container">
-        <div class="icon-wrapper show">
-          <button
-            class="icon window-nodrag"
-            aria-label="Download playlist"
-            @click="downloadPlaylist"
-          >
-            <download-icon />
-          </button>
-        </div>
-        <div class="icon-wrapper show">
-          <button
-            class="icon window-nodrag"
-            aria-label="Unsync playlist"
-            @click="unsyncPlaylist"
-          >
-            <close-icon />
-          </button>
-        </div>
-        <div v-if="showPause" class="icon-wrapper show">
-          <button
-            class="icon window-nodrag"
-            aria-label="Pause playlist"
-            @click="pausePlaylist"
-          >
-            <pause-icon />
-          </button>
-        </div>
-        <div v-if="showUnpause" class="icon-wrapper show">
-          <button
-            class="icon window-nodrag"
-            aria-label="Resume playlist"
-            @click="pausePlaylist"
-          >
-            <play-icon />
-          </button>
-        </div>
       </div>
     </div>
   </div>

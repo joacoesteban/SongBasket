@@ -28,14 +28,6 @@
       >
         <span class="bold uppercase">{{ status.msg }}</span>
       </div>
-      <button
-        v-if="isSynced"
-        class="link-button"
-        type="button"
-        @click.stop="openUnsync"
-      >
-        Unsync
-      </button>
     </div>
   </Card>
 </template>
@@ -45,7 +37,6 @@ import { computed } from 'vue'
 
 import type { SpotifyPlaylistId } from '../../../@types/Spotify'
 import { useSongBasketActions, useSongBasketState } from '../../state'
-import { useModal } from '../../state/useModal'
 import Card from './Generic/Card.vue'
 import { type Playlist, playlistImage, playlistStatus } from './model'
 
@@ -60,7 +51,6 @@ const emit = defineEmits<{ openPlaylist: [id: SpotifyPlaylistId] }>()
 
 const { state } = useSongBasketState()
 const { queuePlaylist } = useSongBasketActions()
-const { openModal } = useModal()
 
 const currentState = computed(() => state.value)
 const status = computed<Status>(() => {
@@ -90,7 +80,7 @@ const playlistFormatted = computed(() => ({
   backgroundImage: playlistImage(props.playlist)
 }))
 const cardOptions = computed(() => {
-  if (isSynced.value) return { size: '.8em', height: '4.5em' }
+  if (isSynced.value) return { size: '.8em', height: '3.5em' }
   return {}
 })
 const rowClasses = computed(() => {
@@ -105,13 +95,16 @@ const handleClick = (): void => {
   }
   void queuePlaylist(props.playlist.id)
 }
-const openUnsync = (): void => {
-  const id: SpotifyPlaylistId = props.playlist.id
-  openModal({ kind: 'unsync', playlistId: id })
-}
 </script>
 
 <style lang="scss" scoped>
+$q-false-color: #1b1b1b;
+$q-true-color: rgb(103, 214, 0);
+$bezier-tranka: cubic-bezier(0.12, 0.82, 0, 1);
+
+$playlist-height: 4em;
+$title-size: 0.8em;
+
 .playlist-data {
   text-align-last: left;
   position: relative;
@@ -126,10 +119,16 @@ const openUnsync = (): void => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+
+    > span {
+      font-size: $title-size;
+    }
   }
 
-  .track-ammount span {
-    font-size: 0.6em;
+  .track-ammount {
+    > span {
+      font-size: $title-size * 0.75;
+    }
   }
 }
 
@@ -140,6 +139,10 @@ const openUnsync = (): void => {
   right: 0;
 
   .track-change {
+    // $size: 1.5em;
+    // width: $size;
+    // height: $size;
+    // margin: 0 $size/10;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -161,6 +164,18 @@ const openUnsync = (): void => {
     &.removed {
       color: var(--red-cancel);
     }
+  }
+}
+</style>
+
+<style lang="scss">
+$title-size: 0.8em;
+
+.playlist-status-indicator {
+  color: var(--status-color);
+
+  > span {
+    font-size: $title-size * 0.75;
   }
 }
 </style>
