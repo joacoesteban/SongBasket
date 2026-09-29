@@ -379,8 +379,8 @@ input {
 @yellow: #ffe500;
 @pink: #ff00ff;
 
-.loop (@i: 0) when (@i <=360/@factor) {
-  @keyframeSel: ceil(percentage(@i* @factor / 360));
+.loop (@i: 0) when (@i <= (360 / @factor)) {
+  @keyframeSel: ceil(percentage((@i * @factor / 360)));
   @degs: @i* @factor*1deg;
 
   @{keyframeSel} {
