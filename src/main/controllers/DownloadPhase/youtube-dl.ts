@@ -162,16 +162,22 @@ const emitEvent = {
   send: ipcSend,
   timeoutInProgress: false,
   makeTimeout: (params: DownloadEvent, key: EventGroup) => {
-    lastEvent = {
+    const event: RendererDownloadEvent = {
       ...params,
       type: eventTypes[key][params.type]
     }
+    if (params.type !== LifeCycle.Progress) {
+      lastEvent = null
+      emitEvent.send('DOWNLOAD:EVENT', event)
+      return
+    }
+    lastEvent = event
 
     if (emitEvent.timeoutInProgress) return
     emitEvent.timeoutInProgress = true
     setTimeout(() => {
-      const event = lastEvent
-      if (event !== null) emitEvent.send('DOWNLOAD:EVENT', event)
+      const pending = lastEvent
+      if (pending !== null) emitEvent.send('DOWNLOAD:EVENT', pending)
       emitEvent.timeoutInProgress = false
     }, 300)
   },
@@ -222,7 +228,7 @@ export default {
   ) {
     console.log('Stored tracks: ', localTracks.length)
     let tracksToDownload = customGetters.convertedTracks_SAFE()
-    if (plFilter)
+    if (plFilter.length)
       tracksToDownload = tracksToDownload.filter((t) =>
         t.playlists.some((pl) => plFilter.includes(pl.id))
       )
@@ -464,11 +470,10 @@ function constructDownloads(tracks: QueryTrack[]) {
   }
 
   const executeDownload = async (instance: DownloadInstance) => {
-    if (!instance.download) throw new Error('NO DOWNLOADER')
-    if (!instance.extraction) throw new Error('NO EXTRACTOR')
-
     instance.controller.constructDownload()
     instance.controller.constructExtraction()
+    if (!instance.download) throw new Error('NO DOWNLOADER')
+    if (!instance.extraction) throw new Error('NO EXTRACTOR')
 
     try {
       await utils.createDirRecursive(instance.paths.downloadCWD)

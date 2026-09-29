@@ -361,10 +361,16 @@ export async function download(plFilter?: SpotifyPlaylistId[]) {
   if (plFilter && !Array.isArray(plFilter)) plFilter = [plFilter]
 
   loadingController.on('DOWNLOAD')
-  const tracks = await FSController.UserMethods.retrieveLocalTracks()
-  await youtubeDl.downloadSyncedPlaylists(tracks, plFilter || [])
-  // await FileWatchers.rebuildWatchers()
-  loadingController.off('DOWNLOAD')
+  try {
+    const tracks = await FSController.UserMethods.retrieveLocalTracks()
+    await youtubeDl.downloadSyncedPlaylists(tracks, plFilter || [])
+  } catch (error) {
+    await sendError({ type: 'DOWNLOAD', error })
+    throw error
+  } finally {
+    loadingController.off('DOWNLOAD')
+    await reflectRenderer()
+  }
 }
 
 export async function queuePlaylist(id: SpotifyPlaylistId) {

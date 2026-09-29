@@ -10,6 +10,7 @@ import {
   shallowRef
 } from 'vue'
 
+import { applyDownloadEvent } from '../../shared/download-progress'
 import {
   withDownloadedFile,
   withoutDownloadedFile
@@ -220,6 +221,7 @@ export const createSongBasketState = (): SongBasketStateService => {
     }),
     window.songbasket.on('DOWNLOAD:EVENT', (event) => {
       downloadEventRef.value = event
+      downloadItemsRef.value = applyDownloadEvent(downloadItemsRef.value, event)
     }),
     window.songbasket.on('DOWNLOAD:END', () => {
       downloadActiveRef.value = false

@@ -155,7 +155,7 @@ class UserMethods {
   ): Promise<Track[]> {
     const syncedPlaylists = customGetters
       .SyncedPlaylistsSp()
-      .filter((pl) => plFilter.some((toExclude) => toExclude === pl.id))
+      .filter((pl) => plFilter.length === 0 || plFilter.includes(pl.id))
       .map((pl) => ({
         id: pl.id,
         path: PATH.join(
