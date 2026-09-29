@@ -4,6 +4,7 @@ import type {
   HomeFolderAskResponse,
   TrackSelectionRequest
 } from '../../shared/ipc'
+import { navigate, routeNames } from '../router'
 
 export type SongBasketActions = {
   refresh: () => Promise<void>
@@ -39,8 +40,10 @@ export const createSongBasketActions = (): SongBasketActions => ({
   pauseTrack: (id) => window.songbasket.invoke('TRACK:PAUSE', { id }),
   changeTrackSelection: (request) =>
     window.songbasket.invoke('TRACK:CHANGE_SELECTION', request),
-  download: (playlistFilter) =>
-    window.songbasket.invoke('DOWNLOAD', playlistFilter),
+  download: async (playlistFilter) => {
+    void navigate({ name: routeNames.downloadsView })
+    await window.songbasket.invoke('DOWNLOAD', playlistFilter)
+  },
   convertYoutube: () => window.songbasket.invoke('YOUTUBE:CONVERT'),
   login: () => window.songbasket.invoke('LOGIN'),
   logout: () => window.songbasket.invoke('LOGOUT'),
