@@ -152,3 +152,37 @@ Desktop startup can contact the API and download or update `yt-dlp` and `ffmpeg`
 - For API changes, exercise the new contract through its desktop consumer or a local request.
 - Keep tests focused on behavior and data integrity, not legacy implementation details.
 - If missing credentials or unavailable services prevent a check, document the blocker.
+
+## Debugging and verification practice
+
+### Reproduce before you diagnose
+
+- Run the failing flow before you read code for causes. Logs from one run often show the real fault at once.
+- Code reading gives candidate causes. Only a run confirms which cause the user hits.
+- Do not present a fix as complete until the reported flow works in the running app.
+
+### Report only what you observed
+
+- Label each claim as observed or inferred.
+- If a fix changes one layer, do not claim end-to-end behavior for layers you did not run.
+
+### Run the app instead of declaring a blocker
+
+- "The check touches user data" is a reason to isolate the check, not to skip it.
+- Use a temporary library folder, or the smallest real scope the user named, such as one playlist.
+- If isolation is not possible, ask the user one specific question. Do not hand verification back without an attempt.
+
+### Check the size of a write before it runs
+
+- Before a flow writes to user data, compare the planned work with the expected work. The downloader logs its queue as `to download`, `to link`, and `to unlink`.
+- If the planned work is larger than expected, stop the app at once. Investigate after it stops.
+- After an interrupted run, report exactly which user files changed.
+
+### Search for repeated bug shapes
+
+- When one bug has a clear shape, search for the same shape elsewhere before you close the task.
+- Known shape in this codebase: optional filter parameters. In legacy code, a missing or empty filter means "all items". Migrated code inverted this in more than one place. Check every `plFilter`-style parameter, and treat deletion and unlink paths first.
+
+### Local environment
+
+- `mise run dev` can resolve a Homebrew `node` before the mise Node 24 install. If Node fails to load a dynamic library, run `electron-vite` with the mise Node binary from `mise where node`.
